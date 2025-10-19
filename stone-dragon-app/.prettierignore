@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.log
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
+backend/prisma/migrations/
+frontend/.expo/
+frontend/web-build/
+android/
+ios/
