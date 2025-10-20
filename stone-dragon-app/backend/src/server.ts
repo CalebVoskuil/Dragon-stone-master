@@ -15,6 +15,8 @@ import userRoutes from './routes/users';
 import volunteerLogRoutes from './routes/volunteerLogs';
 import coordinatorRoutes from './routes/coordinator';
 import badgeRoutes from './routes/badges';
+import schoolRoutes from './routes/schools';
+import docsRoutes from './routes/docs';
 
 // Load environment variables
 dotenv.config();
@@ -82,6 +84,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/volunteer-logs', volunteerLogRoutes);
 app.use('/api/coordinator', coordinatorRoutes);
 app.use('/api/badges', badgeRoutes);
+app.use('/api/schools', schoolRoutes);
+app.use('/api/docs', docsRoutes);
 
 // API documentation endpoint
 app.get('/api', (_req, res) => {
@@ -94,6 +98,8 @@ app.get('/api', (_req, res) => {
       volunteerLogs: '/api/volunteer-logs',
       coordinator: '/api/coordinator',
       badges: '/api/badges',
+      schools: '/api/schools',
+      docs: '/api/docs',
     },
     documentation: '/api/docs',
   });

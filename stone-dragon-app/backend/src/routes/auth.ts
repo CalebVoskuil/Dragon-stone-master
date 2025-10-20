@@ -13,7 +13,7 @@ const registerValidation = [
   body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
   body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
   body('role').isIn(['STUDENT', 'VOLUNTEER', 'COORDINATOR']).withMessage('Invalid role'),
-  body('schoolId').optional().isUUID().withMessage('Invalid school ID'),
+  body('schoolId').optional().isString().withMessage('Invalid school ID'),
 ];
 
 const loginValidation = [

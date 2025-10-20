@@ -21,7 +21,7 @@ const createLogValidation = [
   body('hours').isFloat({ min: 0.1 }).withMessage('Hours must be a positive number'),
   body('description').trim().isLength({ min: 10 }).withMessage('Description must be at least 10 characters'),
   body('date').isISO8601().withMessage('Valid date is required'),
-  body('schoolId').isUUID().withMessage('Valid school ID is required'),
+  body('schoolId').isString().withMessage('Valid school ID is required'),
 ];
 
 const updateLogValidation = [
