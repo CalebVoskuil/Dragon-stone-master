@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model - represents students, volunteers, and coordinators
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String   @default("STUDENT") // STUDENT, VOLUNTEER, COORDINATOR, ADMIN
+  schoolId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  school        School?        @relation(fields: [schoolId], references: [id])
+  volunteerLogs VolunteerLog[]
+  reviewedLogs  VolunteerLog[] @relation("LogReviewer")
+  userBadges    UserBadge[]
+
+  @@map("users")
+}
+
+// School model - represents affiliated schools
+model School {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  contactEmail String?
+  contactPhone String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users         User[]
+  volunteerLogs VolunteerLog[]
+
+  @@map("schools")
+}
+
+// VolunteerLog model - represents volunteer hour submissions
+model VolunteerLog {
+  id                  String        @id @default(cuid())
+  hours               Float
+  description         String
+  date                DateTime
+  status              String        @default("pending") // pending, approved, rejected
+  proofFileName       String?
+  proofFilePath       String?
+  coordinatorComment  String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  reviewedAt          DateTime?
+  
+  // Foreign keys
+  userId      String
+  schoolId    String
+  reviewedBy  String?
+
+  // Relations
+  user    User  @relation(fields: [userId], references: [id])
+  school  School @relation(fields: [schoolId], references: [id])
+  reviewer User? @relation("LogReviewer", fields: [reviewedBy], references: [id])
+
+  @@map("volunteer_logs")
+}
+
+// Badge model - represents gamification badges
+model Badge {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String
+  iconUrl       String?
+  requiredHours Float
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+// UserBadge model - represents user badge achievements
+model UserBadge {
+  id        String   @id @default(cuid())
+  earnedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // Foreign keys
+  userId  String
+  badgeId String
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// Note: SQLite doesn't support enums, so we use string literals
+// UserRole: "STUDENT" | "VOLUNTEER" | "COORDINATOR" | "ADMIN"
+// LogStatus: "pending" | "approved" | "rejected"
