@@ -11,10 +11,10 @@ const uploadConfig: FileUploadConfig = {
 
 // Storage configuration
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, uploadConfig.uploadPath);
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     // Generate unique filename with timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   if (uploadConfig.allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -41,7 +41,7 @@ export const upload = multer({
 });
 
 // Error handler for multer
-export const handleUploadError = (error: any, req: any, res: any, next: any) => {
+export const handleUploadError = (error: any, _req: any, res: any, next: any) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({

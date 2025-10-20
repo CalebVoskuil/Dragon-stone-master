@@ -98,9 +98,9 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     const user = await prisma.user.update({
       where: { id },
       data: {
-        firstName,
-        lastName,
-        schoolId,
+        firstName: firstName as string,
+        lastName: lastName as string,
+        schoolId: schoolId as string,
       },
       select: {
         id: true,

@@ -6,13 +6,13 @@ import {
   getCoordinatorDashboard,
   getSchoolStats 
 } from '../controllers/coordinatorController';
-import { authenticateToken, requireCoordinator } from '../middleware/auth';
+import { authenticateSession, requireCoordinator } from '../middleware/auth';
 import { validateRequest } from '../middleware/validateRequest';
 
 const router = Router();
 
 // All routes require coordinator authentication
-router.use(authenticateToken);
+router.use(authenticateSession);
 router.use(requireCoordinator);
 
 // Validation rules

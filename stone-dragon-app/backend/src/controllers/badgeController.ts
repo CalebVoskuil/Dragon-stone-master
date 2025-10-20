@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getBadges = async (req: Request, res: Response): Promise<void> => {
+export const getBadges = async (_req: Request, res: Response): Promise<void> => {
   try {
     const badges = await prisma.badge.findMany({
       orderBy: { requiredHours: 'asc' },
@@ -27,10 +27,18 @@ export const getUserBadges = async (req: Request, res: Response): Promise<void> 
   try {
     const { userId } = req.params;
 
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: 'User ID is required',
+      });
+      return;
+    }
+
     // Get user's total approved hours
     const totalHours = await prisma.volunteerLog.aggregate({
       where: {
-        userId,
+        userId: userId as string,
         status: 'approved',
       },
       _sum: { hours: true },
@@ -44,7 +52,7 @@ export const getUserBadges = async (req: Request, res: Response): Promise<void> 
     });
 
     // Calculate which badges the user has earned
-    const userBadges = badges.map(badge => ({
+    const userBadges = badges.map((badge: any) => ({
       ...badge,
       isEarned: userTotalHours >= badge.requiredHours,
       earnedAt: userTotalHours >= badge.requiredHours ? new Date() : null,
@@ -71,10 +79,18 @@ export const getBadgeProgress = async (req: Request, res: Response): Promise<voi
   try {
     const { userId } = req.params;
 
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: 'User ID is required',
+      });
+      return;
+    }
+
     // Get user's total approved hours
     const totalHours = await prisma.volunteerLog.aggregate({
       where: {
-        userId,
+        userId: userId as string,
         status: 'approved',
       },
       _sum: { hours: true },
@@ -88,7 +104,7 @@ export const getBadgeProgress = async (req: Request, res: Response): Promise<voi
     });
 
     // Calculate progress for each badge
-    const badgeProgress = badges.map(badge => {
+    const badgeProgress = badges.map((badge: any) => {
       const isEarned = userTotalHours >= badge.requiredHours;
       const progress = Math.min((userTotalHours / badge.requiredHours) * 100, 100);
       

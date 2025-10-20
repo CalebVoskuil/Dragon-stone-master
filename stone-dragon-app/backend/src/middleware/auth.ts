@@ -1,31 +1,27 @@
 import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { AuthenticatedRequest } from '../types';
 
 const prisma = new PrismaClient();
 
-export const authenticateToken = async (
+export const authenticateSession = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const userId = (req.session as any).userId;
 
-    if (!token) {
+    if (!userId) {
       res.status(401).json({
         success: false,
-        message: 'Access token required',
+        message: 'Authentication required',
       });
       return;
     }
 
-    const decoded = jwt.verify(token, process.env['JWT_SECRET']!) as { userId: string };
-    
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: userId },
       select: {
         id: true,
         email: true,
@@ -50,9 +46,9 @@ export const authenticateToken = async (
     req.user = user as any;
     next();
   } catch (error) {
-    res.status(403).json({
+    res.status(500).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: 'Authentication error',
     });
   }
 };

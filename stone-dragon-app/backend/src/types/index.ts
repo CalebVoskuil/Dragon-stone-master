@@ -1,5 +1,11 @@
 import { Request } from 'express';
-import { User } from '@prisma/client';
+
+// Extend Express Request to include session
+declare module 'express-serve-static-core' {
+  interface Request {
+    session: any;
+  }
+}
 
 // Type definitions for string literals (SQLite doesn't support enums)
 export type UserRole = 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'ADMIN';
@@ -7,7 +13,7 @@ export type LogStatus = 'pending' | 'approved' | 'rejected';
 
 // Extend Express Request to include user
 export interface AuthenticatedRequest extends Request {
-  user?: User;
+  user?: any;
 }
 
 // API Response types
@@ -43,8 +49,7 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password'>;
-  token: string;
+  user: any;
 }
 
 // Volunteer Log types

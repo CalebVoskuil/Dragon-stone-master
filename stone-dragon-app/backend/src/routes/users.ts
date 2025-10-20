@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getUsers, getUserById, updateUser, deleteUser } from '../controllers/userController';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateSession, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(authenticateSession);
 
 // Routes
 router.get('/', getUsers);

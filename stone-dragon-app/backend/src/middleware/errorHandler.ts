@@ -57,14 +57,10 @@ export const errorHandler = (
     message = error.message;
     isOperational = true;
   }
-  // Handle JWT errors
-  else if (error.name === 'JsonWebTokenError') {
+  // Handle session errors
+  else if (error.name === 'SessionError') {
     statusCode = 401;
-    message = 'Invalid token';
-    isOperational = true;
-  } else if (error.name === 'TokenExpiredError') {
-    statusCode = 401;
-    message = 'Token expired';
+    message = 'Session error';
     isOperational = true;
   }
 

@@ -7,14 +7,14 @@ import {
   updateVolunteerLog,
   deleteVolunteerLog 
 } from '../controllers/volunteerLogController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateSession } from '../middleware/auth';
 import { validateRequest } from '../middleware/validateRequest';
 import { upload } from '../middleware/upload';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(authenticateSession);
 
 // Validation rules
 const createLogValidation = [

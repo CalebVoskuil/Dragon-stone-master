@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { StringValue } from 'ms';
 import { PrismaClient } from '@prisma/client';
-import { RegisterRequest, LoginRequest, AuthResponse } from '../types';
+import { RegisterRequest, LoginRequest } from '../types';
 
 const prisma = new PrismaClient();
 
@@ -30,12 +28,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: email as string,
         password: hashedPassword,
-        firstName,
-        lastName,
-        role,
-        ...(schoolId && { schoolId }),
+        firstName: firstName as string,
+        lastName: lastName as string,
+        role: role as string,
+        ...(schoolId && { schoolId: schoolId as string }),
       },
       select: {
         id: true,
@@ -50,25 +48,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    // Generate JWT token
-    const tokenOptions: SignOptions = {
-      expiresIn: (process.env['JWT_EXPIRES_IN'] || '7d') as StringValue,
-    };
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env['JWT_SECRET']!,
-      tokenOptions
-    );
-
-    const response: AuthResponse = {
-      user,
-      token,
-    };
+    // Store user in session
+    (req.session as any).userId = user.id;
+    (req.session as any).userRole = user.role;
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      data: response,
+      data: { user },
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -107,28 +94,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Generate JWT token
-    const tokenOptions: SignOptions = {
-      expiresIn: (process.env['JWT_EXPIRES_IN'] || '7d') as StringValue,
-    };
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env['JWT_SECRET']!,
-      tokenOptions
-    );
+    // Store user in session
+    (req.session as any).userId = user.id;
+    (req.session as any).userRole = user.role;
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    const response: AuthResponse = {
-      user: userWithoutPassword,
-      token,
-    };
-
     res.json({
       success: true,
       message: 'Login successful',
-      data: response,
+      data: { user: userWithoutPassword },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -139,19 +115,57 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const logout = async (_req: Request, res: Response): Promise<void> => {
-  // In a stateless JWT implementation, logout is handled client-side
-  // by removing the token. For enhanced security, you could implement
-  // a token blacklist or use refresh tokens.
-  res.json({
-    success: true,
-    message: 'Logout successful',
+export const logout = async (req: Request, res: Response): Promise<void> => {
+  // Destroy the session
+  req.session.destroy((err: any) => {
+    if (err) {
+      res.status(500).json({
+        success: false,
+        message: 'Logout failed',
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      message: 'Logout successful',
+    });
   });
 };
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = (req as any).user;
+    const userId = (req.session as any).userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+      });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        schoolId: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
 
     res.json({
       success: true,

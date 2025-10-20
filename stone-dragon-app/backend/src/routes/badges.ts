@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getBadges, getUserBadges, getBadgeProgress } from '../controllers/badgeController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateSession } from '../middleware/auth';
 
 const router = Router();
 
 // All routes require authentication
-router.use(authenticateToken);
+router.use(authenticateSession);
 
 // Routes
 router.get('/', getBadges);

@@ -16,8 +16,8 @@ export const createVolunteerLog = async (req: Request, res: Response): Promise<v
         date: new Date(date),
         schoolId: schoolId as string,
         userId: userId as string,
-        proofFileName: proofFile?.filename || null,
-        proofFilePath: proofFile?.path || null,
+        proofFileName: proofFile?.filename ?? null,
+        proofFilePath: proofFile?.path ?? null,
         status: 'pending' as const,
       },
       include: {
@@ -217,7 +217,7 @@ export const updateVolunteerLog = async (req: Request, res: Response): Promise<v
     if (date !== undefined) updateData.date = new Date(date);
 
     const volunteerLog = await prisma.volunteerLog.update({
-      where: { id: id as string },
+      where: { id },
       data: updateData,
       include: {
         user: {
@@ -284,7 +284,7 @@ export const deleteVolunteerLog = async (req: Request, res: Response): Promise<v
     }
 
     await prisma.volunteerLog.delete({
-      where: { id: id as string },
+      where: { id },
     });
 
     res.json({

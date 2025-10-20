@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -45,6 +46,17 @@ if (process.env['NODE_ENV'] === 'development') {
 } else {
   app.use(morgan('combined'));
 }
+
+// Session configuration
+app.use(session({
+  secret: process.env['SESSION_SECRET'] || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env['NODE_ENV'] === 'production',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

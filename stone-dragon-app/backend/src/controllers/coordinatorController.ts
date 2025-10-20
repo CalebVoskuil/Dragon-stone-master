@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export const getPendingLogs = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = 1, limit = 10, schoolId } = req.query;
-    const coordinatorId = (req as any).user.id;
 
     const where: any = {
       status: 'pending',
@@ -71,6 +70,14 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
     const { status, coordinatorComment } = req.body;
     const coordinatorId = (req as any).user.id;
 
+    if (!logId) {
+      res.status(400).json({
+        success: false,
+        message: 'Log ID is required',
+      });
+      return;
+    }
+
     const volunteerLog = await prisma.volunteerLog.update({
       where: { id: logId },
       data: {
@@ -111,10 +118,8 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
   }
 };
 
-export const getCoordinatorDashboard = async (req: Request, res: Response): Promise<void> => {
+export const getCoordinatorDashboard = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const coordinatorId = (req as any).user.id;
-
     // Get statistics
     const [
       totalLogs,
@@ -225,7 +230,7 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
     ]);
 
     // Get user details for top volunteers
-    const topVolunteerIds = topVolunteers.map(v => v.userId);
+    const topVolunteerIds = topVolunteers.map((v: any) => v.userId);
     const topVolunteerDetails = await prisma.user.findMany({
       where: { id: { in: topVolunteerIds } },
       select: {
@@ -236,8 +241,8 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
       },
     });
 
-    const topVolunteersWithDetails = topVolunteers.map(volunteer => {
-      const userDetails = topVolunteerDetails.find(u => u.id === volunteer.userId);
+    const topVolunteersWithDetails = topVolunteers.map((volunteer: any) => {
+      const userDetails = topVolunteerDetails.find((u: any) => u.id === volunteer.userId);
       return {
         ...userDetails,
         totalHours: volunteer._sum.hours || 0,
