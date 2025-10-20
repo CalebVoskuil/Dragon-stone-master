@@ -18,7 +18,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: 'http://localhost:3001/api',
+      baseURL: 'http://192.168.0.208:3001/api', 
       timeout: 10000,
       withCredentials: true, // Important for session-based auth
       headers: {
