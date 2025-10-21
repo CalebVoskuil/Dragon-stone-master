@@ -129,6 +129,58 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+export const getUserStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id;
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: 'User ID is required',
+      });
+      return;
+    }
+
+    // Get user's volunteer log statistics
+    const [
+      totalLogs,
+      pendingLogs,
+      approvedLogs,
+      rejectedLogs,
+      totalHours,
+    ] = await Promise.all([
+      prisma.volunteerLog.count({ where: { userId } }),
+      prisma.volunteerLog.count({ where: { userId, status: 'pending' } }),
+      prisma.volunteerLog.count({ where: { userId, status: 'approved' } }),
+      prisma.volunteerLog.count({ where: { userId, status: 'rejected' } }),
+      prisma.volunteerLog.aggregate({
+        where: { userId, status: 'approved' },
+        _sum: { hours: true },
+      }),
+    ]);
+
+    const stats = {
+      totalLogs,
+      pendingLogs,
+      approvedLogs,
+      rejectedLogs,
+      totalHours: totalHours._sum.hours || 0,
+    };
+
+    res.json({
+      success: true,
+      message: 'User statistics retrieved successfully',
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user statistics',
+    });
+  }
+};
+
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

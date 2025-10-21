@@ -73,6 +73,23 @@ class ApiService {
     return response.data;
   }
 
+  async getUserStats(): Promise<ApiResponse<{
+    totalLogs: number;
+    pendingLogs: number;
+    approvedLogs: number;
+    rejectedLogs: number;
+    totalHours: number;
+  }>> {
+    const response: AxiosResponse<ApiResponse<{
+      totalLogs: number;
+      pendingLogs: number;
+      approvedLogs: number;
+      rejectedLogs: number;
+      totalHours: number;
+    }>> = await this.api.get('/users/stats');
+    return response.data;
+  }
+
   // Volunteer Log endpoints
   async getVolunteerLogs(params?: {
     page?: number;

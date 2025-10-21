@@ -90,10 +90,7 @@ const CoordinatorDashboardScreen: React.FC = () => {
     try {
       setIsSubmittingReview(true);
       
-      const response = await apiService.reviewVolunteerLog(logId, {
-        status,
-        coordinatorComment: reviewComment.trim() || undefined,
-      });
+      const response = await apiService.reviewVolunteerLog(logId, status, reviewComment.trim() || undefined);
 
       if (response.success) {
         Alert.alert(

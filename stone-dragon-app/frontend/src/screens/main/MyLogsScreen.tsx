@@ -27,10 +27,19 @@ import { theme, spacing } from '../../theme/theme';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 
+interface UserStats {
+  totalLogs: number;
+  pendingLogs: number;
+  approvedLogs: number;
+  rejectedLogs: number;
+  totalHours: number;
+}
+
 const MyLogsScreen: React.FC = () => {
   const { user } = useAuth();
   const [logs, setLogs] = useState<VolunteerLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<VolunteerLog[]>([]);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
@@ -39,7 +48,15 @@ const MyLogsScreen: React.FC = () => {
   const loadLogs = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getVolunteerLogs();
+      
+      // Fetch user statistics (all logs)
+      const statsResponse = await apiService.getUserStats();
+      if (statsResponse.success && statsResponse.data) {
+        setUserStats(statsResponse.data);
+      }
+      
+      // Fetch paginated logs for display (with higher limit to show more logs)
+      const response = await apiService.getVolunteerLogs({ limit: 50 });
       if (response.success && response.data) {
         setLogs(response.data);
         setFilteredLogs(response.data);
@@ -111,18 +128,6 @@ const MyLogsScreen: React.FC = () => {
     }
   };
 
-  const getTotalHours = () => {
-    return logs
-      .filter(log => log.status === 'approved')
-      .reduce((total, log) => total + log.hours, 0);
-  };
-
-  const getStats = () => {
-    const approved = logs.filter(log => log.status === 'approved').length;
-    const pending = logs.filter(log => log.status === 'pending').length;
-    const rejected = logs.filter(log => log.status === 'rejected').length;
-    return { approved, pending, rejected };
-  };
 
   if (isLoading) {
     return (
@@ -132,8 +137,6 @@ const MyLogsScreen: React.FC = () => {
       </View>
     );
   }
-
-  const stats = getStats();
 
   return (
     <View style={styles.container}>
@@ -150,15 +153,15 @@ const MyLogsScreen: React.FC = () => {
               <Title>Your Volunteer Summary</Title>
               <View style={styles.statsRow}>
                 <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{getTotalHours()}</Text>
+                  <Text style={styles.statNumber}>{userStats?.totalHours || 0}</Text>
                   <Text style={styles.statLabel}>Total Hours</Text>
                 </Surface>
                 <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{stats.approved}</Text>
+                  <Text style={styles.statNumber}>{userStats?.approvedLogs || 0}</Text>
                   <Text style={styles.statLabel}>Approved</Text>
                 </Surface>
                 <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{stats.pending}</Text>
+                  <Text style={styles.statNumber}>{userStats?.pendingLogs || 0}</Text>
                   <Text style={styles.statLabel}>Pending</Text>
                 </Surface>
               </View>
