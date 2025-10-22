@@ -6,36 +6,41 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import {
   Text,
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Paragraph,
   ActivityIndicator,
-  Chip,
   Menu,
   Divider,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
 import { School, CreateVolunteerLogData } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { colors, spacing, typography, borderRadius } from '../../theme/theme';
+import { SDButton } from '../../components/SDButton';
+import { SDCard } from '../../components/SDCard';
+import { SDInput } from '../../components/SDInput';
+import { SDFileUpload } from '../../components/SDFileUpload';
 
 interface LogHoursFormData {
+  logType: 'event' | 'donation' | 'volunteer' | 'other';
   hours: string;
   description: string;
   date: string;
   schoolId: string;
+  eventTitle?: string;
+  organization?: string;
+  item?: string;
+  amount?: string;
 }
+
+type LogType = 'event' | 'donation' | 'volunteer' | 'other';
 
 const LogHoursScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -46,6 +51,7 @@ const LogHoursScreen: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSchools, setIsLoadingSchools] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const {
     control,
@@ -55,14 +61,20 @@ const LogHoursScreen: React.FC = () => {
     watch,
   } = useForm<LogHoursFormData>({
     defaultValues: {
+      logType: 'volunteer',
       hours: '',
       description: '',
       date: format(new Date(), 'yyyy-MM-dd'),
       schoolId: '',
+      eventTitle: '',
+      organization: '',
+      item: '',
+      amount: '',
     },
   });
 
   const watchedSchoolId = watch('schoolId');
+  const watchedLogType = watch('logType');
 
   useEffect(() => {
     loadSchools();
@@ -90,58 +102,65 @@ const LogHoursScreen: React.FC = () => {
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setSelectedFile({
-          uri: result.assets[0].uri,
-          name: result.assets[0].fileName || 'image.jpg',
-          type: 'image/jpeg',
-        });
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+  const getLogTypeConfig = (type: LogType) => {
+    switch (type) {
+      case 'event':
+        return {
+          title: 'Event Participation',
+          subtitle: 'Log hours from school or community events',
+          requiredFields: ['eventTitle', 'hours'],
+          optionalFields: ['description'],
+          fileRequired: false,
+        };
+      case 'donation':
+        return {
+          title: 'Donation',
+          subtitle: 'Log donations with optional photo proof',
+          requiredFields: ['item', 'amount'],
+          optionalFields: ['description'],
+          fileRequired: false,
+        };
+      case 'volunteer':
+        return {
+          title: 'Volunteer Work',
+          subtitle: 'Log volunteer activities with required photo proof',
+          requiredFields: ['organization', 'hours'],
+          optionalFields: ['description'],
+          fileRequired: true,
+        };
+      case 'other':
+        return {
+          title: 'Other Activity',
+          subtitle: 'Log other community service activities',
+          requiredFields: ['description'],
+          optionalFields: ['hours'],
+          fileRequired: false,
+        };
+      default:
+        return {
+          title: 'Volunteer Work',
+          subtitle: 'Log volunteer activities',
+          requiredFields: ['hours'],
+          optionalFields: ['description'],
+          fileRequired: false,
+        };
     }
-  };
-
-  const pickDocument = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled) {
-        setSelectedFile({
-          uri: result.assets[0].uri,
-          name: result.assets[0].name,
-          type: result.assets[0].mimeType,
-        });
-      }
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to pick document');
-    }
-  };
-
-  const removeFile = () => {
-    setSelectedFile(null);
   };
 
   const onSubmit = async (data: LogHoursFormData) => {
     try {
       setIsLoading(true);
 
+      const config = getLogTypeConfig(data.logType);
+      
+      // Validate required fields based on log type
+      if (config.fileRequired && !selectedFile) {
+        Alert.alert('Error', 'Photo proof is required for this log type');
+        return;
+      }
+
       const logData: CreateVolunteerLogData = {
-        hours: parseFloat(data.hours),
+        hours: data.hours ? parseFloat(data.hours) : 0,
         description: data.description,
         date: new Date(data.date).toISOString(),
         schoolId: data.schoolId,
@@ -151,16 +170,10 @@ const LogHoursScreen: React.FC = () => {
       const response = await apiService.createVolunteerLog(logData);
 
       if (response.success) {
-        Alert.alert(
-          'Success',
-          'Volunteer hours logged successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('MyLogs' as never),
-            },
-          ]
-        );
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigation.navigate('MyLogs' as never);
+        }, 2000);
       } else {
         Alert.alert('Error', response.message || 'Failed to log hours');
       }
@@ -178,11 +191,29 @@ const LogHoursScreen: React.FC = () => {
   if (isLoadingSchools) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading schools...</Text>
       </View>
     );
   }
+
+  if (showSuccess) {
+    return (
+      <View style={styles.successContainer}>
+        <View style={styles.successContent}>
+          <View style={styles.checkmarkContainer}>
+            <Ionicons name="checkmark-circle" size={80} color={colors.accept} />
+          </View>
+          <Text style={styles.successTitle}>Hours Logged Successfully!</Text>
+          <Text style={styles.successSubtitle}>
+            Your volunteer hours have been submitted for review.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const config = getLogTypeConfig(watchedLogType);
 
   return (
     <KeyboardAvoidingView
@@ -191,13 +222,114 @@ const LogHoursScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Log Volunteer Hours</Title>
-              <Paragraph style={styles.subtitle}>
-                Record your volunteer activities and hours
-              </Paragraph>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Log Hours</Text>
+            <Text style={styles.subtitle}>{config.subtitle}</Text>
+          </View>
 
+          {/* Log Type Selector */}
+          <SDCard padding="lg" style={styles.typeCard}>
+            <Text style={styles.sectionTitle}>Activity Type</Text>
+            <View style={styles.typeButtons}>
+              {(['event', 'donation', 'volunteer', 'other'] as LogType[]).map((type) => (
+                <SDButton
+                  key={type}
+                  variant={watchedLogType === type ? 'primary-filled' : 'ghost'}
+                  size="sm"
+                  onPress={() => setValue('logType', type)}
+                  style={styles.typeButton}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </SDButton>
+              ))}
+            </View>
+          </SDCard>
+
+          {/* Dynamic Form Fields */}
+          <SDCard padding="lg" style={styles.formCard}>
+            <Text style={styles.sectionTitle}>{config.title}</Text>
+
+            {/* Event Title (for event type) */}
+            {watchedLogType === 'event' && (
+              <Controller
+                control={control}
+                name="eventTitle"
+                rules={{ required: 'Event title is required' }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <SDInput
+                    label="Event Title"
+                    placeholder="e.g., School Cleanup Day"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.eventTitle?.message}
+                    required
+                  />
+                )}
+              />
+            )}
+
+            {/* Organization (for volunteer type) */}
+            {watchedLogType === 'volunteer' && (
+              <Controller
+                control={control}
+                name="organization"
+                rules={{ required: 'Organization is required' }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <SDInput
+                    label="Organization"
+                    placeholder="e.g., Local Food Bank"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.organization?.message}
+                    required
+                  />
+                )}
+              />
+            )}
+
+            {/* Item and Amount (for donation type) */}
+            {watchedLogType === 'donation' && (
+              <>
+                <Controller
+                  control={control}
+                  name="item"
+                  rules={{ required: 'Item is required' }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <SDInput
+                      label="Item Donated"
+                      placeholder="e.g., School Supplies"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.item?.message}
+                      required
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="amount"
+                  rules={{ required: 'Amount is required' }}
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <SDInput
+                      label="Amount/Value"
+                      placeholder="e.g., $50 or 20 items"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      error={errors.amount?.message}
+                      required
+                    />
+                  )}
+                />
+              </>
+            )}
+
+            {/* Hours (for event and volunteer types) */}
+            {(watchedLogType === 'event' || watchedLogType === 'volunteer') && (
               <Controller
                 control={control}
                 name="hours"
@@ -215,159 +347,145 @@ const LogHoursScreen: React.FC = () => {
                   },
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
+                  <SDInput
                     label="Hours"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.hours}
-                    keyboardType="numeric"
-                    style={styles.input}
                     placeholder="e.g., 2.5"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.hours?.message}
+                    keyboardType="numeric"
+                    required
                   />
                 )}
               />
-              {errors.hours && (
-                <Text style={styles.errorText}>{errors.hours.message}</Text>
-              )}
+            )}
 
+            {/* Hours (optional for other type) */}
+            {watchedLogType === 'other' && (
               <Controller
                 control={control}
-                name="description"
+                name="hours"
                 rules={{
-                  required: 'Description is required',
-                  minLength: {
-                    value: 10,
-                    message: 'Description must be at least 10 characters',
+                  pattern: {
+                    value: /^\d+(\.\d{1,2})?$/,
+                    message: 'Enter valid hours (e.g., 2.5)',
                   },
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Description"
-                    mode="outlined"
+                  <SDInput
+                    label="Hours (Optional)"
+                    placeholder="e.g., 2.5"
                     value={value}
+                    onChangeText={onChange}
                     onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.description}
-                    multiline
-                    numberOfLines={4}
-                    style={styles.input}
-                    placeholder="Describe your volunteer activities..."
+                    error={errors.hours?.message}
+                    keyboardType="numeric"
                   />
                 )}
               />
-              {errors.description && (
-                <Text style={styles.errorText}>{errors.description.message}</Text>
+            )}
+
+            {/* Description */}
+            <Controller
+              control={control}
+              name="description"
+              rules={{
+                required: watchedLogType === 'other' ? 'Description is required' : false,
+                minLength: {
+                  value: 10,
+                  message: 'Description must be at least 10 characters',
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label={watchedLogType === 'other' ? 'Description' : 'Description (Optional)'}
+                  placeholder="Describe your activities..."
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.description?.message}
+                  multiline
+                  numberOfLines={4}
+                  required={watchedLogType === 'other'}
+                />
               )}
+            />
 
-              <Controller
-                control={control}
-                name="date"
-                rules={{
-                  required: 'Date is required',
-                }}
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Date"
-                    mode="outlined"
-                    value={value}
-                    onChangeText={onChange}
-                    error={!!errors.date}
-                    style={styles.input}
-                    placeholder="YYYY-MM-DD"
-                  />
-                )}
-              />
-              {errors.date && (
-                <Text style={styles.errorText}>{errors.date.message}</Text>
+            {/* Date */}
+            <Controller
+              control={control}
+              name="date"
+              rules={{ required: 'Date is required' }}
+              render={({ field: { onChange, value } }) => (
+                <SDInput
+                  label="Date"
+                  placeholder="YYYY-MM-DD"
+                  value={value}
+                  onChangeText={onChange}
+                  error={errors.date?.message}
+                  required
+                />
               )}
+            />
 
-              <View style={styles.schoolContainer}>
-                <Text style={styles.schoolLabel}>School</Text>
-                <Menu
-                  visible={schoolMenuVisible}
-                  onDismiss={() => setSchoolMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setSchoolMenuVisible(true)}
-                      style={styles.schoolButton}
-                      contentStyle={styles.schoolButtonContent}
-                    >
-                      {selectedSchool ? selectedSchool.name : 'Select School'}
-                    </Button>
-                  }
-                >
-                  {schools.map((school) => (
-                    <Menu.Item
-                      key={school.id}
-                      onPress={() => {
-                        setValue('schoolId', school.id);
-                        setSchoolMenuVisible(false);
-                      }}
-                      title={school.name}
-                    />
-                  ))}
-                </Menu>
-              </View>
-              {errors.schoolId && (
-                <Text style={styles.errorText}>Please select a school</Text>
-              )}
-
-              <Divider style={styles.divider} />
-
-              <Text style={styles.sectionTitle}>Proof Document (Optional)</Text>
-              <Paragraph style={styles.sectionSubtitle}>
-                Upload a photo or document as proof of your volunteer work
-              </Paragraph>
-
-              {selectedFile ? (
-                <View style={styles.fileContainer}>
-                  <Chip
-                    icon="file"
-                    onClose={removeFile}
-                    style={styles.fileChip}
+            {/* School Selection */}
+            <View style={styles.schoolContainer}>
+              <Text style={styles.schoolLabel}>School *</Text>
+              <Menu
+                visible={schoolMenuVisible}
+                onDismiss={() => setSchoolMenuVisible(false)}
+                anchor={
+                  <SDButton
+                    variant="ghost"
+                    size="lg"
+                    onPress={() => setSchoolMenuVisible(true)}
+                    style={styles.schoolButton}
+                    icon="school"
                   >
-                    {selectedFile.name}
-                  </Chip>
-                </View>
-              ) : (
-                <View style={styles.fileButtons}>
-                  <Button
-                    mode="outlined"
-                    onPress={pickImage}
-                    icon="camera"
-                    style={styles.fileButton}
-                  >
-                    Photo
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={pickDocument}
-                    icon="file-document"
-                    style={styles.fileButton}
-                  >
-                    Document
-                  </Button>
-                </View>
-              )}
-
-              <Button
-                mode="contained"
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                style={styles.submitButton}
-                contentStyle={styles.buttonContent}
+                    {selectedSchool ? selectedSchool.name : 'Select School'}
+                  </SDButton>
+                }
               >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  'Log Hours'
-                )}
-              </Button>
-            </Card.Content>
-          </Card>
+                {schools.map((school) => (
+                  <Menu.Item
+                    key={school.id}
+                    onPress={() => {
+                      setValue('schoolId', school.id);
+                      setSchoolMenuVisible(false);
+                    }}
+                    title={school.name}
+                  />
+                ))}
+              </Menu>
+            </View>
+            {errors.schoolId && (
+              <Text style={styles.errorText}>Please select a school</Text>
+            )}
+
+            {/* File Upload */}
+            <SDFileUpload
+              onFileSelect={setSelectedFile}
+              preview={selectedFile?.uri}
+              label={config.fileRequired ? 'Photo Proof (Required)' : 'Photo Proof (Optional)'}
+              description={config.fileRequired 
+                ? 'Photo proof is required for this activity type'
+                : 'Upload a photo or document as proof of your activity'
+              }
+            />
+
+            {/* Submit Button */}
+            <SDButton
+              variant="primary-filled"
+              size="lg"
+              fullWidth
+              loading={isLoading}
+              onPress={handleSubmit(onSubmit)}
+              style={styles.submitButton}
+            >
+              Submit Hours
+            </SDButton>
+          </SDCard>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -377,7 +495,7 @@ const LogHoursScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -386,77 +504,77 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  card: {
-    elevation: 4,
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontSize: typography.h1.fontSize,
+    fontWeight: typography.h1.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   subtitle: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    color: theme.colors.onSurfaceVariant,
   },
-  input: {
+  typeCard: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.h2.fontSize,
+    fontWeight: typography.h2.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.md,
   },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginBottom: spacing.sm,
-    marginTop: -spacing.sm,
+  typeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  typeButton: {
+    flex: 1,
+    minWidth: '22%',
+  },
+  formCard: {
+    marginBottom: spacing.lg,
   },
   schoolContainer: {
     marginBottom: spacing.md,
   },
   schoolLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
+    fontSize: typography.subhead.fontSize,
+    fontWeight: typography.subhead.fontWeight,
+    color: colors.textDark,
+    marginBottom: spacing.sm,
   },
   schoolButton: {
     justifyContent: 'flex-start',
   },
-  schoolButtonContent: {
-    justifyContent: 'flex-start',
+  errorText: {
+    color: colors.error,
+    fontSize: typography.caption.fontSize,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  divider: {
-    marginVertical: spacing.lg,
+  fileUploadContainer: {
+    marginBottom: spacing.lg,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
+  fileUploadLabel: {
+    fontSize: typography.subhead.fontSize,
+    fontWeight: typography.subhead.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.xs,
   },
-  sectionSubtitle: {
-    color: theme.colors.onSurfaceVariant,
+  fileUploadSubtitle: {
+    fontSize: typography.caption.fontSize,
+    color: colors.textMuted,
     marginBottom: spacing.md,
-  },
-  fileContainer: {
-    marginBottom: spacing.md,
-  },
-  fileChip: {
-    alignSelf: 'flex-start',
-  },
-  fileButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing.md,
-  },
-  fileButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
   },
   submitButton: {
-    marginTop: spacing.lg,
-  },
-  buttonContent: {
-    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
   },
   loadingContainer: {
     flex: 1,
@@ -465,7 +583,32 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textMuted,
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+  },
+  successContent: {
+    alignItems: 'center',
+  },
+  checkmarkContainer: {
+    marginBottom: spacing.lg,
+  },
+  successTitle: {
+    fontSize: typography.h1.fontSize,
+    fontWeight: typography.h1.fontWeight,
+    color: colors.textDark,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
 });
 

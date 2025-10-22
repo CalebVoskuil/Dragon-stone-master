@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../store/AuthContext';
 import { RootStackParamList, MainTabParamList } from '../types';
+import { colors, spacing } from '../theme/theme';
 
 // Import screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -46,8 +47,19 @@ const MainTabNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#2E7D32',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.outline,
+          paddingBottom: spacing.sm,
+          paddingTop: spacing.sm,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
         headerShown: false,
       })}
     >
@@ -111,7 +123,14 @@ const MainStackNavigator: React.FC = () => {
         options={{ 
           headerShown: true, 
           title: 'Schools',
-          headerBackTitle: 'Back'
+          headerBackTitle: 'Back',
+          headerStyle: {
+            backgroundColor: colors.primary,
+          },
+          headerTintColor: colors.textLight,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       />
       <Stack.Screen 
@@ -120,7 +139,14 @@ const MainStackNavigator: React.FC = () => {
         options={{ 
           headerShown: true, 
           title: 'Badges',
-          headerBackTitle: 'Back'
+          headerBackTitle: 'Back',
+          headerStyle: {
+            backgroundColor: colors.primary,
+          },
+          headerTintColor: colors.textLight,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       />
     </Stack.Navigator>
@@ -143,7 +169,7 @@ const AppNavigator: React.FC = () => {
       }}
     >
       {isAuthenticated ? (
-        <Stack.Screen name="Main" component={MainStackNavigator} />
+        <Stack.Screen name="App" component={MainStackNavigator} />
       ) : (
         <Stack.Screen name="Auth" component={AuthStackNavigator} />
       )}

@@ -9,22 +9,21 @@ import {
 } from 'react-native';
 import {
   Text,
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Paragraph,
   ActivityIndicator,
   Menu,
   Divider,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
 import { School, UserRole } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { colors, spacing, typography, borderRadius } from '../../theme/theme';
+import { SDButton } from '../../components/SDButton';
+import { SDCard } from '../../components/SDCard';
+import { SDInput } from '../../components/SDInput';
 
 interface RegisterFormData {
   email: string;
@@ -162,7 +161,7 @@ const RegisterScreen: React.FC = () => {
   if (isLoadingSchools) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading schools...</Text>
       </View>
     );
@@ -175,265 +174,254 @@ const RegisterScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Create Account</Title>
-              <Paragraph style={styles.subtitle}>
-                Join the Stone Dragon Volunteer Program
-              </Paragraph>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join Stone Dragon NPO and start making a difference</Text>
+          </View>
 
-              <Controller
-                control={control}
-                name="email"
-                rules={{
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Enter a valid email address',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Email"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.email}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    placeholder="your.email@example.com"
-                  />
-                )}
-              />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email.message}</Text>
+          {/* Registration Form */}
+          <SDCard padding="lg" style={styles.formCard}>
+            <Controller
+              control={control}
+              name="firstName"
+              rules={{
+                required: 'First name is required',
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label="First Name"
+                  placeholder="Enter your first name"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.firstName?.message}
+                  required
+                  autoComplete="given-name"
+                />
               )}
+            />
 
-              <Controller
-                control={control}
-                name="password"
-                rules={{
-                  required: 'Password is required',
-                  minLength: {
-                    value: 6,
-                    message: 'Password must be at least 6 characters',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Password"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.password}
-                    secureTextEntry={!showPassword}
-                    style={styles.input}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                    placeholder="Enter your password"
-                  />
-                )}
-              />
-              {errors.password && (
-                <Text style={styles.errorText}>{errors.password.message}</Text>
+            <Controller
+              control={control}
+              name="lastName"
+              rules={{
+                required: 'Last name is required',
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label="Last Name"
+                  placeholder="Enter your last name"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.lastName?.message}
+                  required
+                  autoComplete="family-name"
+                />
               )}
+            />
 
-              <Controller
-                control={control}
-                name="confirmPassword"
-                rules={{
-                  required: 'Please confirm your password',
-                  validate: (value) => {
-                    const password = watch('password');
-                    return value === password || 'Passwords do not match';
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Confirm Password"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.confirmPassword}
-                    secureTextEntry={!showConfirmPassword}
-                    style={styles.input}
-                    right={
-                      <TextInput.Icon
-                        icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                      />
-                    }
-                    placeholder="Confirm your password"
-                  />
-                )}
-              />
-              {errors.confirmPassword && (
-                <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
+            <Controller
+              control={control}
+              name="email"
+              rules={{
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Enter a valid email address',
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label="Email Address"
+                  placeholder="your.email@example.com"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.email?.message}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  required
+                />
               )}
+            />
 
-              <Controller
-                control={control}
-                name="firstName"
-                rules={{
-                  required: 'First name is required',
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="First Name"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.firstName}
-                    style={styles.input}
-                    placeholder="Enter your first name"
-                  />
-                )}
-              />
-              {errors.firstName && (
-                <Text style={styles.errorText}>{errors.firstName.message}</Text>
-              )}
-
-              <Controller
-                control={control}
-                name="lastName"
-                rules={{
-                  required: 'Last name is required',
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Last Name"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.lastName}
-                    style={styles.input}
-                    placeholder="Enter your last name"
-                  />
-                )}
-              />
-              {errors.lastName && (
-                <Text style={styles.errorText}>{errors.lastName.message}</Text>
-              )}
-
-              <View style={styles.roleContainer}>
-                <Text style={styles.roleLabel}>Role</Text>
-                <Menu
-                  visible={roleMenuVisible}
-                  onDismiss={() => setRoleMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setRoleMenuVisible(true)}
-                      style={styles.roleButton}
-                      contentStyle={styles.roleButtonContent}
-                    >
-                      {getRoleDisplayName(watchedRole)}
-                    </Button>
+            <Controller
+              control={control}
+              name="password"
+              rules={{
+                required: 'Password is required',
+                minLength: {
+                  value: 8,
+                  message: 'Password must be at least 8 characters',
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label="Password"
+                  placeholder="Minimum 8 characters"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.password?.message}
+                  secureTextEntry={!showPassword}
+                  hint="Minimum 8 characters"
+                  autoComplete="new-password"
+                  required
+                  right={
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
                   }
-                >
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'STUDENT');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Student"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'VOLUNTEER');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Volunteer"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'COORDINATOR');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Coordinator"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'ADMIN');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Administrator"
-                  />
-                </Menu>
-              </View>
+                />
+              )}
+            />
 
-              <View style={styles.schoolContainer}>
-                <Text style={styles.schoolLabel}>School (Optional)</Text>
-                <Menu
-                  visible={schoolMenuVisible}
-                  onDismiss={() => setSchoolMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setSchoolMenuVisible(true)}
-                      style={styles.schoolButton}
-                      contentStyle={styles.schoolButtonContent}
-                    >
-                      {selectedSchool ? selectedSchool.name : 'Select School (Optional)'}
-                    </Button>
+            <Controller
+              control={control}
+              name="confirmPassword"
+              rules={{
+                required: 'Please confirm your password',
+                validate: (value) => {
+                  const password = watch('password');
+                  return value === password || 'Passwords do not match';
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <SDInput
+                  label="Confirm Password"
+                  placeholder="Re-enter your password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  error={errors.confirmPassword?.message}
+                  secureTextEntry={!showConfirmPassword}
+                  autoComplete="new-password"
+                  required
+                  right={
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color={colors.textMuted}
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    />
                   }
-                >
+                />
+              )}
+            />
+
+            {/* Role Selection */}
+            <View style={styles.roleContainer}>
+              <Text style={styles.fieldLabel}>Role</Text>
+              <Menu
+                visible={roleMenuVisible}
+                onDismiss={() => setRoleMenuVisible(false)}
+                anchor={
+                  <SDButton
+                    variant="ghost"
+                    size="md"
+                    onPress={() => setRoleMenuVisible(true)}
+                    style={styles.menuButton}
+                  >
+                    {getRoleDisplayName(watchedRole)}
+                  </SDButton>
+                }
+              >
+                <Menu.Item
+                  onPress={() => {
+                    setValue('role', 'STUDENT');
+                    setRoleMenuVisible(false);
+                  }}
+                  title="Student"
+                />
+                <Menu.Item
+                  onPress={() => {
+                    setValue('role', 'VOLUNTEER');
+                    setRoleMenuVisible(false);
+                  }}
+                  title="Volunteer"
+                />
+                <Menu.Item
+                  onPress={() => {
+                    setValue('role', 'COORDINATOR');
+                    setRoleMenuVisible(false);
+                  }}
+                  title="Coordinator"
+                />
+                <Menu.Item
+                  onPress={() => {
+                    setValue('role', 'ADMIN');
+                    setRoleMenuVisible(false);
+                  }}
+                  title="Administrator"
+                />
+              </Menu>
+            </View>
+
+            {/* School Selection */}
+            <View style={styles.schoolContainer}>
+              <Text style={styles.fieldLabel}>School (Optional)</Text>
+              <Menu
+                visible={schoolMenuVisible}
+                onDismiss={() => setSchoolMenuVisible(false)}
+                anchor={
+                  <SDButton
+                    variant="ghost"
+                    size="md"
+                    onPress={() => setSchoolMenuVisible(true)}
+                    style={styles.menuButton}
+                  >
+                    {selectedSchool ? selectedSchool.name : 'Select School (Optional)'}
+                  </SDButton>
+                }
+              >
+                <Menu.Item
+                  onPress={() => {
+                    setValue('schoolId', '');
+                    setSelectedSchool(null);
+                    setSchoolMenuVisible(false);
+                  }}
+                  title="No School"
+                />
+                {schools.map((school) => (
                   <Menu.Item
+                    key={school.id}
                     onPress={() => {
-                      setValue('schoolId', '');
-                      setSelectedSchool(null);
+                      setValue('schoolId', school.id);
                       setSchoolMenuVisible(false);
                     }}
-                    title="No School"
+                    title={school.name}
                   />
-                  {schools.map((school) => (
-                    <Menu.Item
-                      key={school.id}
-                      onPress={() => {
-                        setValue('schoolId', school.id);
-                        setSchoolMenuVisible(false);
-                      }}
-                      title={school.name}
-                    />
-                  ))}
-                </Menu>
-              </View>
+                ))}
+              </Menu>
+            </View>
 
-              <Button
-                mode="contained"
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                style={styles.submitButton}
-                contentStyle={styles.buttonContent}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
+            <SDButton
+              variant="primary-filled"
+              size="lg"
+              fullWidth
+              loading={isLoading}
+              onPress={handleSubmit(onSubmit)}
+              style={styles.submitButton}
+            >
+              Create Account
+            </SDButton>
+          </SDCard>
 
-              <Divider style={styles.divider} />
-
-              <Button
-                mode="text"
-                onPress={navigateToLogin}
-                style={styles.loginButton}
-              >
-                Already have an account? Login
-              </Button>
-            </Card.Content>
-          </Card>
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>
+              Already have an account?{' '}
+              <Text style={styles.loginLink} onPress={navigateToLogin}>
+                Sign In
+              </Text>
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -443,78 +431,63 @@ const RegisterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   scrollContainer: {
     flexGrow: 1,
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   content: {
     flex: 1,
   },
-  card: {
-    elevation: 4,
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
   },
   title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontSize: typography.h1.fontSize,
+    fontWeight: typography.h1.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   subtitle: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    color: theme.colors.onSurfaceVariant,
   },
-  input: {
-    marginBottom: spacing.md,
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginBottom: spacing.sm,
-    marginTop: -spacing.sm,
+  formCard: {
+    marginBottom: spacing.lg,
   },
   roleContainer: {
     marginBottom: spacing.md,
   },
-  roleLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
+  fieldLabel: {
+    fontSize: typography.body.fontSize,
+    fontWeight: typography.body.fontWeight,
+    color: colors.textDark,
+    marginBottom: spacing.sm,
   },
-  roleButton: {
+  menuButton: {
     justifyContent: 'flex-start',
-  },
-  roleButtonContent: {
-    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
   schoolContainer: {
-    marginBottom: spacing.md,
-  },
-  schoolLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
-  },
-  schoolButton: {
-    justifyContent: 'flex-start',
-  },
-  schoolButtonContent: {
-    justifyContent: 'flex-start',
+    marginBottom: spacing.lg,
   },
   submitButton: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
-  buttonContent: {
-    paddingVertical: spacing.sm,
+  loginContainer: {
+    alignItems: 'center',
   },
-  divider: {
-    marginVertical: spacing.lg,
+  loginText: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
   },
-  loginButton: {
-    marginTop: spacing.sm,
+  loginLink: {
+    color: colors.primary,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -523,7 +496,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textMuted,
   },
 });
 

@@ -5,27 +5,29 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  FlatList,
 } from 'react-native';
 import {
   Text,
-  Card,
-  Title,
-  Paragraph,
   ActivityIndicator,
-  Chip,
-  Button,
   Menu,
   Divider,
-  Surface,
 } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
 import { VolunteerLog } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { colors, spacing, typography, borderRadius } from '../../theme/theme';
+import { SDCard } from '../../components/SDCard';
+import { SDButton } from '../../components/SDButton';
+import { SDStatusChip } from '../../components/SDStatusChip';
+import { SDLogCard } from '../../components/SDLogCard';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
+type SortOption = 'recent' | 'oldest' | 'hours';
 
 interface UserStats {
   totalLogs: number;
@@ -36,6 +38,7 @@ interface UserStats {
 }
 
 const MyLogsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user } = useAuth();
   const [logs, setLogs] = useState<VolunteerLog[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<VolunteerLog[]>([]);
@@ -43,7 +46,9 @@ const MyLogsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
+  const [selectedSort, setSelectedSort] = useState<SortOption>('recent');
 
   const loadLogs = useCallback(async () => {
     try {
@@ -79,60 +84,99 @@ const MyLogsScreen: React.FC = () => {
     loadLogs();
   }, [loadLogs]);
 
+  const sortLogs = useCallback((logsToSort: VolunteerLog[], sortOption: SortOption) => {
+    const sorted = [...logsToSort];
+    switch (sortOption) {
+      case 'recent':
+        return sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      case 'hours':
+        return sorted.sort((a, b) => b.hours - a.hours);
+      default:
+        return sorted;
+    }
+  }, []);
+
+  const filterAndSortLogs = useCallback(() => {
+    let filtered = logs;
+    
+    // Apply filter
+    if (selectedFilter !== 'all') {
+      filtered = logs.filter(log => log.status === selectedFilter);
+    }
+    
+    // Apply sort
+    const sorted = sortLogs(filtered, selectedSort);
+    setFilteredLogs(sorted);
+  }, [logs, selectedFilter, selectedSort, sortLogs]);
+
   useEffect(() => {
-    if (selectedFilter === 'all') {
-      setFilteredLogs(logs);
-    } else {
-      setFilteredLogs(logs.filter(log => log.status === selectedFilter));
-    }
-  }, [logs, selectedFilter]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return '#4CAF50';
-      case 'pending':
-        return '#FF9800';
-      case 'rejected':
-        return '#F44336';
-      default:
-        return theme.colors.outline;
-    }
-  };
-
-  const getStatusBackgroundColor = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return '#E8F5E8';
-      case 'pending':
-        return '#FFF3E0';
-      case 'rejected':
-        return '#FFEBEE';
-      default:
-        return theme.colors.surface;
-    }
-  };
+    filterAndSortLogs();
+  }, [filterAndSortLogs]);
 
   const getFilterLabel = (filter: FilterStatus) => {
     switch (filter) {
-      case 'all':
-        return 'All Logs';
-      case 'pending':
-        return 'Pending';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      default:
-        return 'All Logs';
+      case 'all': return 'All Logs';
+      case 'pending': return 'Pending';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return 'All Logs';
     }
   };
+
+  const getSortLabel = (sort: SortOption) => {
+    switch (sort) {
+      case 'recent': return 'Recent';
+      case 'oldest': return 'Oldest';
+      case 'hours': return 'Hours';
+      default: return 'Recent';
+    }
+  };
+
+  const renderLogItem = ({ item }: { item: VolunteerLog }) => (
+    <SDLogCard
+      studentName={`${user?.firstName} ${user?.lastName}`}
+      school={item.school?.name || 'Unknown School'}
+      hours={item.hours}
+      status={item.status}
+      submittedAt={format(new Date(item.date), 'MMM dd, yyyy')}
+      notes={item.description}
+      coordinatorComment={item.coordinatorComment}
+      reviewedAt={item.reviewedAt}
+    />
+  );
+
+  const renderEmptyState = () => (
+    <SDCard padding="lg" style={styles.emptyCard}>
+      <View style={styles.emptyContent}>
+        <Ionicons name="document-outline" size={64} color={colors.textMuted} />
+        <Text style={styles.emptyTitle}>No Logs Found</Text>
+        <Text style={styles.emptyText}>
+          {selectedFilter === 'all'
+            ? "You haven't logged any volunteer hours yet."
+            : `No ${selectedFilter} logs found.`}
+        </Text>
+        {selectedFilter === 'all' && (
+          <SDButton
+            variant="primary-filled"
+            size="lg"
+            onPress={() => navigation.navigate('LogHours' as never)}
+            style={styles.emptyButton}
+            icon="plus"
+          >
+            Log Your First Hours
+          </SDButton>
+        )}
+      </View>
+    </SDCard>
+  );
 
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading your logs...</Text>
       </View>
     );
@@ -147,44 +191,54 @@ const MyLogsScreen: React.FC = () => {
         }
       >
         <View style={styles.content}>
-          {/* Stats Section */}
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>Your Volunteer Summary</Title>
-              <View style={styles.statsRow}>
-                <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{userStats?.totalHours || 0}</Text>
-                  <Text style={styles.statLabel}>Total Hours</Text>
-                </Surface>
-                <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{userStats?.approvedLogs || 0}</Text>
-                  <Text style={styles.statLabel}>Approved</Text>
-                </Surface>
-                <Surface style={styles.statItem}>
-                  <Text style={styles.statNumber}>{userStats?.pendingLogs || 0}</Text>
-                  <Text style={styles.statLabel}>Pending</Text>
-                </Surface>
-              </View>
-            </Card.Content>
-          </Card>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>My Logs</Text>
+            <Text style={styles.subtitle}>Track your volunteer hours and status</Text>
+          </View>
 
-          {/* Filter Section */}
-          <Card style={styles.filterCard}>
-            <Card.Content>
-              <View style={styles.filterContainer}>
-                <Text style={styles.filterLabel}>Filter by Status:</Text>
+          {/* Stats Overview */}
+          <SDCard padding="lg" style={styles.statsCard}>
+            <Text style={styles.statsTitle}>Your Summary</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userStats?.totalHours || 0}</Text>
+                <Text style={styles.statLabel}>Total Hours</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userStats?.approvedLogs || 0}</Text>
+                <Text style={styles.statLabel}>Approved</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userStats?.pendingLogs || 0}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userStats?.rejectedLogs || 0}</Text>
+                <Text style={styles.statLabel}>Rejected</Text>
+              </View>
+            </View>
+          </SDCard>
+
+          {/* Filter and Sort Controls */}
+          <SDCard padding="lg" style={styles.controlsCard}>
+            <View style={styles.controlsRow}>
+              {/* Filter */}
+              <View style={styles.controlGroup}>
+                <Text style={styles.controlLabel}>Filter:</Text>
                 <Menu
                   visible={filterMenuVisible}
                   onDismiss={() => setFilterMenuVisible(false)}
                   anchor={
-                    <Button
-                      mode="outlined"
+                    <SDButton
+                      variant="ghost"
+                      size="md"
                       onPress={() => setFilterMenuVisible(true)}
-                      style={styles.filterButton}
-                      contentStyle={styles.filterButtonContent}
+                      style={styles.controlButton}
+                      icon="filter"
                     >
                       {getFilterLabel(selectedFilter)}
-                    </Button>
+                    </SDButton>
                   }
                 >
                   <Menu.Item
@@ -217,86 +271,63 @@ const MyLogsScreen: React.FC = () => {
                   />
                 </Menu>
               </View>
-            </Card.Content>
-          </Card>
+
+              {/* Sort */}
+              <View style={styles.controlGroup}>
+                <Text style={styles.controlLabel}>Sort:</Text>
+                <Menu
+                  visible={sortMenuVisible}
+                  onDismiss={() => setSortMenuVisible(false)}
+                  anchor={
+                    <SDButton
+                      variant="ghost"
+                      size="md"
+                      onPress={() => setSortMenuVisible(true)}
+                      style={styles.controlButton}
+                      icon="sort"
+                    >
+                      {getSortLabel(selectedSort)}
+                    </SDButton>
+                  }
+                >
+                  <Menu.Item
+                    onPress={() => {
+                      setSelectedSort('recent');
+                      setSortMenuVisible(false);
+                    }}
+                    title="Recent"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setSelectedSort('oldest');
+                      setSortMenuVisible(false);
+                    }}
+                    title="Oldest"
+                  />
+                  <Menu.Item
+                    onPress={() => {
+                      setSelectedSort('hours');
+                      setSortMenuVisible(false);
+                    }}
+                    title="Hours"
+                  />
+                </Menu>
+              </View>
+            </View>
+          </SDCard>
 
           {/* Logs List */}
           {filteredLogs.length === 0 ? (
-            <Card style={styles.emptyCard}>
-              <Card.Content style={styles.emptyContent}>
-                <Text style={styles.emptyTitle}>No Logs Found</Text>
-                <Paragraph style={styles.emptyText}>
-                  {selectedFilter === 'all'
-                    ? "You haven't logged any volunteer hours yet."
-                    : `No ${selectedFilter} logs found.`}
-                </Paragraph>
-                {selectedFilter === 'all' && (
-                  <Button
-                    mode="contained"
-                    onPress={() => {/* Navigate to LogHours */}}
-                    style={styles.emptyButton}
-                  >
-                    Log Your First Hours
-                  </Button>
-                )}
-              </Card.Content>
-            </Card>
+            renderEmptyState()
           ) : (
-            filteredLogs.map((log) => (
-              <Card key={log.id} style={styles.logCard}>
-                <Card.Content>
-                  <View style={styles.logHeader}>
-                    <View style={styles.logTitleRow}>
-                      <Text style={styles.logHours}>{log.hours}h</Text>
-                      <Chip
-                        mode="outlined"
-                        compact
-                        style={[
-                          styles.statusChip,
-                          {
-                            backgroundColor: getStatusBackgroundColor(log.status),
-                            borderColor: getStatusColor(log.status),
-                          },
-                        ]}
-                        textStyle={{ color: getStatusColor(log.status) }}
-                      >
-                        {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-                      </Chip>
-                    </View>
-                    <Text style={styles.logDate}>
-                      {format(new Date(log.date), 'MMM dd, yyyy')}
-                    </Text>
-                  </View>
-
-                  <Paragraph style={styles.logDescription}>
-                    {log.description}
-                  </Paragraph>
-
-                  {log.school && (
-                    <View style={styles.schoolInfo}>
-                      <Text style={styles.schoolLabel}>School:</Text>
-                      <Text style={styles.schoolName}>{log.school.name}</Text>
-                    </View>
-                  )}
-
-                  {log.coordinatorComment && (
-                    <View style={styles.commentContainer}>
-                      <Divider style={styles.commentDivider} />
-                      <Text style={styles.commentLabel}>Coordinator Comment:</Text>
-                      <Paragraph style={styles.commentText}>
-                        {log.coordinatorComment}
-                      </Paragraph>
-                    </View>
-                  )}
-
-                  {log.reviewedAt && (
-                    <Text style={styles.reviewedDate}>
-                      Reviewed: {format(new Date(log.reviewedAt), 'MMM dd, yyyy')}
-                    </Text>
-                  )}
-                </Card.Content>
-              </Card>
-            ))
+            <FlatList
+              data={filteredLogs}
+              renderItem={renderLogItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.listContainer}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
           )}
         </View>
       </ScrollView>
@@ -307,13 +338,29 @@ const MyLogsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: spacing.md,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  title: {
+    fontSize: typography.h1.fontSize,
+    fontWeight: typography.h1.fontWeight,
+    color: colors.textDark,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -322,117 +369,69 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
+    color: colors.textMuted,
   },
   statsCard: {
+    marginBottom: spacing.lg,
+  },
+  statsTitle: {
+    fontSize: typography.h2.fontSize,
+    fontWeight: typography.h2.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.md,
+    textAlign: 'center',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: spacing.md,
   },
   statItem: {
     alignItems: 'center',
     padding: spacing.md,
-    borderRadius: 8,
+    borderRadius: borderRadius.card,
+    backgroundColor: colors.surface,
     elevation: 2,
-    minWidth: 80,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    minWidth: 70,
   },
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
+    marginBottom: spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    marginTop: spacing.xs,
+    fontSize: typography.caption.fontSize,
+    color: colors.textMuted,
     textAlign: 'center',
   },
-  filterCard: {
-    marginBottom: spacing.md,
+  controlsCard: {
+    marginBottom: spacing.lg,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  filterLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-  },
-  filterButton: {
-    minWidth: 120,
-  },
-  filterButtonContent: {
-    justifyContent: 'space-between',
-  },
-  logCard: {
-    marginBottom: spacing.md,
-  },
-  logHeader: {
-    marginBottom: spacing.sm,
-  },
-  logTitleRow: {
+  controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
   },
-  logHours: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  statusChip: {
-    height: 28,
-  },
-  logDate: {
-    fontSize: 14,
-    color: theme.colors.onSurfaceVariant,
-  },
-  logDescription: {
-    marginBottom: spacing.sm,
-    color: theme.colors.onSurface,
-  },
-  schoolInfo: {
-    flexDirection: 'row',
+  controlGroup: {
+    flex: 1,
     alignItems: 'center',
+  },
+  controlLabel: {
+    fontSize: typography.caption.fontSize,
+    color: colors.textMuted,
     marginBottom: spacing.sm,
   },
-  schoolLabel: {
-    fontSize: 14,
-    color: theme.colors.onSurfaceVariant,
-    marginRight: spacing.xs,
+  controlButton: {
+    minWidth: 100,
   },
-  schoolName: {
-    fontSize: 14,
-    color: theme.colors.onSurface,
-    fontWeight: '500',
+  listContainer: {
+    paddingBottom: spacing.lg,
   },
-  commentContainer: {
-    marginTop: spacing.sm,
-  },
-  commentDivider: {
-    marginBottom: spacing.sm,
-  },
-  commentLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
-  },
-  commentText: {
-    fontSize: 14,
-    color: theme.colors.onSurfaceVariant,
-    fontStyle: 'italic',
-  },
-  reviewedDate: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    marginTop: spacing.sm,
-    textAlign: 'right',
+  separator: {
+    height: spacing.md,
   },
   emptyCard: {
     marginTop: spacing.xl,
@@ -442,14 +441,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
+    fontSize: typography.h2.fontSize,
+    fontWeight: typography.h2.fontWeight,
+    color: colors.textDark,
     marginBottom: spacing.sm,
+    marginTop: spacing.md,
+    textAlign: 'center',
   },
   emptyText: {
+    fontSize: typography.body.fontSize,
+    color: colors.textMuted,
     textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
     marginBottom: spacing.lg,
   },
   emptyButton: {

@@ -91,9 +91,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Login failed' });
       }
     } catch (error: any) {
+      console.error('Login error:', error);
+      let errorMessage = 'Login failed';
+      
+      if (error.code === 'ECONNREFUSED' || error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Cannot connect to server. Please check if the backend is running.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch({ 
         type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.message || 'Login failed' 
+        payload: errorMessage
       });
     }
   };

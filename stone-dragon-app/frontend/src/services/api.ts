@@ -191,6 +191,17 @@ class ApiService {
     const response: AxiosResponse<ApiResponse> = await this.api.get('/health');
     return response.data;
   }
+
+  // Test connection
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.healthCheck();
+      return true;
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      return false;
+    }
+  }
 }
 
 export const apiService = new ApiService();

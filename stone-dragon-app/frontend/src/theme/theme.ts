@@ -1,22 +1,43 @@
 import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 
-// Custom color palette
-const colors = {
-  primary: '#2E7D32', // Green
-  primaryVariant: '#1B5E20',
-  secondary: '#FF6F00', // Orange
-  secondaryVariant: '#E65100',
-  background: '#FAFAFA',
-  surface: '#FFFFFF',
-  error: '#D32F2F',
+// Stone Dragon Design System Colors (from Figma tokens)
+export const colors = {
+  // Primary colors
+  primary: '#58398B', // Deep purple
+  primaryVariant: '#7B4CB3', // Medium purple
+  secondary: '#FDCF25', // Golden yellow
+  secondaryVariant: '#E6B800', // Darker gold
+  
+  // Status colors
+  accept: '#FDCF25', // Golden yellow
+  reject: '#E63946', // Red
+  pending: '#F77F00', // Orange
+  success: '#3BB273', // Green
+  
+  // Background colors
+  background: '#FDFDFD', // Off-white background
+  surface: '#FFFFFF', // Card surface
+  surfaceSecondary: '#F5F5F5', // Secondary surface
+  
+  // Text colors
+  textDark: '#2D2D2D', // Dark text
+  textLight: '#FFFFFF', // Light text
+  textMuted: '#666666', // Muted text
+  
+  // System colors
+  error: '#E63946',
+  warning: '#F77F00',
+  info: '#58398B',
+  
+  // Legacy compatibility
   onPrimary: '#FFFFFF',
-  onSecondary: '#FFFFFF',
-  onBackground: '#212121',
-  onSurface: '#212121',
+  onSecondary: '#2D2D2D',
+  onBackground: '#2D2D2D',
+  onSurface: '#2D2D2D',
   onError: '#FFFFFF',
   outline: '#BDBDBD',
   surfaceVariant: '#F5F5F5',
-  onSurfaceVariant: '#424242',
+  onSurfaceVariant: '#666666',
 };
 
 export const theme = {
@@ -25,7 +46,7 @@ export const theme = {
     ...MD3LightTheme.colors,
     ...colors,
   },
-  roundness: 8,
+  roundness: 12, // sd_radius_button from tokens
 };
 
 export const darkTheme = {
@@ -41,70 +62,91 @@ export const darkTheme = {
     error: colors.error,
     onPrimary: colors.onPrimary,
     onSecondary: colors.onSecondary,
-    onBackground: '#FFFFFF',
-    onSurface: '#FFFFFF',
+    onBackground: colors.textLight,
+    onSurface: colors.textLight,
     onError: colors.onError,
     outline: '#666666',
     surfaceVariant: '#2C2C2C',
     onSurfaceVariant: '#CCCCCC',
   },
-  roundness: 8,
+  roundness: 12,
 };
 
-// Typography
+// Typography (from Figma tokens)
 export const typography = {
   h1: {
-    fontSize: 32,
-    fontWeight: 'bold' as const,
-    lineHeight: 40,
+    fontSize: 24, // sd_h1
+    fontWeight: '600' as const,
+    lineHeight: 31.2, // 1.3 * fontSize
   },
   h2: {
-    fontSize: 28,
-    fontWeight: 'bold' as const,
-    lineHeight: 36,
-  },
-  h3: {
-    fontSize: 24,
+    fontSize: 20, // sd_h2
     fontWeight: '600' as const,
-    lineHeight: 32,
+    lineHeight: 26, // 1.3 * fontSize
   },
-  h4: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    lineHeight: 28,
+  subhead: {
+    fontSize: 16, // sd_subhead
+    fontWeight: '500' as const,
+    lineHeight: 22.4, // 1.4 * fontSize
   },
-  body1: {
-    fontSize: 16,
-    fontWeight: 'normal' as const,
-    lineHeight: 24,
-  },
-  body2: {
-    fontSize: 14,
-    fontWeight: 'normal' as const,
-    lineHeight: 20,
+  body: {
+    fontSize: 14, // sd_body
+    fontWeight: '400' as const,
+    lineHeight: 21, // 1.5 * fontSize
   },
   caption: {
-    fontSize: 12,
-    fontWeight: 'normal' as const,
-    lineHeight: 16,
+    fontSize: 12, // sd_caption
+    fontWeight: '400' as const,
+    lineHeight: 16.8, // 1.4 * fontSize
   },
 };
 
-// Spacing
+// Spacing (from Figma tokens)
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  md: 16, // base * 2
+  lg: 24, // base * 3
+  xl: 32, // base * 4
+  xxl: 48, // base * 6
+  // Specific spacing from tokens
+  cardPadding: 16, // card_padding
+  pageMargin: 16, // page_margin
 };
 
-// Border radius
+// Border radius (from Figma tokens)
 export const borderRadius = {
+  page: 20, // sd_radius_page
+  card: 16, // sd_radius_card
+  button: 12, // sd_radius_button
+  chip: 8, // sd_radius_chip
+  // Legacy values for compatibility
   sm: 4,
   md: 8,
   lg: 12,
   xl: 16,
   round: 50,
+};
+
+// Shadows (from Figma tokens)
+export const shadows = {
+  sdShadow: {
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  // Additional shadow variants
+  card: {
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  button: {
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
 };
