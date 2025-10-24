@@ -4,7 +4,9 @@ import {
   getPendingLogs, 
   reviewVolunteerLog, 
   getCoordinatorDashboard,
-  getSchoolStats 
+  getSchoolStats,
+  getStudentsList,
+  getLeaderboard
 } from '../controllers/coordinatorController';
 import { authenticateSession, requireCoordinator } from '../middleware/auth';
 import { validateRequest } from '../middleware/validateRequest';
@@ -25,6 +27,8 @@ const reviewValidation = [
 router.get('/dashboard', getCoordinatorDashboard);
 router.get('/pending-logs', getPendingLogs);
 router.get('/school-stats', getSchoolStats);
+router.get('/students', getStudentsList);
+router.get('/leaderboard', getLeaderboard);
 router.put('/review/:logId', reviewValidation, validateRequest, reviewVolunteerLog);
 
 export default router;

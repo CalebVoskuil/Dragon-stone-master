@@ -1,214 +1,285 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
-  Alert,
+  TouchableOpacity,
+  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Paragraph,
-  ActivityIndicator,
-} from 'react-native-paper';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useForm, Controller } from 'react-hook-form';
-
+import { GradientBackground, SDButton, SDInput, SDCard } from '../../components/ui';
 import { useAuth } from '../../store/AuthContext';
-import { LoginCredentials } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography } from '../../theme/theme';
 
-const LoginScreen: React.FC = () => {
+/**
+ * LoginScreen - User authentication screen
+ * Email/password login with validation
+ */
+export default function LoginScreen() {
   const navigation = useNavigation();
-  const { login, isLoading, error, clearError } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>(
+    {}
+  );
+  const [loading, setLoading] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginCredentials>({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
+  const { login } = useAuth();
 
-  const onSubmit = async (data: LoginCredentials) => {
-    try {
-      await login(data);
-    } catch (error) {
-      Alert.alert('Login Failed', 'Please check your credentials and try again.');
-    }
-  };
-
-  const navigateToRegister = () => {
-    clearError();
+  const handleRegister = () => {
     navigation.navigate('Register' as never);
   };
 
+  const handleForgotPassword = () => {
+    // TODO: Implement forgot password
+    console.log('Forgot password');
+  };
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+      setErrors({});
+      await login({ email, password });
+    } catch (error) {
+      setErrors({ general: 'Invalid email or password' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Stone Dragon</Title>
-              <Paragraph style={styles.subtitle}>
-                Volunteer Hours Tracking
-              </Paragraph>
+    <GradientBackground>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>
+                Sign in to continue tracking your volunteer hours
+              </Text>
+            </View>
 
-              {error && (
-                <Paragraph style={styles.errorText}>
-                  {error}
-                </Paragraph>
+            {/* Login Form */}
+            <SDCard variant="elevated" padding="lg" style={styles.formCard}>
+              {errors.general && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{errors.general}</Text>
+                </View>
               )}
 
-              <Controller
-                control={control}
-                name="email"
-                rules={{
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Email"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.email}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                  />
-                )}
+              <SDInput
+                label="Email Address"
+                placeholder="your.email@example.com"
+                value={email}
+                onChangeText={setEmail}
+                error={errors.email}
+                required
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
               />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email.message}</Text>
-              )}
 
-              <Controller
-                control={control}
-                name="password"
-                rules={{
-                  required: 'Password is required',
-                  minLength: {
-                    value: 6,
-                    message: 'Password must be at least 6 characters',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Password"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.password}
-                    secureTextEntry={!showPassword}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                    style={styles.input}
-                  />
-                )}
-              />
-              {errors.password && (
-                <Text style={styles.errorText}>{errors.password.message}</Text>
-              )}
+              <View>
+                <SDInput
+                  label="Password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  error={errors.password}
+                  required
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.passwordToggle}
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff color={Colors.textSecondary} size={20} />
+                  ) : (
+                    <Eye color={Colors.textSecondary} size={20} />
+                  )}
+                </TouchableOpacity>
+              </View>
 
-              <Button
-                mode="contained"
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                style={styles.loginButton}
-                contentStyle={styles.buttonContent}
+              <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPassword}>
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <SDButton
+                variant="primary-filled"
+                size="lg"
+                fullWidth
+                onPress={handleSubmit}
+                loading={loading}
               >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  'Login'
-                )}
-              </Button>
+                Sign In
+              </SDButton>
+            </SDCard>
 
-              <Button
-                mode="text"
-                onPress={navigateToRegister}
-                style={styles.registerButton}
-              >
-                Don't have an account? Register
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* Register Link */}
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={handleRegister}>
+                <Text style={styles.registerLink}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Login for Demo */}
+            {__DEV__ && (
+              <View style={styles.demoContainer}>
+                <Text style={styles.demoTitle}>Quick Demo Login:</Text>
+                <View style={styles.demoButtons}>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('student@demo.com');
+                      setPassword('password');
+                    }}
+                  >
+                    Student
+                  </SDButton>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('coordinator@demo.com');
+                      setPassword('password');
+                    }}
+                  >
+                    Coordinator
+                  </SDButton>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </GradientBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  content: {
+  keyboardView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: spacing.lg,
     justifyContent: 'center',
   },
-  card: {
-    elevation: 4,
+  header: {
+    marginBottom: spacing.xl,
+    alignItems: 'center',
   },
   title: {
-    textAlign: 'center',
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    ...typography.h1,
+    color: Colors.light,
     marginBottom: spacing.sm,
   },
   subtitle: {
+    ...typography.body,
+    color: Colors.light,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    color: theme.colors.onSurfaceVariant,
+    opacity: 0.9,
   },
-  input: {
+  formCard: {
+    marginBottom: spacing.lg,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: `${Colors.red}1A`,
+    borderWidth: 1,
+    borderColor: `${Colors.red}33`,
+    borderRadius: Sizes.radiusMd,
     marginBottom: spacing.md,
   },
   errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    fontSize: Sizes.fontSm,
+    color: Colors.red,
   },
-  loginButton: {
-    marginTop: spacing.lg,
+  passwordToggle: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 36,
+    padding: spacing.xs,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
     marginBottom: spacing.md,
+    marginTop: -spacing.sm,
   },
-  buttonContent: {
-    paddingVertical: spacing.sm,
+  forgotPasswordText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.deepPurple,
+    textDecorationLine: 'underline',
   },
-  registerButton: {
-    marginTop: spacing.sm,
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerText: {
+    ...typography.body,
+    color: Colors.light,
+  },
+  registerLink: {
+    ...typography.body,
+    color: Colors.golden,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  demoContainer: {
+    marginTop: spacing.xl,
+    padding: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: Sizes.radiusMd,
+  },
+  demoTitle: {
+    fontSize: Sizes.fontSm,
+    color: Colors.light,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  demoButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
   },
 });
-
-export default LoginScreen;

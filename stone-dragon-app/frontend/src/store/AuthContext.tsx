@@ -1,170 +1,184 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { AuthState, User, LoginCredentials, RegisterData } from '../types';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
 
-// Auth Actions
-type AuthAction =
-  | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: User }
-  | { type: 'AUTH_FAILURE'; payload: string }
-  | { type: 'AUTH_LOGOUT' }
-  | { type: 'AUTH_CLEAR_ERROR' };
+// User Types
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'ADMIN';
+  schoolId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Initial state
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: false,
-  error: null,
-};
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
 
-// Auth reducer
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  switch (action.type) {
-    case 'AUTH_START':
-      return {
-        ...state,
-        isLoading: true,
-        error: null,
-      };
-    case 'AUTH_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      };
-    case 'AUTH_FAILURE':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: action.payload,
-      };
-    case 'AUTH_LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      };
-    case 'AUTH_CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
-    default:
-      return state;
-  }
-};
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  school: string;
+  dateOfBirth: string;
+}
 
-// Auth Context
-interface AuthContextType extends AuthState {
+// Auth Context Type
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
-  checkAuthStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Auth Provider
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
-
-  const login = async (credentials: LoginCredentials): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.login(credentials);
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
-      } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Login failed' });
-      }
-    } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.message || 'Login failed' 
-      });
-    }
-  };
-
-  const register = async (data: RegisterData): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.register(data);
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
-      } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Registration failed' });
-      }
-    } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.message || 'Registration failed' 
-      });
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      await apiService.logout();
-    } catch (error) {
-      // Even if logout fails on server, clear local state
-      console.error('Logout error:', error);
-    } finally {
-      dispatch({ type: 'AUTH_LOGOUT' });
-    }
-  };
-
-  const clearError = (): void => {
-    dispatch({ type: 'AUTH_CLEAR_ERROR' });
-  };
-
-  const checkAuthStatus = async (): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.getProfile();
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
-      } else {
-        dispatch({ type: 'AUTH_LOGOUT' });
-      }
-    } catch (error) {
-      dispatch({ type: 'AUTH_LOGOUT' });
-    }
-  };
-
-  // Check auth status on app start
+  // Check auth status on mount
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
+  const checkAuthStatus = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Try to load user from storage first
+      const savedUser = await AsyncStorage.getItem('@user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+
+      // Verify with backend
+      const response = await apiService.getProfile();
+      if (response.success && response.data) {
+        const userData = response.data as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        // Profile check failed, clear local data
+        setUser(null);
+        await AsyncStorage.removeItem('@user');
+      }
+    } catch (error) {
+      // Not authenticated or network error
+      console.log('Auth check failed:', error);
+      setUser(null);
+      await AsyncStorage.removeItem('@user');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await apiService.login(credentials);
+      
+      if (response.success && response.data) {
+        const userData = response.data.user as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (data: RegisterData) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Split name into firstName and lastName
+      const nameParts = data.name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || firstName;
+
+      // Map frontend data to backend format
+      const registerPayload = {
+        email: data.email,
+        password: data.password,
+        firstName,
+        lastName,
+        role: 'STUDENT',
+        schoolId: data.school, // Assuming school is already schoolId from picker
+      };
+
+      const response = await apiService.register(registerPayload);
+      
+      if (response.success && response.data) {
+        const userData = response.data.user as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Call backend logout
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if API call fails
+    } finally {
+      // Clear local state and storage
+      setUser(null);
+      await AsyncStorage.removeItem('@user');
+      setIsLoading(false);
+    }
+  };
+
+  const clearError = () => {
+    setError(null);
+  };
+
   const value: AuthContextType = {
-    ...state,
+    user,
+    isAuthenticated: !!user,
+    isLoading,
+    error,
     login,
     register,
     logout,
     clearError,
-    checkAuthStatus,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 // Auth Hook
