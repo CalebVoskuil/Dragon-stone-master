@@ -1,472 +1,325 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
-  Alert,
+  TouchableOpacity,
+  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { ArrowLeft, Check } from 'lucide-react-native';
 import {
-  Text,
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Paragraph,
-  ActivityIndicator,
-  Chip,
-  Menu,
-  Divider,
-} from 'react-native-paper';
+  GradientBackground,
+  SDButton,
+  SDInput,
+  SDCard,
+  SDFileUpload,
+  GlassmorphicCard,
+} from '../../components/ui';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
-import { useForm, Controller } from 'react-hook-form';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import { format } from 'date-fns';
-
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
-import { School, CreateVolunteerLogData } from '../../types';
-import { theme, spacing } from '../../theme/theme';
 
-interface LogHoursFormData {
-  hours: string;
-  description: string;
-  date: string;
-  schoolId: string;
-}
-
-const LogHoursScreen: React.FC = () => {
+/**
+ * LogHoursScreen - Log volunteer hours with proof
+ * Allows students to submit volunteer hours for verification
+ */
+export default function LogHoursScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
-  const [schools, setSchools] = useState<School[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-  const [schoolMenuVisible, setSchoolMenuVisible] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingSchools, setIsLoadingSchools] = useState(true);
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<LogHoursFormData>({
-    defaultValues: {
-      hours: '',
-      description: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      schoolId: '',
-    },
+  const [formData, setFormData] = useState({
+    hours: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0], // Default to today
   });
+  const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [preview, setPreview] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const watchedSchoolId = watch('schoolId');
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
-  useEffect(() => {
-    loadSchools();
-  }, []);
-
-  useEffect(() => {
-    if (watchedSchoolId && schools.length > 0) {
-      const school = schools.find(s => s.id === watchedSchoolId);
-      setSelectedSchool(school || null);
+    if (!formData.hours.trim()) {
+      newErrors.hours = 'Hours are required';
+    } else if (isNaN(parseFloat(formData.hours)) || parseFloat(formData.hours) <= 0) {
+      newErrors.hours = 'Please enter a valid number of hours';
     }
-  }, [watchedSchoolId, schools]);
 
-  const loadSchools = async () => {
-    try {
-      setIsLoadingSchools(true);
-      const response = await apiService.getSchools();
-      if (response.success && response.data) {
-        setSchools(response.data);
-      }
-    } catch (error) {
-      console.error('Error loading schools:', error);
-      Alert.alert('Error', 'Failed to load schools');
-    } finally {
-      setIsLoadingSchools(false);
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required (minimum 10 characters)';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
+    }
+
+    if (!user?.schoolId) {
+      newErrors.school = 'School ID is missing. Please update your profile.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setSelectedFile({
-          uri: result.assets[0].uri,
-          name: result.assets[0].fileName || 'image.jpg',
-          type: 'image/jpeg',
-        });
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+  const handleFileSelect = (file: any) => {
+    setSelectedFile(file);
+    if (file.uri) {
+      setPreview(file.uri);
+    }
+    if (errors.file) {
+      setErrors((prev) => ({ ...prev, file: '' }));
     }
   };
 
-  const pickDocument = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*'],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled) {
-        setSelectedFile({
-          uri: result.assets[0].uri,
-          name: result.assets[0].name,
-          type: result.assets[0].mimeType,
-        });
-      }
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to pick document');
-    }
-  };
-
-  const removeFile = () => {
+  const handleFileRemove = () => {
     setSelectedFile(null);
+    setPreview('');
   };
 
-  const onSubmit = async (data: LogHoursFormData) => {
-    try {
-      setIsLoading(true);
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
-      const logData: CreateVolunteerLogData = {
-        hours: parseFloat(data.hours),
-        description: data.description,
-        date: new Date(data.date).toISOString(),
-        schoolId: data.schoolId,
-        proofFile: selectedFile,
+    if (!user?.schoolId) {
+      setErrors({ general: 'School ID is missing. Please update your profile.' });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const logData = {
+        hours: parseFloat(formData.hours),
+        description: formData.description,
+        date: formData.date || new Date().toISOString(),
+        schoolId: user.schoolId,
+        proofFile: selectedFile || undefined,
       };
 
       const response = await apiService.createVolunteerLog(logData);
 
       if (response.success) {
-        Alert.alert(
-          'Success',
-          'Volunteer hours logged successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('MyLogs' as never),
-            },
-          ]
-        );
+        setShowSuccess(true);
+
+        // Auto-redirect after showing success
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
       } else {
-        Alert.alert('Error', response.message || 'Failed to log hours');
+        throw new Error(response.message || 'Failed to submit log');
       }
     } catch (error: any) {
-      console.error('Error logging hours:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to log hours'
-      );
+      console.error('Failed to submit log:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit. Please try again.';
+      setErrors({ general: errorMessage });
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (isLoadingSchools) {
+  if (showSuccess) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading schools...</Text>
-      </View>
+      <GradientBackground>
+        <SafeAreaView style={styles.container}>
+          <View style={styles.successContainer}>
+            <GlassmorphicCard style={styles.successCard}>
+              <View style={styles.successIcon}>
+                <Check color={Colors.green} size={40} />
+              </View>
+              <Text style={styles.successTitle}>Submitted Successfully!</Text>
+              <Text style={styles.successMessage}>
+                Your volunteer hours have been submitted for verification.
+              </Text>
+              <Text style={styles.successHint}>
+                You'll receive a notification once they're reviewed.
+              </Text>
+            </GlassmorphicCard>
+          </View>
+        </SafeAreaView>
+      </GradientBackground>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Log Volunteer Hours</Title>
-              <Paragraph style={styles.subtitle}>
-                Record your volunteer activities and hours
-              </Paragraph>
+    <GradientBackground>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <ArrowLeft color={Colors.light} size={24} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Log Volunteer Hours</Text>
+            <View style={styles.headerSpacer} />
+          </View>
 
-              <Controller
-                control={control}
-                name="hours"
-                rules={{
-                  required: 'Hours are required',
-                  pattern: {
-                    value: /^\d+(\.\d{1,2})?$/,
-                    message: 'Enter valid hours (e.g., 2.5)',
-                  },
-                  validate: (value) => {
-                    const num = parseFloat(value);
-                    if (num < 0.5) return 'Minimum 0.5 hours required';
-                    if (num > 24) return 'Maximum 24 hours per day';
-                    return true;
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Hours"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.hours}
-                    keyboardType="numeric"
-                    style={styles.input}
-                    placeholder="e.g., 2.5"
-                  />
-                )}
-              />
-              {errors.hours && (
-                <Text style={styles.errorText}>{errors.hours.message}</Text>
-              )}
-
-              <Controller
-                control={control}
-                name="description"
-                rules={{
-                  required: 'Description is required',
-                  minLength: {
-                    value: 10,
-                    message: 'Description must be at least 10 characters',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Description"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.description}
-                    multiline
-                    numberOfLines={4}
-                    style={styles.input}
-                    placeholder="Describe your volunteer activities..."
-                  />
-                )}
-              />
-              {errors.description && (
-                <Text style={styles.errorText}>{errors.description.message}</Text>
-              )}
-
-              <Controller
-                control={control}
-                name="date"
-                rules={{
-                  required: 'Date is required',
-                }}
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="Date"
-                    mode="outlined"
-                    value={value}
-                    onChangeText={onChange}
-                    error={!!errors.date}
-                    style={styles.input}
-                    placeholder="YYYY-MM-DD"
-                  />
-                )}
-              />
-              {errors.date && (
-                <Text style={styles.errorText}>{errors.date.message}</Text>
-              )}
-
-              <View style={styles.schoolContainer}>
-                <Text style={styles.schoolLabel}>School</Text>
-                <Menu
-                  visible={schoolMenuVisible}
-                  onDismiss={() => setSchoolMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setSchoolMenuVisible(true)}
-                      style={styles.schoolButton}
-                      contentStyle={styles.schoolButtonContent}
-                    >
-                      {selectedSchool ? selectedSchool.name : 'Select School'}
-                    </Button>
-                  }
-                >
-                  {schools.map((school) => (
-                    <Menu.Item
-                      key={school.id}
-                      onPress={() => {
-                        setValue('schoolId', school.id);
-                        setSchoolMenuVisible(false);
-                      }}
-                      title={school.name}
-                    />
-                  ))}
-                </Menu>
-              </View>
-              {errors.schoolId && (
-                <Text style={styles.errorText}>Please select a school</Text>
-              )}
-
-              <Divider style={styles.divider} />
-
-              <Text style={styles.sectionTitle}>Proof Document (Optional)</Text>
-              <Paragraph style={styles.sectionSubtitle}>
-                Upload a photo or document as proof of your volunteer work
-              </Paragraph>
-
-              {selectedFile ? (
-                <View style={styles.fileContainer}>
-                  <Chip
-                    icon="file"
-                    onClose={removeFile}
-                    style={styles.fileChip}
-                  >
-                    {selectedFile.name}
-                  </Chip>
-                </View>
-              ) : (
-                <View style={styles.fileButtons}>
-                  <Button
-                    mode="outlined"
-                    onPress={pickImage}
-                    icon="camera"
-                    style={styles.fileButton}
-                  >
-                    Photo
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={pickDocument}
-                    icon="file-document"
-                    style={styles.fileButton}
-                  >
-                    Document
-                  </Button>
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+            <GlassmorphicCard intensity={80} style={styles.formCard}>
+              {errors.general && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{errors.general}</Text>
                 </View>
               )}
 
-              <Button
-                mode="contained"
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                style={styles.submitButton}
-                contentStyle={styles.buttonContent}
+              <SDInput
+                label="Hours Volunteered"
+                placeholder="e.g., 3.5"
+                value={formData.hours}
+                onChangeText={(value) => handleInputChange('hours', value)}
+                error={errors.hours}
+                required
+                keyboardType="decimal-pad"
+                hint="Enter the number of hours you volunteered"
+              />
+
+              <SDInput
+                label="Description"
+                placeholder="Describe your volunteer activity (minimum 10 characters)..."
+                value={formData.description}
+                onChangeText={(value) => handleInputChange('description', value)}
+                error={errors.description}
+                required
+                multiline
+                numberOfLines={4}
+                style={styles.textArea}
+                hint="Include details about what you did and where"
+              />
+
+              <SDFileUpload
+                label="Proof of Volunteer Work (Optional)"
+                description="Upload a photo or document"
+                onFileSelect={handleFileSelect}
+                onFileRemove={handleFileRemove}
+                preview={preview}
+                error={errors.file}
+                acceptedTypes={['image/*', 'application/pdf']}
+                maxSizeMB={5}
+              />
+
+              <SDButton
+                variant="primary-filled"
+                size="lg"
+                fullWidth
+                onPress={handleSubmit}
+                loading={submitting}
               >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  'Log Hours'
-                )}
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                Submit for Verification
+              </SDButton>
+
+              <Text style={styles.note}>
+                Your hours will be reviewed by a coordinator and you'll be notified once approved.
+              </Text>
+            </GlassmorphicCard>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </GradientBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: spacing.md,
-  },
-  content: {
+  keyboardView: {
     flex: 1,
   },
-  card: {
-    elevation: 4,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
-  title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-    marginBottom: spacing.sm,
+  backButton: {
+    padding: spacing.sm,
   },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-    color: theme.colors.onSurfaceVariant,
+  headerTitle: {
+    ...typography.h2,
+    color: Colors.light,
   },
-  input: {
-    marginBottom: spacing.md,
+  headerSpacer: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  formCard: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: `${Colors.red}1A`,
+    borderWidth: 1,
+    borderColor: `${Colors.red}33`,
+    borderRadius: Sizes.radiusMd,
   },
   errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginBottom: spacing.sm,
-    marginTop: -spacing.sm,
+    fontSize: Sizes.fontSm,
+    color: Colors.red,
   },
-  schoolContainer: {
-    marginBottom: spacing.md,
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: spacing.md,
   },
-  schoolLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
+  note: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
-  schoolButton: {
-    justifyContent: 'flex-start',
-  },
-  schoolButtonContent: {
-    justifyContent: 'flex-start',
-  },
-  divider: {
-    marginVertical: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
-  },
-  sectionSubtitle: {
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: spacing.md,
-  },
-  fileContainer: {
-    marginBottom: spacing.md,
-  },
-  fileChip: {
-    alignSelf: 'flex-start',
-  },
-  fileButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing.md,
-  },
-  fileButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
-  },
-  submitButton: {
-    marginTop: spacing.lg,
-  },
-  buttonContent: {
-    paddingVertical: spacing.sm,
-  },
-  loadingContainer: {
+  successContainer: {
     flex: 1,
     justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  successCard: {
+    padding: spacing.xl,
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: `${Colors.green}1A`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  successTitle: {
+    ...typography.h1,
+    color: Colors.text,
+    marginBottom: spacing.md,
+  },
+  successMessage: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  successHint: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
-
-export default LogHoursScreen;

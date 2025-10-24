@@ -1,86 +1,24 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../store/AuthContext';
-import { RootStackParamList, MainTabParamList } from '../types';
+import { RootStackParamList } from '../types';
 
-// Import screens
+// Import auth screens
+import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
-import DashboardScreen from '../screens/main/DashboardScreen';
-import LogHoursScreen from '../screens/main/LogHoursScreen';
-import MyLogsScreen from '../screens/main/MyLogsScreen';
-import ProfileScreen from '../screens/main/ProfileScreen';
-import CoordinatorDashboardScreen from '../screens/coordinator/CoordinatorDashboardScreen';
+
+// Import navigators
+import StudentNavigator from './StudentNavigator';
+import CoordinatorNavigator from './CoordinatorNavigator';
+
+// Import additional screens
 import SchoolsScreen from '../screens/main/SchoolsScreen';
-import BadgesScreen from '../screens/main/BadgesScreen';
+import MyLogsScreen from '../screens/main/MyLogsScreen';
+import NotificationsScreen from '../screens/coordinator/NotificationsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
-
-// Main Tab Navigator
-const MainTabNavigator: React.FC = () => {
-  const { user } = useAuth();
-
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'LogHours') {
-            iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'MyLogs') {
-            iconName = focused ? 'list' : 'list-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'CoordinatorDashboard') {
-            iconName = focused ? 'clipboard' : 'clipboard-outline';
-          } else {
-            iconName = 'help-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#2E7D32',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={DashboardScreen}
-        options={{ title: 'Dashboard' }}
-      />
-      <Tab.Screen 
-        name="LogHours" 
-        component={LogHoursScreen}
-        options={{ title: 'Log Hours' }}
-      />
-      <Tab.Screen 
-        name="MyLogs" 
-        component={MyLogsScreen}
-        options={{ title: 'My Logs' }}
-      />
-      {(user?.role === 'COORDINATOR' || user?.role === 'ADMIN') && (
-        <Tab.Screen 
-          name="CoordinatorDashboard" 
-          component={CoordinatorDashboardScreen}
-          options={{ title: 'Coordinator' }}
-        />
-      )}
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
-      />
-    </Tab.Navigator>
-  );
-};
 
 // Auth Stack Navigator
 const AuthStackNavigator: React.FC = () => {
@@ -90,21 +28,33 @@ const AuthStackNavigator: React.FC = () => {
         headerShown: false,
       }}
     >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
 };
 
-// Main Stack Navigator
+// Main Stack Navigator - routes to appropriate tab navigator based on user role
 const MainStackNavigator: React.FC = () => {
+  const { user } = useAuth();
+  
+  // Determine which navigator to use based on user role
+  const isCoordinator = user?.role === 'COORDINATOR' || user?.role === 'ADMIN';
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Main" component={MainTabNavigator} />
+      {/* Main tab navigation based on role */}
+      <Stack.Screen 
+        name="Main" 
+        component={isCoordinator ? CoordinatorNavigator : StudentNavigator}
+      />
+      
+      {/* Shared screens */}
       <Stack.Screen 
         name="Schools" 
         component={SchoolsScreen}
@@ -115,11 +65,20 @@ const MainStackNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen 
-        name="Badges" 
-        component={BadgesScreen}
+        name="MyLogs" 
+        component={MyLogsScreen}
         options={{ 
           headerShown: true, 
-          title: 'Badges',
+          title: 'My Logs',
+          headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen 
+        name="Notifications" 
+        component={NotificationsScreen}
+        options={{ 
+          headerShown: true, 
+          title: 'Notifications',
           headerBackTitle: 'Back'
         }}
       />

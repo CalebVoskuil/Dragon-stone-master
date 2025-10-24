@@ -1,368 +1,383 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
+  SafeAreaView,
+  FlatList,
   RefreshControl,
-  Alert,
-} from 'react-native';
-import {
-  Text,
-  Card,
-  Title,
-  Paragraph,
   ActivityIndicator,
-  Chip,
-  ProgressBar,
-  Surface,
-} from 'react-native-paper';
-
+} from 'react-native';
+import { Award, Lock } from 'lucide-react-native';
+import {
+  GradientBackground,
+  SDCard,
+  GlassmorphicCard,
+  SDButton,
+} from '../../components/ui';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography } from '../../theme/theme';
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
-import { BadgeProgress } from '../../types';
-import { theme, spacing } from '../../theme/theme';
 
-const BadgesScreen: React.FC = () => {
+interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  requiredHours: number;
+  currentHours: number;
+  isEarned: boolean;
+  iconUrl?: string;
+}
+
+/**
+ * BadgesScreen - Display earned and available badges
+ * Shows progress towards unlocking achievement badges
+ */
+export default function BadgesScreen() {
   const { user } = useAuth();
-  const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
-  const [totalHours, setTotalHours] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalHours, setTotalHours] = useState(0);
 
-  const loadBadgeProgress = useCallback(async () => {
+  useEffect(() => {
+    fetchBadgesData();
+  }, [user?.id]);
+
+  const fetchBadgesData = async () => {
     if (!user?.id) return;
 
     try {
-      setIsLoading(true);
-      const response = await apiService.getBadgeProgress(user.id);
-      if (response.success && response.data) {
-        setBadgeProgress(response.data.badgeProgress);
-        setTotalHours(response.data.totalHours);
+      setLoading(true);
+      setError(null);
+
+      // Fetch all badges and user progress in parallel
+      const [allBadgesResponse, userProgressResponse] = await Promise.all([
+        apiService.getBadges(),
+        apiService.getBadgeProgress(user.id),
+      ]);
+
+      if (allBadgesResponse.success && userProgressResponse.success) {
+        const allBadges = allBadgesResponse.data as any[];
+        const progressData = userProgressResponse.data as any;
+        const earnedBadgeIds = progressData.badgeProgress
+          ?.filter((bp: any) => bp.isEarned)
+          .map((bp: any) => bp.badgeId) || [];
+
+        // Combine badges with progress data
+        const badgesWithProgress = allBadges.map((badge) => ({
+          id: badge.id,
+          name: badge.name,
+          description: badge.description,
+          requiredHours: badge.requiredHours,
+          currentHours: progressData.totalHours || 0,
+          isEarned: earnedBadgeIds.includes(badge.id),
+          iconUrl: badge.iconUrl,
+        }));
+
+        setBadges(badgesWithProgress);
+        setTotalHours(progressData.totalHours || 0);
       }
-    } catch (error) {
-      console.error('Error loading badge progress:', error);
-      Alert.alert('Error', 'Failed to load badge progress');
+    } catch (err: any) {
+      console.error('Error fetching badges:', err);
+      setError(err.message || 'Failed to load badges');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [user?.id]);
+  };
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    await loadBadgeProgress();
+    await fetchBadgesData();
     setRefreshing(false);
-  }, [loadBadgeProgress]);
-
-  useEffect(() => {
-    loadBadgeProgress();
-  }, [loadBadgeProgress]);
-
-  const getProgressPercentage = (current: number, required: number) => {
-    return Math.min((current / required) * 100, 100);
   };
 
-  const getEarnedBadgesCount = () => {
-    return badgeProgress.filter(badge => badge.isEarned).length;
-  };
+  const earnedBadges = badges.filter((b) => b.isEarned);
+  const lockedBadges = badges.filter((b) => !b.isEarned);
 
-  const getNextBadge = () => {
-    return badgeProgress.find(badge => !badge.isEarned);
-  };
+  const renderBadge = ({ item }: { item: Badge }) => {
+    const progress = item.requiredHours > 0
+      ? Math.min((item.currentHours / item.requiredHours) * 100, 100)
+      : 0;
 
-  if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading badge progress...</Text>
-      </View>
-    );
-  }
+      <SDCard variant="elevated" padding="md" style={styles.badgeCard}>
+        <View style={styles.badgeHeader}>
+          <View
+            style={[
+              styles.badgeIcon,
+              item.isEarned ? styles.badgeIconEarned : styles.badgeIconLocked,
+            ]}
+          >
+            {item.isEarned ? (
+              <Award color={Colors.golden} size={32} />
+            ) : (
+              <Lock color={Colors.textSecondary} size={32} />
+            )}
+          </View>
+          <View style={styles.badgeInfo}>
+            <Text
+              style={[
+                styles.badgeName,
+                !item.isEarned && styles.badgeNameLocked,
+              ]}
+            >
+              {item.name}
+            </Text>
+            <Text style={styles.badgeDescription}>{item.description}</Text>
+          </View>
+        </View>
 
-  const earnedCount = getEarnedBadgesCount();
-  const nextBadge = getNextBadge();
+        {!item.isEarned && item.requiredHours > 0 && (
+          <View style={styles.progressSection}>
+            <View style={styles.progressBar}>
+              <View
+                style={[styles.progressFill, { width: `${progress}%` }]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {item.currentHours}/{item.requiredHours} hours
+            </Text>
+          </View>
+        )}
+
+        {item.isEarned && (
+          <View style={styles.earnedBadge}>
+            <Text style={styles.earnedText}>✓ Earned</Text>
+          </View>
+        )}
+      </SDCard>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.content}>
-          {/* Summary Card */}
-          <Card style={styles.summaryCard}>
-            <Card.Content>
-              <Title>Your Badge Progress</Title>
-              <View style={styles.summaryRow}>
-                <Surface style={styles.summaryItem}>
-                  <Text style={styles.summaryNumber}>{totalHours}</Text>
-                  <Text style={styles.summaryLabel}>Total Hours</Text>
-                </Surface>
-                <Surface style={styles.summaryItem}>
-                  <Text style={styles.summaryNumber}>{earnedCount}</Text>
-                  <Text style={styles.summaryLabel}>Badges Earned</Text>
-                </Surface>
-                <Surface style={styles.summaryItem}>
-                  <Text style={styles.summaryNumber}>{badgeProgress.length}</Text>
-                  <Text style={styles.summaryLabel}>Total Badges</Text>
-                </Surface>
+    <GradientBackground>
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <Text style={styles.pageTitle}>Your Badges</Text>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading badges...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchBadgesData}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Summary Stats */}
+              <SDCard variant="elevated" padding="md" style={styles.statsCard}>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{earnedBadges.length}</Text>
+                    <Text style={styles.statLabel}>Earned</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{badges.length}</Text>
+                    <Text style={styles.statLabel}>Total</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {badges.length > 0 ? Math.round((earnedBadges.length / badges.length) * 100) : 0}%
+                    </Text>
+                    <Text style={styles.statLabel}>Complete</Text>
+                  </View>
+                </View>
+              </SDCard>
+
+            {/* Earned Badges Section */}
+            {earnedBadges.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Earned Badges</Text>
+                {earnedBadges.map((badge) => (
+                  <View key={badge.id}>{renderBadge({ item: badge })}</View>
+                ))}
               </View>
-            </Card.Content>
-          </Card>
+            )}
 
-          {/* Next Badge Card */}
-          {nextBadge && (
-            <Card style={styles.nextBadgeCard}>
-              <Card.Content>
-                <Title style={styles.nextBadgeTitle}>Next Badge</Title>
-                <Text style={styles.nextBadgeName}>{nextBadge.badgeName}</Text>
-                <Paragraph style={styles.nextBadgeDescription}>
-                  {nextBadge.badgeDescription}
-                </Paragraph>
-                <View style={styles.nextBadgeProgress}>
-                  <View style={styles.progressInfo}>
-                    <Text style={styles.progressText}>
-                      {nextBadge.currentHours}/{nextBadge.requiredHours} hours
-                    </Text>
-                    <Text style={styles.progressPercentage}>
-                      {Math.round(getProgressPercentage(nextBadge.currentHours, nextBadge.requiredHours))}%
-                    </Text>
-                  </View>
-                  <ProgressBar
-                    progress={getProgressPercentage(nextBadge.currentHours, nextBadge.requiredHours) / 100}
-                    color={theme.colors.primary}
-                    style={styles.progressBar}
-                  />
-                  <Text style={styles.hoursRemaining}>
-                    {nextBadge.hoursRemaining} hours remaining
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
+            {/* Locked Badges Section */}
+            {lockedBadges.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Locked Badges</Text>
+                {lockedBadges.map((badge) => (
+                  <View key={badge.id}>{renderBadge({ item: badge })}</View>
+                ))}
+              </View>
+            )}
+          </GlassmorphicCard>
           )}
-
-          {/* All Badges */}
-          <Card style={styles.badgesCard}>
-            <Card.Content>
-              <Title>All Badges</Title>
-              {badgeProgress.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyTitle}>No Badges Available</Text>
-                  <Paragraph style={styles.emptyText}>
-                    Start logging volunteer hours to see available badges!
-                  </Paragraph>
-                </View>
-              ) : (
-                badgeProgress.map((badge) => (
-                  <View key={badge.badgeId} style={styles.badgeItem}>
-                    <View style={styles.badgeHeader}>
-                      <View style={styles.badgeTitleContainer}>
-                        <Text style={styles.badgeName}>{badge.badgeName}</Text>
-                        {badge.isEarned && (
-                          <Chip
-                            mode="flat"
-                            compact
-                            style={styles.earnedChip}
-                            textStyle={styles.earnedChipText}
-                          >
-                            Earned!
-                          </Chip>
-                        )}
-                      </View>
-                      <Text style={styles.badgeHours}>
-                        {badge.requiredHours}h
-                      </Text>
-                    </View>
-
-                    <Paragraph style={styles.badgeDescription}>
-                      {badge.badgeDescription}
-                    </Paragraph>
-
-                    <View style={styles.badgeProgress}>
-                      <View style={styles.progressInfo}>
-                        <Text style={styles.progressText}>
-                          {badge.currentHours}/{badge.requiredHours} hours
-                        </Text>
-                        <Text style={styles.progressPercentage}>
-                          {Math.round(getProgressPercentage(badge.currentHours, badge.requiredHours))}%
-                        </Text>
-                      </View>
-                      <ProgressBar
-                        progress={getProgressPercentage(badge.currentHours, badge.requiredHours) / 100}
-                        color={badge.isEarned ? '#4CAF50' : theme.colors.primary}
-                        style={styles.progressBar}
-                      />
-                      {!badge.isEarned && (
-                        <Text style={styles.hoursRemaining}>
-                          {badge.hoursRemaining} hours remaining
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))
-              )}
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </SafeAreaView>
+    </GradientBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: spacing.md,
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  pageTitle: {
+    ...typography.h1,
+    color: Colors.light,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  mainCard: {
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  statsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.border,
+  },
+  section: {
+    gap: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  badgeCard: {
+    backgroundColor: Colors.card,
+  },
+  badgeHeader: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  badgeIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeIconEarned: {
+    backgroundColor: `${Colors.golden}1A`,
+  },
+  badgeIconLocked: {
+    backgroundColor: Colors.background,
+  },
+  badgeInfo: {
+    flex: 1,
+  },
+  badgeName: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: spacing.xs,
+  },
+  badgeNameLocked: {
+    color: Colors.textSecondary,
+  },
+  badgeDescription: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    lineHeight: Sizes.fontSm * 1.4,
+  },
+  progressSection: {
+    marginTop: spacing.md,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: Colors.border,
+    borderRadius: Sizes.radiusFull,
+    overflow: 'hidden',
+    marginBottom: spacing.xs,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.deepPurple,
+    borderRadius: Sizes.radiusFull,
+  },
+  progressText: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+  },
+  earnedBadge: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: `${Colors.golden}1A`,
+    borderRadius: Sizes.radiusFull,
+    alignSelf: 'flex-start',
+  },
+  earnedText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.golden,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
   },
   loadingText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
-  },
-  summaryCard: {
-    marginBottom: spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    ...typography.body,
+    color: Colors.light,
     marginTop: spacing.md,
   },
-  summaryItem: {
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: 8,
-    elevation: 2,
-    minWidth: 80,
-  },
-  summaryNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    marginTop: spacing.xs,
-    textAlign: 'center',
-  },
-  nextBadgeCard: {
-    marginBottom: spacing.md,
-    backgroundColor: theme.colors.primaryContainer,
-  },
-  nextBadgeTitle: {
-    color: theme.colors.onPrimaryContainer,
-    fontSize: 18,
-  },
-  nextBadgeName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.onPrimaryContainer,
-    marginBottom: spacing.xs,
-  },
-  nextBadgeDescription: {
-    color: theme.colors.onPrimaryContainer,
-    marginBottom: spacing.md,
-  },
-  nextBadgeProgress: {
-    marginTop: spacing.sm,
-  },
-  badgesCard: {
-    marginBottom: spacing.md,
-  },
-  badgeItem: {
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
-  },
-  badgeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  badgeTitleContainer: {
+  errorContainer: {
     flex: 1,
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    padding: spacing.xl,
+    gap: spacing.md,
+    minHeight: 300,
   },
-  badgeName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-    marginRight: spacing.sm,
-  },
-  earnedChip: {
-    backgroundColor: '#4CAF50',
-    height: 24,
-  },
-  earnedChipText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  badgeHours: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  badgeDescription: {
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: spacing.md,
-  },
-  badgeProgress: {
-    marginTop: spacing.sm,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  progressText: {
-    fontSize: 14,
-    color: theme.colors.onSurface,
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: spacing.xs,
-  },
-  hoursRemaining: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    textAlign: 'right',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.onSurface,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
+  errorText: {
+    ...typography.body,
+    color: Colors.light,
     textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
   },
 });
-
-export default BadgesScreen;

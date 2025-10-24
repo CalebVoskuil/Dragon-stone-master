@@ -1,361 +1,555 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   RefreshControl,
-} from 'react-native';
-import {
-  Text,
-  Card,
-  Title,
-  Paragraph,
-  Button,
+  SafeAreaView,
   ActivityIndicator,
-  Chip,
-  Surface,
-} from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-
+} from 'react-native';
+import { BlurView } from 'expo-blur';
+import {
+  Plus,
+  Clock,
+  Award,
+  Eye,
+  Bell,
+  Settings,
+} from 'lucide-react-native';
+import {
+  GradientBackground,
+  SDButton,
+  SDCard,
+  SDStatusChip,
+  GlassmorphicCard,
+} from '../../components/ui';
 import { useAuth } from '../../store/AuthContext';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography, shadows } from '../../theme/theme';
+import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../services/api';
-import { VolunteerLog, BadgeProgress } from '../../types';
-import { theme, spacing } from '../../theme/theme';
 
-const DashboardScreen: React.FC = () => {
+/**
+ * DashboardScreen - Main student dashboard
+ * Shows stats, recent activity, badges progress, and quick actions
+ */
+export default function DashboardScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
-  const [recentLogs, setRecentLogs] = useState<VolunteerLog[]>([]);
-  const [badgeProgress, setBadgeProgress] = useState<BadgeProgress[]>([]);
-  const [totalHours, setTotalHours] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalHours: 0,
+    totalLogs: 0,
+    pendingLogs: 0,
+    approvedLogs: 0,
+    rejectedLogs: 0,
+  });
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
-  const loadDashboardData = async () => {
+  const nextBadgeProgress = 75;
+  const canLogHours = true; // Update based on user consent status
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
     try {
-      setIsLoading(true);
-      
-      // Load recent volunteer logs
-      const logsResponse = await apiService.getVolunteerLogs({ limit: 5 });
+      setLoading(true);
+      setError(null);
+
+      // Fetch user stats and recent logs in parallel
+      const [statsResponse, logsResponse] = await Promise.all([
+        apiService.getUserStats(),
+        apiService.getVolunteerLogs({ limit: 5 }),
+      ]);
+
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+
       if (logsResponse.success && logsResponse.data) {
         setRecentLogs(logsResponse.data);
       }
-
-      // Load badge progress
-      if (user?.id) {
-        const badgeResponse = await apiService.getBadgeProgress(user.id);
-        if (badgeResponse.success && badgeResponse.data) {
-          setBadgeProgress(badgeResponse.data.badgeProgress);
-          setTotalHours(badgeResponse.data.totalHours);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadDashboardData();
+    await fetchDashboardData();
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user?.id]);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'STUDENT': return 'Student';
-      case 'VOLUNTEER': return 'Volunteer';
-      case 'COORDINATOR': return 'Coordinator';
-      case 'ADMIN': return 'Administrator';
-      default: return role;
+    if (diffHours < 24) {
+      if (diffHours === 0) return 'Just now';
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
-      </View>
-    );
-  }
+  const firstName = user?.firstName || 'Friend';
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <View style={styles.content}>
-        {/* Welcome Section */}
-        <Card style={styles.welcomeCard}>
-          <Card.Content>
-            <Title style={styles.greeting}>
-              {getGreeting()}, {user?.firstName}!
-            </Title>
-            <Paragraph style={styles.roleText}>
-              {getRoleDisplayName(user?.role || '')}
-            </Paragraph>
-          </Card.Content>
-        </Card>
+    <GradientBackground>
+      <SafeAreaView style={styles.container}>
+        {/* Fixed Header with Blur */}
+        <BlurView intensity={60} tint="light" style={styles.header}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings' as never)}
+              style={styles.headerButton}
+            >
+              <Settings color={Colors.deepPurple} size={20} />
+            </TouchableOpacity>
 
-        {/* Stats Section */}
-        <Card style={styles.statsCard}>
-          <Card.Content>
-            <Title>Your Progress</Title>
-            <View style={styles.statsRow}>
-              <Surface style={styles.statItem}>
-                <Text style={styles.statNumber}>{totalHours}</Text>
-                <Text style={styles.statLabel}>Total Hours</Text>
-              </Surface>
-              <Surface style={styles.statItem}>
-                <Text style={styles.statNumber}>
-                  {recentLogs.filter(log => log.status === 'approved').length}
-                </Text>
-                <Text style={styles.statLabel}>Approved Logs</Text>
-              </Surface>
-              <Surface style={styles.statItem}>
-                <Text style={styles.statNumber}>
-                  {recentLogs.filter(log => log.status === 'pending').length}
-                </Text>
-                <Text style={styles.statLabel}>Pending</Text>
-              </Surface>
+            <View style={styles.headerCenter}>
+              <Text style={styles.greeting}>
+                {getGreeting()}, {firstName}
+              </Text>
+              <Text style={styles.headerSubtitle}>Ready to make a difference today?</Text>
             </View>
-          </Card.Content>
-        </Card>
 
-        {/* Quick Actions */}
-        <Card style={styles.actionsCard}>
-          <Card.Content>
-            <Title>Quick Actions</Title>
-            <View style={styles.actionButtons}>
-              <Button
-                mode="contained"
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Notifications' as never)}
+              style={styles.headerButton}
+            >
+              <Bell color={Colors.deepPurple} size={20} />
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading dashboard...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchDashboardData}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Stats Overview */}
+              <SDCard variant="elevated" padding="lg" style={styles.statsCard}>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.deepPurple }]}>
+                      {stats.totalHours}
+                    </Text>
+                    <Text style={styles.statLabel}>Total Hours</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.golden }]}>
+                      {stats.pendingLogs}
+                    </Text>
+                    <Text style={styles.statLabel}>Pending</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.mediumPurple }]}>
+                      {stats.approvedLogs}
+                    </Text>
+                    <Text style={styles.statLabel}>Approved</Text>
+                  </View>
+                </View>
+              </SDCard>
+
+            {/* Next Badge Progress */}
+            <SDCard padding="md" style={styles.badgeCard}>
+              <View style={styles.badgeContent}>
+                <View style={styles.badgeIcon}>
+                  <Award color={Colors.golden} size={20} />
+                </View>
+                <View style={styles.badgeInfo}>
+                  <Text style={styles.badgeTitle}>Community Champion</Text>
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${nextBadgeProgress}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressText}>{nextBadgeProgress}%</Text>
+                  </View>
+                  <Text style={styles.badgeHint}>5 more hours to unlock</Text>
+                </View>
+              </View>
+            </SDCard>
+
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <SDButton
+                variant="primary-filled"
+                fullWidth
                 onPress={() => navigation.navigate('LogHours' as never)}
+                disabled={!canLogHours}
                 style={styles.actionButton}
-                icon="plus"
               >
-                Log Hours
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => navigation.navigate('MyLogs' as never)}
-                style={styles.actionButton}
-                icon="list"
-              >
-                View Logs
-              </Button>
-            </View>
-          </Card.Content>
-        </Card>
+                <Plus color={Colors.light} size={20} />
+                <Text style={styles.actionButtonText}>Log Hours</Text>
+              </SDButton>
 
-        {/* Recent Logs */}
-        {recentLogs.length > 0 && (
-          <Card style={styles.recentCard}>
-            <Card.Content>
-              <Title>Recent Activity</Title>
-              {recentLogs.map((log) => (
-                <View key={log.id} style={styles.logItem}>
-                  <View style={styles.logHeader}>
-                    <Text style={styles.logHours}>{log.hours}h</Text>
-                    <Chip
-                      mode="outlined"
-                      compact
-                      style={[
-                        styles.statusChip,
-                        {
-                          backgroundColor: 
-                            log.status === 'approved' ? '#E8F5E8' :
-                            log.status === 'pending' ? '#FFF3E0' : '#FFEBEE'
-                        }
-                      ]}
-                    >
-                      {log.status}
-                    </Chip>
-                  </View>
-                  <Text style={styles.logDescription} numberOfLines={2}>
-                    {log.description}
-                  </Text>
-                  <Text style={styles.logDate}>
-                    {new Date(log.date).toLocaleDateString()}
-                  </Text>
-                </View>
-              ))}
-            </Card.Content>
-          </Card>
-        )}
-
-        {/* Badge Progress */}
-        {badgeProgress.length > 0 && (
-          <Card style={styles.badgesCard}>
-            <Card.Content>
-              <Title>Badge Progress</Title>
-              {badgeProgress.slice(0, 3).map((badge) => (
-                <View key={badge.badgeId} style={styles.badgeItem}>
-                  <View style={styles.badgeHeader}>
-                    <Text style={styles.badgeName}>{badge.badgeName}</Text>
-                    {badge.isEarned && (
-                      <Chip mode="flat" compact style={styles.earnedChip}>
-                        Earned!
-                      </Chip>
-                    )}
-                  </View>
-                  <Text style={styles.badgeProgress}>
-                    {badge.currentHours}/{badge.requiredHours} hours
-                  </Text>
-                </View>
-              ))}
-              <Button
-                mode="text"
+              <SDButton
+                variant="ghost"
+                fullWidth
                 onPress={() => navigation.navigate('Badges' as never)}
-                style={styles.viewAllButton}
+                style={styles.actionButton}
               >
-                View All Badges
-              </Button>
-            </Card.Content>
-          </Card>
-        )}
-      </View>
-    </ScrollView>
+                <Award color={Colors.deepPurple} size={20} />
+                <Text style={[styles.actionButtonText, { color: Colors.deepPurple }]}>
+                  My Badges
+                </Text>
+              </SDButton>
+            </View>
+
+            {/* Period Selector */}
+            <View style={styles.periodSelector}>
+              {(['week', 'month', 'year'] as const).map((period) => (
+                <TouchableOpacity
+                  key={period}
+                  onPress={() => setSelectedPeriod(period)}
+                  style={[
+                    styles.periodButton,
+                    selectedPeriod === period && styles.periodButtonActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.periodButtonText,
+                      selectedPeriod === period && styles.periodButtonTextActive,
+                    ]}
+                  >
+                    This {period}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Recent Activity */}
+            <View>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('MyLogs' as never)}
+                  style={styles.viewAllButton}
+                >
+                  <Eye color={Colors.deepPurple} size={16} />
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {recentLogs.length > 0 ? (
+                <View style={styles.logsList}>
+                  {recentLogs.map((log) => (
+                    <SDCard key={log.id} variant="elevated" padding="md" style={styles.logCard}>
+                      <View style={styles.logHeader}>
+                        <Text style={styles.logHours}>{log.hours}h</Text>
+                        <SDStatusChip status={log.status} size="sm" />
+                      </View>
+                      <Text style={styles.logNotes} numberOfLines={2}>
+                        {log.description}
+                      </Text>
+                      <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
+                    </SDCard>
+                  ))}
+                </View>
+              ) : (
+                <SDCard padding="lg" style={styles.emptyState}>
+                  <Clock color={Colors.textSecondary} size={48} />
+                  <Text style={styles.emptyTitle}>No activity yet</Text>
+                  <Text style={styles.emptyDescription}>
+                    Start logging your volunteer hours to see your impact!
+                  </Text>
+                  <SDButton
+                    variant="primary-filled"
+                    onPress={() => navigation.navigate('LogHours' as never)}
+                    disabled={!canLogHours}
+                  >
+                    Log Your First Hours
+                  </SDButton>
+                </SDCard>
+              )}
+            </View>
+          </GlassmorphicCard>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </GradientBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
-  content: {
-    padding: spacing.md,
+  header: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.glassBorder,
+    backgroundColor: Colors.glassLight,
   },
-  loadingContainer: {
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+  },
+  headerButton: {
+    padding: spacing.sm,
+    borderRadius: Sizes.radiusFull,
+  },
+  headerCenter: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
-  },
-  welcomeCard: {
-    marginBottom: spacing.md,
-    backgroundColor: theme.colors.primary,
-  },
   greeting: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...typography.h2,
+    color: Colors.deepPurple,
+    marginBottom: 2,
   },
-  roleText: {
-    color: 'white',
-    opacity: 0.9,
+  headerSubtitle: {
+    fontSize: Sizes.fontSm,
+    color: Colors.deepPurple,
+    opacity: 0.7,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  mainCard: {
+    padding: spacing.lg,
+    gap: spacing.lg,
   },
   statsCard: {
-    marginBottom: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: spacing.md,
   },
   statItem: {
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: 8,
-    elevation: 2,
   },
-  statNumber: {
+  statValue: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    fontWeight: '600',
   },
   statLabel: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
+  badgeCard: {
+    backgroundColor: `${Colors.golden}1A`,
+  },
+  badgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  badgeIcon: {
+    padding: spacing.sm,
+    backgroundColor: `${Colors.golden}33`,
+    borderRadius: Sizes.radiusFull,
+  },
+  badgeInfo: {
+    flex: 1,
+  },
+  badgeTitle: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: spacing.xs,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: Colors.border,
+    borderRadius: Sizes.radiusFull,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.golden,
+    borderRadius: Sizes.radiusFull,
+  },
+  progressText: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+  },
+  badgeHint: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
     marginTop: spacing.xs,
   },
-  actionsCard: {
-    marginBottom: spacing.md,
-  },
-  actionButtons: {
+  quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: spacing.md,
+    gap: spacing.md,
   },
   actionButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
+    height: 64,
+    flexDirection: 'column',
+    gap: spacing.xs,
   },
-  recentCard: {
+  actionButtonText: {
+    fontSize: Sizes.fontSm,
+    marginTop: spacing.xs,
+  },
+  periodSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  periodButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: Sizes.radiusMd,
+    backgroundColor: Colors.background,
+  },
+  periodButtonActive: {
+    backgroundColor: Colors.deepPurple,
+  },
+  periodButtonText: {
+    fontSize: Sizes.fontSm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  periodButtonTextActive: {
+    color: Colors.light,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  logItem: {
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
+  sectionTitle: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  viewAllText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.deepPurple,
+    textDecorationLine: 'underline',
+  },
+  logsList: {
+    gap: spacing.md,
+  },
+  logCard: {
+    backgroundColor: Colors.card,
   },
   logHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   logHours: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  statusChip: {
-    height: 24,
-  },
-  logDescription: {
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
-  },
-  logDate: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-  },
-  badgesCard: {
-    marginBottom: spacing.md,
-  },
-  badgeItem: {
-    marginBottom: spacing.md,
-  },
-  badgeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  badgeName: {
+    fontSize: Sizes.fontLg,
     fontWeight: '600',
-    color: theme.colors.onSurface,
+    color: Colors.deepPurple,
   },
-  earnedChip: {
-    backgroundColor: theme.colors.primary,
+  logNotes: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    marginBottom: spacing.xs,
   },
-  badgeProgress: {
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 12,
+  logTime: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
   },
-  viewAllButton: {
-    marginTop: spacing.sm,
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  emptyDescription: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  errorText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
-
-export default DashboardScreen;

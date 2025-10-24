@@ -1,110 +1,132 @@
 import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
+import { Colors } from '../constants/Colors';
+import { Sizes } from '../constants/Sizes';
 
-// Custom color palette
-const colors = {
-  primary: '#2E7D32', // Green
-  primaryVariant: '#1B5E20',
-  secondary: '#FF6F00', // Orange
-  secondaryVariant: '#E65100',
-  background: '#FAFAFA',
-  surface: '#FFFFFF',
-  error: '#D32F2F',
-  onPrimary: '#FFFFFF',
-  onSecondary: '#FFFFFF',
-  onBackground: '#212121',
-  onSurface: '#212121',
-  onError: '#FFFFFF',
-  outline: '#BDBDBD',
-  surfaceVariant: '#F5F5F5',
-  onSurfaceVariant: '#424242',
+/**
+ * Stone Dragon Theme
+ * Based on brand colors: Deep Purple (#58398B) and Golden (#FFD60A)
+ */
+
+// Stone Dragon color palette for React Native Paper
+const stoneColors = {
+  primary: Colors.deepPurple,
+  primaryVariant: Colors.mediumPurple,
+  secondary: Colors.golden,
+  secondaryVariant: Colors.orange,
+  background: Colors.background,
+  surface: Colors.card,
+  error: Colors.red,
+  onPrimary: Colors.light,
+  onSecondary: Colors.dark,
+  onBackground: Colors.dark,
+  onSurface: Colors.dark,
+  onError: Colors.light,
+  outline: Colors.border,
+  surfaceVariant: Colors.cardBg,
+  onSurfaceVariant: Colors.textSecondary,
 };
 
 export const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    ...colors,
+    ...stoneColors,
   },
-  roundness: 8,
+  roundness: Sizes.radiusMd,
 };
 
 export const darkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: colors.primary,
-    primaryContainer: colors.primaryVariant,
-    secondary: colors.secondary,
-    secondaryContainer: colors.secondaryVariant,
+    primary: Colors.deepPurple,
+    primaryContainer: Colors.mediumPurple,
+    secondary: Colors.golden,
+    secondaryContainer: Colors.orange,
     background: '#121212',
     surface: '#1E1E1E',
-    error: colors.error,
-    onPrimary: colors.onPrimary,
-    onSecondary: colors.onSecondary,
-    onBackground: '#FFFFFF',
-    onSurface: '#FFFFFF',
-    onError: colors.onError,
+    error: Colors.red,
+    onPrimary: Colors.light,
+    onSecondary: Colors.dark,
+    onBackground: Colors.light,
+    onSurface: Colors.light,
+    onError: Colors.light,
     outline: '#666666',
     surfaceVariant: '#2C2C2C',
     onSurfaceVariant: '#CCCCCC',
   },
-  roundness: 8,
+  roundness: Sizes.radiusMd,
 };
 
-// Typography
+// Typography (mapped from Stone Dragon tokens)
 export const typography = {
   h1: {
-    fontSize: 32,
-    fontWeight: 'bold' as const,
-    lineHeight: 40,
+    fontSize: Sizes.fontXl,      // 24
+    fontWeight: '600' as const,
+    lineHeight: Sizes.fontXl * 1.3,
   },
   h2: {
-    fontSize: 28,
-    fontWeight: 'bold' as const,
-    lineHeight: 36,
-  },
-  h3: {
-    fontSize: 24,
+    fontSize: Sizes.fontLg,      // 20
     fontWeight: '600' as const,
-    lineHeight: 32,
+    lineHeight: Sizes.fontLg * 1.3,
   },
-  h4: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    lineHeight: 28,
+  subhead: {
+    fontSize: Sizes.fontMd,      // 16
+    fontWeight: '500' as const,
+    lineHeight: Sizes.fontMd * 1.4,
   },
-  body1: {
-    fontSize: 16,
-    fontWeight: 'normal' as const,
-    lineHeight: 24,
-  },
-  body2: {
-    fontSize: 14,
-    fontWeight: 'normal' as const,
-    lineHeight: 20,
+  body: {
+    fontSize: Sizes.fontSm,      // 14
+    fontWeight: '400' as const,
+    lineHeight: Sizes.fontSm * 1.5,
   },
   caption: {
-    fontSize: 12,
-    fontWeight: 'normal' as const,
-    lineHeight: 16,
+    fontSize: Sizes.fontXs,      // 12
+    fontWeight: '400' as const,
+    lineHeight: Sizes.fontXs * 1.4,
   },
 };
 
 // Spacing
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  xs: Sizes.xs,
+  sm: Sizes.sm,
+  md: Sizes.md,
+  lg: Sizes.lg,
+  xl: Sizes.xl,
+  xxl: Sizes.xxl,
 };
 
 // Border radius
 export const borderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  round: 50,
+  sm: Sizes.radiusSm,
+  md: Sizes.radiusMd,
+  lg: Sizes.radiusLg,
+  xl: Sizes.radiusXl,
+  round: Sizes.radiusFull,
+};
+
+// Shadow presets
+export const shadows = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  large: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
 };

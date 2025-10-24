@@ -1,0 +1,59 @@
+{
+  "colors": {
+    "sd_color_bg": "#FDFDFD",
+    "sd_surface_primary": "#5A2D82",
+    "sd_surface_secondary": "#7B4CB3",
+    "sd_accent_reject": "#E63946",
+    "sd_accent_pending": "#F77F00",
+    "sd_accent_accept": "#FFD60A",
+    "sd_accent_green": "#3BB273",
+    "sd_text_dark": "#2D2D2D",
+    "sd_text_light": "#FFFFFF"
+  },
+  "typography": {
+    "sd_h1": {
+      "fontSize": 24,
+      "fontWeight": "600",
+      "lineHeight": 1.3
+    },
+    "sd_h2": {
+      "fontSize": 20,
+      "fontWeight": "600",
+      "lineHeight": 1.3
+    },
+    "sd_subhead": {
+      "fontSize": 16,
+      "fontWeight": "500",
+      "lineHeight": 1.4
+    },
+    "sd_body": {
+      "fontSize": 14,
+      "fontWeight": "400",
+      "lineHeight": 1.5
+    },
+    "sd_caption": {
+      "fontSize": 12,
+      "fontWeight": "400",
+      "lineHeight": 1.4
+    }
+  },
+  "radii": {
+    "sd_radius_page": 20,
+    "sd_radius_card": 16,
+    "sd_radius_button": 12,
+    "sd_radius_chip": 8
+  },
+  "spacing": {
+    "base": 8,
+    "card_padding": 16,
+    "page_margin": 16
+  },
+  "shadows": {
+    "sd_shadow": {
+      "shadowOffset": { "width": 0, "height": 6 },
+      "shadowOpacity": 0.12,
+      "shadowRadius": 18,
+      "elevation": 6
+    }
+  }
+}
