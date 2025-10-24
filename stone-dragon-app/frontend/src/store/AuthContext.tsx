@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService } from '../services/api';
 
-// Mock User Types
+// User Types
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: 'STUDENT' | 'COORDINATOR' | 'ADMIN';
-  school?: string;
+  role: 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'ADMIN';
+  schoolId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface LoginCredentials {
@@ -29,123 +33,149 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  switchRole: (role: 'STUDENT' | 'COORDINATOR') => void;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Mock Users
-const MOCK_USERS = {
-  student: {
-    id: '1',
-    email: 'student@example.com',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    role: 'STUDENT' as const,
-    school: 'Cape Town High School',
-  },
-  coordinator: {
-    id: '2',
-    email: 'coordinator@example.com',
-    firstName: 'John',
-    lastName: 'Smith',
-    role: 'COORDINATOR' as const,
-    school: 'Cape Town High School',
-  },
-};
 
 // Auth Provider
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load user from storage on mount
+  // Check auth status on mount
   useEffect(() => {
-    loadUser();
+    checkAuthStatus();
   }, []);
 
-  const loadUser = async () => {
+  const checkAuthStatus = async () => {
     try {
+      setIsLoading(true);
+      
+      // Try to load user from storage first
       const savedUser = await AsyncStorage.getItem('@user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
+
+      // Verify with backend
+      const response = await apiService.getProfile();
+      if (response.success && response.data) {
+        const userData = response.data as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        // Profile check failed, clear local data
+        setUser(null);
+        await AsyncStorage.removeItem('@user');
+      }
     } catch (error) {
-      console.error('Error loading user:', error);
+      // Not authenticated or network error
+      console.log('Auth check failed:', error);
+      setUser(null);
+      await AsyncStorage.removeItem('@user');
     } finally {
       setIsLoading(false);
     }
   };
 
   const login = async (credentials: LoginCredentials) => {
-    setIsLoading(true);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    // Mock login - accept any email/password
-    let mockUser: User;
-    
-    if (credentials.email.includes('coordinator') || credentials.email.includes('admin')) {
-      mockUser = MOCK_USERS.coordinator;
-    } else {
-      mockUser = MOCK_USERS.student;
+      const response = await apiService.login(credentials);
+      
+      if (response.success && response.data) {
+        const userData = response.data.user as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Save to storage
-    await AsyncStorage.setItem('@user', JSON.stringify(mockUser));
-    setUser(mockUser);
-    setIsLoading(false);
   };
 
   const register = async (data: RegisterData) => {
-    setIsLoading(true);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    // Create new student user
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: data.email,
-      firstName: data.name.split(' ')[0],
-      lastName: data.name.split(' ')[1] || '',
-      role: 'STUDENT',
-      school: data.school,
-    };
+      // Split name into firstName and lastName
+      const nameParts = data.name.trim().split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || firstName;
 
-    // Save to storage
-    await AsyncStorage.setItem('@user', JSON.stringify(newUser));
-    setUser(newUser);
-    setIsLoading(false);
+      // Map frontend data to backend format
+      const registerPayload = {
+        email: data.email,
+        password: data.password,
+        firstName,
+        lastName,
+        role: 'STUDENT',
+        schoolId: data.school, // Assuming school is already schoolId from picker
+      };
+
+      const response = await apiService.register(registerPayload);
+      
+      if (response.success && response.data) {
+        const userData = response.data.user as User;
+        setUser(userData);
+        await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    await AsyncStorage.removeItem('@user');
-    setUser(null);
-    setIsLoading(false);
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Call backend logout
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if API call fails
+    } finally {
+      // Clear local state and storage
+      setUser(null);
+      await AsyncStorage.removeItem('@user');
+      setIsLoading(false);
+    }
   };
 
-  const switchRole = (role: 'STUDENT' | 'COORDINATOR') => {
-    if (user) {
-      const updatedUser = { ...user, role };
-      setUser(updatedUser);
-      AsyncStorage.setItem('@user', JSON.stringify(updatedUser));
-    }
+  const clearError = () => {
+    setError(null);
   };
 
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isLoading,
+    error,
     login,
     register,
     logout,
-    switchRole,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

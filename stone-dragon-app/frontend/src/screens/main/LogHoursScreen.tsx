@@ -22,6 +22,8 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../store/AuthContext';
+import { apiService } from '../../services/api';
 
 /**
  * LogHoursScreen - Log volunteer hours with proof
@@ -29,11 +31,11 @@ import { useNavigation } from '@react-navigation/native';
  */
 export default function LogHoursScreen() {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    title: '',
-    organization: '',
     hours: '',
     description: '',
+    date: new Date().toISOString().split('T')[0], // Default to today
   });
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const [preview, setPreview] = useState<string>('');
@@ -44,14 +46,6 @@ export default function LogHoursScreen() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Activity title is required';
-    }
-
-    if (!formData.organization.trim()) {
-      newErrors.organization = 'Organization is required';
-    }
-
     if (!formData.hours.trim()) {
       newErrors.hours = 'Hours are required';
     } else if (isNaN(parseFloat(formData.hours)) || parseFloat(formData.hours) <= 0) {
@@ -59,11 +53,13 @@ export default function LogHoursScreen() {
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = 'Description is required (minimum 10 characters)';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
     }
 
-    if (!selectedFile) {
-      newErrors.file = 'Proof of volunteer work is required';
+    if (!user?.schoolId) {
+      newErrors.school = 'School ID is missing. Please update your profile.';
     }
 
     setErrors(newErrors);
@@ -95,26 +91,38 @@ export default function LogHoursScreen() {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    if (!user?.schoolId) {
+      setErrors({ general: 'School ID is missing. Please update your profile.' });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      // Mock submission
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const logData = {
+        hours: parseFloat(formData.hours),
+        description: formData.description,
+        date: formData.date || new Date().toISOString(),
+        schoolId: user.schoolId,
+        proofFile: selectedFile || undefined,
+      };
 
-      console.log('Log submitted:', {
-        ...formData,
-        file: selectedFile?.fileName || selectedFile?.name,
-      });
+      const response = await apiService.createVolunteerLog(logData);
 
-      setShowSuccess(true);
+      if (response.success) {
+        setShowSuccess(true);
 
-      // Auto-redirect after showing success
-      setTimeout(() => {
-        navigation.goBack();
-      }, 2000);
-    } catch (error) {
+        // Auto-redirect after showing success
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
+      } else {
+        throw new Error(response.message || 'Failed to submit log');
+      }
+    } catch (error: any) {
       console.error('Failed to submit log:', error);
-      setErrors({ general: 'Failed to submit. Please try again.' });
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit. Please try again.';
+      setErrors({ general: errorMessage });
     } finally {
       setSubmitting(false);
     }
@@ -168,24 +176,6 @@ export default function LogHoursScreen() {
               )}
 
               <SDInput
-                label="Activity Title"
-                placeholder="e.g., Beach Cleanup"
-                value={formData.title}
-                onChangeText={(value) => handleInputChange('title', value)}
-                error={errors.title}
-                required
-              />
-
-              <SDInput
-                label="Organization"
-                placeholder="e.g., Cape Town Environmental Group"
-                value={formData.organization}
-                onChangeText={(value) => handleInputChange('organization', value)}
-                error={errors.organization}
-                required
-              />
-
-              <SDInput
                 label="Hours Volunteered"
                 placeholder="e.g., 3.5"
                 value={formData.hours}
@@ -193,11 +183,12 @@ export default function LogHoursScreen() {
                 error={errors.hours}
                 required
                 keyboardType="decimal-pad"
+                hint="Enter the number of hours you volunteered"
               />
 
               <SDInput
                 label="Description"
-                placeholder="Describe what you did..."
+                placeholder="Describe your volunteer activity (minimum 10 characters)..."
                 value={formData.description}
                 onChangeText={(value) => handleInputChange('description', value)}
                 error={errors.description}
@@ -205,10 +196,11 @@ export default function LogHoursScreen() {
                 multiline
                 numberOfLines={4}
                 style={styles.textArea}
+                hint="Include details about what you did and where"
               />
 
               <SDFileUpload
-                label="Proof of Volunteer Work"
+                label="Proof of Volunteer Work (Optional)"
                 description="Upload a photo or document"
                 onFileSelect={handleFileSelect}
                 onFileRemove={handleFileRemove}

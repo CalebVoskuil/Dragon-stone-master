@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import {
@@ -29,6 +30,7 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography, shadows } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
+import { apiService } from '../../services/api';
 
 /**
  * DashboardScreen - Main student dashboard
@@ -39,40 +41,49 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [refreshing, setRefreshing] = useState(false);
-
-  // Mock data - replace with actual API calls
-  const stats = {
-    totalHours: user?.totalHours || 24,
-    currentStreak: user?.currentStreak || 7,
-    totalPoints: user?.totalPoints || 480,
-  };
-
-  const recentLogs = [
-    {
-      id: '1',
-      hours: 3,
-      status: 'approved' as const,
-      submittedAt: '2 days ago',
-      notes: 'Helped serve meals at community kitchen',
-    },
-    {
-      id: '2',
-      hours: 2.5,
-      status: 'pending' as const,
-      submittedAt: '5 hours ago',
-      notes: 'Beach cleanup at Camps Bay',
-    },
-    {
-      id: '3',
-      hours: 4,
-      status: 'approved' as const,
-      submittedAt: '1 week ago',
-      notes: 'Reading program at local library',
-    },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalHours: 0,
+    totalLogs: 0,
+    pendingLogs: 0,
+    approvedLogs: 0,
+    rejectedLogs: 0,
+  });
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   const nextBadgeProgress = 75;
   const canLogHours = true; // Update based on user consent status
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch user stats and recent logs in parallel
+      const [statsResponse, logsResponse] = await Promise.all([
+        apiService.getUserStats(),
+        apiService.getVolunteerLogs({ limit: 5 }),
+      ]);
+
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+
+      if (logsResponse.success && logsResponse.data) {
+        setRecentLogs(logsResponse.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -83,12 +94,31 @@ export default function DashboardScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Fetch fresh data here
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fetchDashboardData();
     setRefreshing(false);
   };
 
-  const firstName = user?.firstName || user?.name?.split(' ')[0] || 'Friend';
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+
+    if (diffHours < 24) {
+      if (diffHours === 0) return 'Just now';
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const firstName = user?.firstName || 'Friend';
 
   return (
     <GradientBackground>
@@ -126,30 +156,43 @@ export default function DashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <GlassmorphicCard intensity={80} style={styles.mainCard}>
-            {/* Stats Overview */}
-            <SDCard variant="elevated" padding="lg" style={styles.statsCard}>
-              <View style={styles.statsGrid}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.deepPurple }]}>
-                    {stats.totalHours}
-                  </Text>
-                  <Text style={styles.statLabel}>Total Hours</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading dashboard...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchDashboardData}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Stats Overview */}
+              <SDCard variant="elevated" padding="lg" style={styles.statsCard}>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.deepPurple }]}>
+                      {stats.totalHours}
+                    </Text>
+                    <Text style={styles.statLabel}>Total Hours</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.golden }]}>
+                      {stats.pendingLogs}
+                    </Text>
+                    <Text style={styles.statLabel}>Pending</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: Colors.mediumPurple }]}>
+                      {stats.approvedLogs}
+                    </Text>
+                    <Text style={styles.statLabel}>Approved</Text>
+                  </View>
                 </View>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.golden }]}>
-                    {stats.currentStreak}
-                  </Text>
-                  <Text style={styles.statLabel}>Day Streak</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: Colors.mediumPurple }]}>
-                    {stats.totalPoints}
-                  </Text>
-                  <Text style={styles.statLabel}>Points</Text>
-                </View>
-              </View>
-            </SDCard>
+              </SDCard>
 
             {/* Next Badge Progress */}
             <SDCard padding="md" style={styles.badgeCard}>
@@ -246,9 +289,9 @@ export default function DashboardScreen() {
                         <SDStatusChip status={log.status} size="sm" />
                       </View>
                       <Text style={styles.logNotes} numberOfLines={2}>
-                        {log.notes}
+                        {log.description}
                       </Text>
-                      <Text style={styles.logTime}>{log.submittedAt}</Text>
+                      <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
                     </SDCard>
                   ))}
                 </View>
@@ -270,6 +313,7 @@ export default function DashboardScreen() {
               )}
             </View>
           </GlassmorphicCard>
+          )}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>
@@ -482,6 +526,29 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  errorText: {
+    ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

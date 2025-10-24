@@ -18,9 +18,14 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: 'http://192.168.0.208:3001/api', 
+      // API Base URL Configuration
+      // - For iOS Simulator: use 'http://localhost:3001/api'
+      // - For Android Emulator: use 'http://10.0.2.2:3001/api'
+      // - For Physical Device: use your computer's IP (e.g., 'http://192.168.1.100:3001/api')
+      // - For Production: update to your production API URL
+      baseURL: 'http://192.168.0.115:3001/api', 
       timeout: 10000,
-      withCredentials: true, // Important for session-based auth
+      withCredentials: true, // Important for session-based auth (cookies)
       headers: {
         'Content-Type': 'application/json',
       },
@@ -43,10 +48,27 @@ class ApiService {
         return response;
       },
       (error) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized access
-          // You might want to redirect to login or clear auth state
+        // Handle different error scenarios
+        if (error.response) {
+          // Server responded with error status
+          const status = error.response.status;
+          
+          if (status === 401) {
+            // Unauthorized - user needs to log in
+            console.log('Unauthorized access - clearing auth state');
+            // Auth state will be cleared by AuthContext
+          } else if (status === 500) {
+            console.error('Server error:', error.response.data);
+          }
+        } else if (error.request) {
+          // Request made but no response received (network error)
+          console.error('Network error - unable to connect to server');
+          error.message = 'Unable to connect to server. Please check your connection.';
+        } else {
+          // Something else happened
+          console.error('Request error:', error.message);
         }
+        
         return Promise.reject(error);
       }
     );
@@ -183,6 +205,32 @@ class ApiService {
 
   async getSchoolStats(schoolId: string): Promise<ApiResponse<SchoolStats>> {
     const response: AxiosResponse<ApiResponse<SchoolStats>> = await this.api.get(`/coordinator/school-stats/${schoolId}`);
+    return response.data;
+  }
+
+  async getStudentsList(params?: { 
+    page?: number; 
+    limit?: number; 
+    search?: string;
+  }): Promise<ApiResponse<any[]>> {
+    const response: AxiosResponse<ApiResponse<any[]>> = await this.api.get('/coordinator/students', { params });
+    return response.data;
+  }
+
+  async getLeaderboard(period?: 'week' | 'month' | 'year'): Promise<ApiResponse<any[]>> {
+    const response: AxiosResponse<ApiResponse<any[]>> = await this.api.get('/coordinator/leaderboard', {
+      params: { period: period || 'month' }
+    });
+    return response.data;
+  }
+
+  // User endpoints
+  async updateUser(userId: string, data: { 
+    firstName?: string; 
+    lastName?: string; 
+    schoolId?: string; 
+  }): Promise<ApiResponse<User>> {
+    const response: AxiosResponse<ApiResponse<User>> = await this.api.put(`/users/${userId}`, data);
     return response.data;
   }
 

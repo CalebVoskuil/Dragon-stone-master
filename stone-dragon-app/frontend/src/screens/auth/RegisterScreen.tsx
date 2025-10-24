@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Eye, EyeOff, Check } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
 
 /**
  * RegisterScreen - New user registration
@@ -32,6 +34,7 @@ export default function RegisterScreen() {
     confirmPassword: '',
     dateOfBirth: '',
     school: '',
+    schoolId: '', // Store the actual school ID
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,18 +42,33 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showSchoolPicker, setShowSchoolPicker] = useState(false);
+  const [schools, setSchools] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingSchools, setLoadingSchools] = useState(false);
 
-  const schools = [
-    'Cape Town High School',
-    "Wynberg Boys' High School",
-    "Wynberg Girls' High School",
-    "Rondebosch Boys' High School",
-    "Rondebosch Girls' High School",
-    'University of Cape Town',
-    'Stellenbosch University',
-    'Cape Peninsula University of Technology',
-    'Other',
-  ];
+  // Fetch schools on mount
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
+  const fetchSchools = async () => {
+    try {
+      setLoadingSchools(true);
+      const response = await apiService.getSchools();
+      if (response.success && response.data) {
+        setSchools(response.data as Array<{ id: string; name: string }>);
+      }
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      // Use a fallback list if API fails
+      setSchools([
+        { id: 'fallback-1', name: 'Cape Town High School' },
+        { id: 'fallback-2', name: "Wynberg Boys' High School" },
+        { id: 'fallback-3', name: "Wynberg Girls' High School" },
+      ]);
+    } finally {
+      setLoadingSchools(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -108,12 +126,13 @@ export default function RegisterScreen() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        school: formData.school,
+        school: formData.schoolId, // Use schoolId instead of school name
         dateOfBirth: formData.dateOfBirth,
       });
       // Auto-login after registration - navigation handled by AuthContext
-    } catch (error) {
-      setErrors({ general: 'Registration failed. Please try again.' });
+    } catch (error: any) {
+      const errorMessage = error.message || 'Registration failed. Please try again.';
+      setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -295,28 +314,40 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
               <ScrollView>
-                {schools.map((school) => (
-                  <TouchableOpacity
-                    key={school}
-                    onPress={() => {
-                      handleInputChange('school', school);
-                      setShowSchoolPicker(false);
-                    }}
-                    style={styles.schoolOption}
-                  >
-                    <Text
-                      style={[
-                        styles.schoolOptionText,
-                        formData.school === school && styles.schoolOptionSelected,
-                      ]}
+                {loadingSchools ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.deepPurple} />
+                    <Text style={styles.loadingText}>Loading schools...</Text>
+                  </View>
+                ) : schools.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No schools available</Text>
+                  </View>
+                ) : (
+                  schools.map((school) => (
+                    <TouchableOpacity
+                      key={school.id}
+                      onPress={() => {
+                        handleInputChange('school', school.name);
+                        handleInputChange('schoolId', school.id);
+                        setShowSchoolPicker(false);
+                      }}
+                      style={styles.schoolOption}
                     >
-                      {school}
-                    </Text>
-                    {formData.school === school && (
-                      <Check color={Colors.deepPurple} size={20} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.schoolOptionText,
+                          formData.schoolId === school.id && styles.schoolOptionSelected,
+                        ]}
+                      >
+                        {school.name}
+                      </Text>
+                      {formData.schoolId === school.id && (
+                        <Check color={Colors.deepPurple} size={20} />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
             </View>
           </View>
@@ -503,5 +534,24 @@ const styles = StyleSheet.create({
   schoolOptionSelected: {
     color: Colors.deepPurple,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  emptyContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    ...typography.body,
+    color: Colors.textSecondary,
   },
 });

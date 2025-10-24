@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import {
   User,
@@ -33,6 +35,7 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
+import { apiService } from '../../services/api';
 
 /**
  * ProfileScreen - User profile and settings
@@ -41,6 +44,37 @@ import { useNavigation } from '@react-navigation/native';
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userStats, setUserStats] = useState({
+    totalHours: 0,
+    totalLogs: 0,
+    approvedLogs: 0,
+  });
+
+  useEffect(() => {
+    fetchUserStats();
+  }, []);
+
+  const fetchUserStats = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getUserStats();
+      if (response.success && response.data) {
+        setUserStats(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchUserStats();
+    setRefreshing(false);
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -62,21 +96,21 @@ export default function ProfileScreen() {
   const stats = [
     {
       label: 'Total Hours',
-      value: user?.totalHours || 24,
+      value: userStats.totalHours,
       icon: Clock,
       color: Colors.deepPurple,
     },
     {
-      label: 'Badges Earned',
-      value: user?.badgesEarned || 5,
+      label: 'Total Logs',
+      value: userStats.totalLogs,
       icon: Award,
       color: Colors.golden,
     },
     {
-      label: 'Day Streak',
-      value: user?.currentStreak || 7,
+      label: 'Approved',
+      value: userStats.approvedLogs,
       icon: Calendar,
-      color: Colors.orange,
+      color: Colors.green,
     },
   ];
 
@@ -109,12 +143,21 @@ export default function ProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           <Text style={styles.pageTitle}>Profile</Text>
 
-          <GlassmorphicCard intensity={80} style={styles.mainCard}>
-            {/* User Info Card */}
-            <SDCard variant="elevated" padding="lg" style={styles.userCard}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.light} />
+              <Text style={styles.loadingText}>Loading profile...</Text>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* User Info Card */}
+              <SDCard variant="elevated" padding="lg" style={styles.userCard}>
               <View style={styles.avatarContainer}>
                 <View style={styles.avatar}>
                   <User color={Colors.light} size={40} />
@@ -195,6 +238,7 @@ export default function ProfileScreen() {
 
             <Text style={styles.version}>Version 1.0.0</Text>
           </GlassmorphicCard>
+          )}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>
@@ -336,5 +380,17 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontXs,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.light,
+    marginTop: spacing.md,
   },
 });

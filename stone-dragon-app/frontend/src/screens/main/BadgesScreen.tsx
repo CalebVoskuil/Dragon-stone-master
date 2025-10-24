@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,21 @@ import {
   ScrollView,
   SafeAreaView,
   FlatList,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Award, Lock } from 'lucide-react-native';
 import {
   GradientBackground,
   SDCard,
   GlassmorphicCard,
+  SDButton,
 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { useAuth } from '../../store/AuthContext';
+import { apiService } from '../../services/api';
 
 interface Badge {
   id: string;
@@ -24,7 +29,7 @@ interface Badge {
   requiredHours: number;
   currentHours: number;
   isEarned: boolean;
-  icon?: string;
+  iconUrl?: string;
 }
 
 /**
@@ -32,57 +37,64 @@ interface Badge {
  * Shows progress towards unlocking achievement badges
  */
 export default function BadgesScreen() {
-  // Mock badge data - replace with actual API call
-  const badges: Badge[] = [
-    {
-      id: '1',
-      name: 'First Steps',
-      description: 'Log your first volunteer hour',
-      requiredHours: 1,
-      currentHours: 24,
-      isEarned: true,
-    },
-    {
-      id: '2',
-      name: 'Dedicated Volunteer',
-      description: 'Complete 10 hours of volunteering',
-      requiredHours: 10,
-      currentHours: 24,
-      isEarned: true,
-    },
-    {
-      id: '3',
-      name: 'Community Champion',
-      description: 'Complete 25 hours of volunteering',
-      requiredHours: 25,
-      currentHours: 24,
-      isEarned: false,
-    },
-    {
-      id: '4',
-      name: 'Super Volunteer',
-      description: 'Complete 50 hours of volunteering',
-      requiredHours: 50,
-      currentHours: 24,
-      isEarned: false,
-    },
-    {
-      id: '5',
-      name: 'Hero of the Community',
-      description: 'Complete 100 hours of volunteering',
-      requiredHours: 100,
-      currentHours: 24,
-      isEarned: false,
-    },
-    {
-      id: '6',
-      name: 'Consistency King',
-      description: 'Volunteer for 7 consecutive days',
-      requiredHours: 0,
-      currentHours: 0,
-      isEarned: false,
-    },
-  ];
+  const { user } = useAuth();
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalHours, setTotalHours] = useState(0);
+
+  useEffect(() => {
+    fetchBadgesData();
+  }, [user?.id]);
+
+  const fetchBadgesData = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all badges and user progress in parallel
+      const [allBadgesResponse, userProgressResponse] = await Promise.all([
+        apiService.getBadges(),
+        apiService.getBadgeProgress(user.id),
+      ]);
+
+      if (allBadgesResponse.success && userProgressResponse.success) {
+        const allBadges = allBadgesResponse.data as any[];
+        const progressData = userProgressResponse.data as any;
+        const earnedBadgeIds = progressData.badgeProgress
+          ?.filter((bp: any) => bp.isEarned)
+          .map((bp: any) => bp.badgeId) || [];
+
+        // Combine badges with progress data
+        const badgesWithProgress = allBadges.map((badge) => ({
+          id: badge.id,
+          name: badge.name,
+          description: badge.description,
+          requiredHours: badge.requiredHours,
+          currentHours: progressData.totalHours || 0,
+          isEarned: earnedBadgeIds.includes(badge.id),
+          iconUrl: badge.iconUrl,
+        }));
+
+        setBadges(badgesWithProgress);
+        setTotalHours(progressData.totalHours || 0);
+      }
+    } catch (err: any) {
+      console.error('Error fetching badges:', err);
+      setError(err.message || 'Failed to load badges');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchBadgesData();
+    setRefreshing(false);
+  };
 
   const earnedBadges = badges.filter((b) => b.isEarned);
   const lockedBadges = badges.filter((b) => !b.isEarned);
@@ -148,31 +160,47 @@ export default function BadgesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         >
           <Text style={styles.pageTitle}>Your Badges</Text>
 
-          <GlassmorphicCard intensity={80} style={styles.mainCard}>
-            {/* Summary Stats */}
-            <SDCard variant="elevated" padding="md" style={styles.statsCard}>
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{earnedBadges.length}</Text>
-                  <Text style={styles.statLabel}>Earned</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading badges...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchBadgesData}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Summary Stats */}
+              <SDCard variant="elevated" padding="md" style={styles.statsCard}>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{earnedBadges.length}</Text>
+                    <Text style={styles.statLabel}>Earned</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{badges.length}</Text>
+                    <Text style={styles.statLabel}>Total</Text>
+                  </View>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statValue}>
+                      {badges.length > 0 ? Math.round((earnedBadges.length / badges.length) * 100) : 0}%
+                    </Text>
+                    <Text style={styles.statLabel}>Complete</Text>
+                  </View>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{badges.length}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>
-                    {Math.round((earnedBadges.length / badges.length) * 100)}%
-                  </Text>
-                  <Text style={styles.statLabel}>Complete</Text>
-                </View>
-              </View>
-            </SDCard>
+              </SDCard>
 
             {/* Earned Badges Section */}
             {earnedBadges.length > 0 && (
@@ -194,6 +222,7 @@ export default function BadgesScreen() {
               </View>
             )}
           </GlassmorphicCard>
+          )}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>
@@ -325,5 +354,30 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.golden,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.light,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+    minHeight: 300,
+  },
+  errorText: {
+    ...typography.body,
+    color: Colors.light,
+    textAlign: 'center',
   },
 });

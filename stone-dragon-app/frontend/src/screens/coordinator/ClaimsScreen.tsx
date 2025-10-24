@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Search, Filter } from 'lucide-react-native';
 import {
@@ -18,6 +20,7 @@ import SDClaimCard from '../../components/admin/SDClaimCard';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
 
 /**
  * ClaimsScreen - Detailed claims management
@@ -25,33 +28,83 @@ import { typography } from '../../theme/theme';
  */
 export default function ClaimsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [allClaims, setAllClaims] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock claims data
-  const allClaims = [
-    { id: '1', studentName: 'Alex Smith', claimId: '#CLM001', date: '2 hours ago', hours: 3, description: 'Helped teach basic computer skills', status: 'pending' as const },
-    { id: '2', studentName: 'Sarah Johnson', claimId: '#CLM002', date: '5 hours ago', hours: 2.5, description: 'Beach cleanup at Camps Bay', status: 'pending' as const },
-    { id: '3', studentName: 'Michael Chen', claimId: '#CLM003', date: '1 day ago', hours: 4, description: 'Helped renovate playground equipment', status: 'approved' as const },
-    { id: '4', studentName: 'Emma Wilson', claimId: '#CLM004', date: '1 day ago', hours: 2, description: 'Food bank distribution', status: 'approved' as const },
-    { id: '5', studentName: 'James Brown', claimId: '#CLM005', date: '2 days ago', hours: 3.5, description: 'Teaching at community center', status: 'rejected' as const },
-    { id: '6', studentName: 'Lisa Anderson', claimId: '#CLM006', date: '3 hours ago', hours: 5, description: 'Animal shelter volunteering', status: 'pending' as const },
-  ];
+  useEffect(() => {
+    fetchClaims();
+  }, []);
+
+  const fetchClaims = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await apiService.getPendingLogs();
+      if (response.success && response.data) {
+        setAllClaims(response.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching claims:', err);
+      setError(err.message || 'Failed to load claims');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchClaims();
+    setRefreshing(false);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 24) {
+      if (diffHours === 0) return 'Just now';
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
 
   const filteredClaims = allClaims.filter((claim) => {
-    const matchesSearch = claim.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         claim.claimId.toLowerCase().includes(searchTerm.toLowerCase());
+    const studentName = claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : '';
+    const claimId = `#${claim.id.substring(0, 8).toUpperCase()}`;
+    const matchesSearch = studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         claimId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || claim.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleApprove = (id: string) => {
-    console.log('Approve claim:', id);
+  const handleApprove = async (id: string) => {
+    try {
+      await apiService.reviewVolunteerLog(id, 'approved');
+      await fetchClaims();
+    } catch (error) {
+      console.error('Error approving claim:', error);
+    }
   };
 
-  const handleReject = (id: string) => {
-    console.log('Reject claim:', id);
+  const handleReject = async (id: string) => {
+    try {
+      await apiService.reviewVolunteerLog(id, 'rejected');
+      await fetchClaims();
+    } catch (error) {
+      console.error('Error rejecting claim:', error);
+    }
   };
 
   const handleSelect = (id: string, selected: boolean) => {
@@ -69,21 +122,41 @@ export default function ClaimsScreen() {
     }
   };
 
-  const handleBulkApprove = () => {
-    console.log('Bulk approve:', selectedClaims);
-    setSelectionMode(false);
-    setSelectedClaims([]);
+  const handleBulkApprove = async () => {
+    try {
+      await Promise.all(
+        selectedClaims.map((claimId) => apiService.reviewVolunteerLog(claimId, 'approved'))
+      );
+      await fetchClaims();
+      setSelectionMode(false);
+      setSelectedClaims([]);
+    } catch (error) {
+      console.error('Error bulk approving claims:', error);
+    }
   };
 
-  const handleBulkReject = () => {
-    console.log('Bulk reject:', selectedClaims);
-    setSelectionMode(false);
-    setSelectedClaims([]);
+  const handleBulkReject = async () => {
+    try {
+      await Promise.all(
+        selectedClaims.map((claimId) => apiService.reviewVolunteerLog(claimId, 'rejected'))
+      );
+      await fetchClaims();
+      setSelectionMode(false);
+      setSelectedClaims([]);
+    } catch (error) {
+      console.error('Error bulk rejecting claims:', error);
+    }
   };
 
-  const renderClaim = ({ item }: { item: typeof allClaims[0] }) => (
+  const renderClaim = ({ item }: { item: any }) => (
     <SDClaimCard
-      {...item}
+      id={item.id}
+      studentName={item.user ? `${item.user.firstName} ${item.user.lastName}` : 'Unknown'}
+      claimId={`#${item.id.substring(0, 8).toUpperCase()}`}
+      date={formatDate(item.createdAt)}
+      hours={item.hours}
+      description={item.description}
+      status={item.status}
       isSelected={selectedClaims.includes(item.id)}
       onSelect={handleSelect}
       onApprove={handleApprove}
@@ -146,20 +219,37 @@ export default function ClaimsScreen() {
           )}
 
           {/* Claims List */}
-          <FlatList
-            data={filteredClaims}
-            renderItem={renderClaim}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No claims found</Text>
-                <Text style={styles.emptyDescription}>
-                  {searchTerm ? 'Try adjusting your search' : 'No claims match the selected filter'}
-                </Text>
-              </View>
-            }
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading claims...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchClaims}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredClaims}
+              renderItem={renderClaim}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No claims found</Text>
+                  <Text style={styles.emptyDescription}>
+                    {searchTerm ? 'Try adjusting your search' : 'No claims match the selected filter'}
+                  </Text>
+                </View>
+              }
+            />
+          )}
         </GlassmorphicCard>
       </SafeAreaView>
     </GradientBackground>
@@ -254,6 +344,31 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+    minHeight: 300,
+  },
+  errorText: {
+    ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

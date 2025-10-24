@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Settings, Bell } from 'lucide-react-native';
 import {
   GradientBackground,
   GlassmorphicCard,
+  SDButton,
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import SDStatGrid from '../../components/admin/SDStatGrid';
@@ -22,6 +24,7 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
+import { apiService } from '../../services/api';
 
 /**
  * CoordinatorDashboardScreen - Main coordinator dashboard
@@ -31,71 +34,66 @@ export default function CoordinatorDashboardScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [stats, setStats] = useState({
+    totalLogs: 0,
+    pendingLogs: 0,
+    approvedLogs: 0,
+    rejectedLogs: 0,
+    totalHours: 0,
+  });
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
-  // Mock data - replace with actual API calls
-  const stats = {
-    pending: 8,
-    today: 12,
-    approved: 45,
-    totalStudents: 156,
-    totalHours: 1245,
-    avgResponseTime: '2.5',
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await apiService.getCoordinatorDashboard();
+
+      if (response.success && response.data) {
+        const data = response.data;
+        setStats(data.statistics);
+        setRecentLogs(data.recentLogs || []);
+      }
+    } catch (err: any) {
+      console.error('Error fetching coordinator dashboard:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const mockLogs = [
-    {
-      id: '1',
-      studentName: 'Alex Smith',
-      claimId: '#CLM001',
-      date: '2 hours ago',
-      hours: 3,
-      description: 'Helped teach basic computer skills',
-      status: 'pending' as const,
-    },
-    {
-      id: '2',
-      studentName: 'Sarah Johnson',
-      claimId: '#CLM002',
-      date: '5 hours ago',
-      hours: 2.5,
-      description: 'Beach cleanup at Camps Bay',
-      status: 'pending' as const,
-    },
-    {
-      id: '3',
-      studentName: 'Michael Chen',
-      claimId: '#CLM003',
-      date: '1 day ago',
-      hours: 4,
-      description: 'Helped renovate playground equipment',
-      status: 'approved' as const,
-    },
-    {
-      id: '4',
-      studentName: 'Emma Wilson',
-      claimId: '#CLM004',
-      date: '1 day ago',
-      hours: 2,
-      description: 'Food bank distribution',
-      status: 'approved' as const,
-    },
-  ];
-
-  const filteredLogs = mockLogs.filter((log) =>
+  const filteredLogs = recentLogs.filter((log) =>
     statusFilter === 'all' ? true : log.status === statusFilter
   );
 
-  const pendingCount = mockLogs.filter((log) => log.status === 'pending').length;
+  const pendingCount = stats.pendingLogs;
 
-  const handleApprove = (id: string) => {
-    // TODO: Implement approve API call
-    console.log('Approve claim:', id);
+  const handleApprove = async (id: string) => {
+    try {
+      await apiService.reviewVolunteerLog(id, 'approved');
+      // Refresh data after approval
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error approving claim:', error);
+    }
   };
 
-  const handleReject = (id: string) => {
-    // TODO: Implement reject API call
-    console.log('Reject claim:', id);
+  const handleReject = async (id: string) => {
+    try {
+      await apiService.reviewVolunteerLog(id, 'rejected');
+      // Refresh data after rejection
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error rejecting claim:', error);
+    }
   };
 
   const handleCardPress = (id: string) => {
@@ -105,17 +103,33 @@ export default function CoordinatorDashboardScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Fetch fresh data here
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fetchDashboardData();
     setRefreshing(false);
   };
 
-  const renderClaim = ({ item }: { item: typeof mockLogs[0] }) => (
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 24) {
+      if (diffHours === 0) return 'Just now';
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const renderClaim = ({ item }: { item: any }) => (
     <SDClaimCard
       id={item.id}
-      studentName={item.studentName}
-      claimId={item.claimId}
-      date={item.date}
+      studentName={item.user ? `${item.user.firstName} ${item.user.lastName}` : 'Unknown'}
+      claimId={`#${item.id.substring(0, 8).toUpperCase()}`}
+      date={formatDate(item.createdAt)}
       hours={item.hours}
       description={item.description}
       status={item.status}
@@ -163,9 +177,22 @@ export default function CoordinatorDashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <GlassmorphicCard intensity={80} style={styles.mainCard}>
-            {/* Statistics Grid */}
-            <SDStatGrid stats={stats} />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading dashboard...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <SDButton variant="primary-filled" size="md" onPress={fetchDashboardData}>
+                Retry
+              </SDButton>
+            </View>
+          ) : (
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Statistics Grid */}
+              <SDStatGrid stats={stats} />
 
             {/* Filter Tabs */}
             <View style={styles.filterTabs}>
@@ -211,6 +238,7 @@ export default function CoordinatorDashboardScreen() {
               )}
             </View>
           </GlassmorphicCard>
+          )}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>
@@ -317,6 +345,31 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 400,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.md,
+    minHeight: 400,
+  },
+  errorText: {
+    ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

@@ -271,3 +271,197 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
     });
   }
 };
+
+export const getStudentsList = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    // Build where clause for search
+    const where: any = {
+      role: 'STUDENT',
+    };
+
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search as string, mode: 'insensitive' } },
+        { lastName: { contains: search as string, mode: 'insensitive' } },
+        { email: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    const [students, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          schoolId: true,
+          isActive: true,
+          createdAt: true,
+          school: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    // Get volunteer log stats for each student
+    const studentsWithStats = await Promise.all(
+      students.map(async (student) => {
+        const [totalHours, pendingLogs, approvedLogs] = await Promise.all([
+          prisma.volunteerLog.aggregate({
+            where: { userId: student.id, status: 'approved' },
+            _sum: { hours: true },
+          }),
+          prisma.volunteerLog.count({
+            where: { userId: student.id, status: 'pending' },
+          }),
+          prisma.volunteerLog.count({
+            where: { userId: student.id, status: 'approved' },
+          }),
+        ]);
+
+        return {
+          ...student,
+          totalHours: totalHours._sum.hours || 0,
+          pendingLogs,
+          approvedLogs,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      message: 'Students list retrieved successfully',
+      data: studentsWithStats,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error('Get students list error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve students list',
+    });
+  }
+};
+
+export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { period = 'month' } = req.query;
+
+    // Calculate date range based on period
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'month':
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+    }
+
+    // Get top volunteers by approved hours in the period
+    const topVolunteers = await prisma.volunteerLog.groupBy({
+      by: ['userId'],
+      where: {
+        status: 'approved',
+        date: {
+          gte: startDate,
+        },
+      },
+      _sum: {
+        hours: true,
+      },
+      orderBy: {
+        _sum: {
+          hours: 'desc',
+        },
+      },
+      take: 20,
+    });
+
+    // Get user details and badge counts for top volunteers
+    const userIds = topVolunteers.map((v) => v.userId);
+    
+    const [users, badgeCounts] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          schoolId: true,
+          school: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      Promise.all(
+        userIds.map((userId) =>
+          prisma.userBadge.count({
+            where: { userId },
+          })
+        )
+      ),
+    ]);
+
+    // Combine data
+    const leaderboard = topVolunteers.map((volunteer, index) => {
+      const user = users.find((u) => u.id === volunteer.userId);
+      const badgesEarned = badgeCounts[index] || 0;
+
+      return {
+        rank: index + 1,
+        id: volunteer.userId,
+        name: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        email: user?.email || '',
+        school: user?.school?.name || 'Unknown School',
+        hours: volunteer._sum.hours || 0,
+        badgesEarned,
+      };
+    });
+
+    res.json({
+      success: true,
+      message: 'Leaderboard retrieved successfully',
+      data: leaderboard,
+      meta: {
+        period,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Get leaderboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve leaderboard',
+    });
+  }
+};
