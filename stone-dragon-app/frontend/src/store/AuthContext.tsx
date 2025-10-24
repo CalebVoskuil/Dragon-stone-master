@@ -1,170 +1,154 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { AuthState, User, LoginCredentials, RegisterData } from '../types';
-import { apiService } from '../services/api';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Auth Actions
-type AuthAction =
-  | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: User }
-  | { type: 'AUTH_FAILURE'; payload: string }
-  | { type: 'AUTH_LOGOUT' }
-  | { type: 'AUTH_CLEAR_ERROR' };
+// Mock User Types
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'STUDENT' | 'COORDINATOR' | 'ADMIN';
+  school?: string;
+}
 
-// Initial state
-const initialState: AuthState = {
-  user: null,
-  isAuthenticated: false,
-  isLoading: false,
-  error: null,
-};
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
 
-// Auth reducer
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  switch (action.type) {
-    case 'AUTH_START':
-      return {
-        ...state,
-        isLoading: true,
-        error: null,
-      };
-    case 'AUTH_SUCCESS':
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      };
-    case 'AUTH_FAILURE':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: action.payload,
-      };
-    case 'AUTH_LOGOUT':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      };
-    case 'AUTH_CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
-    default:
-      return state;
-  }
-};
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  school: string;
+  dateOfBirth: string;
+}
 
-// Auth Context
-interface AuthContextType extends AuthState {
+// Auth Context Type
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  clearError: () => void;
-  checkAuthStatus: () => Promise<void>;
+  switchRole: (role: 'STUDENT' | 'COORDINATOR') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mock Users
+const MOCK_USERS = {
+  student: {
+    id: '1',
+    email: 'student@example.com',
+    firstName: 'Sarah',
+    lastName: 'Johnson',
+    role: 'STUDENT' as const,
+    school: 'Cape Town High School',
+  },
+  coordinator: {
+    id: '2',
+    email: 'coordinator@example.com',
+    firstName: 'John',
+    lastName: 'Smith',
+    role: 'COORDINATOR' as const,
+    school: 'Cape Town High School',
+  },
+};
+
 // Auth Provider
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
-
-  const login = async (credentials: LoginCredentials): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.login(credentials);
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
-      } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Login failed' });
-      }
-    } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.message || 'Login failed' 
-      });
-    }
-  };
-
-  const register = async (data: RegisterData): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.register(data);
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.user });
-      } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Registration failed' });
-      }
-    } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.message || 'Registration failed' 
-      });
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      await apiService.logout();
-    } catch (error) {
-      // Even if logout fails on server, clear local state
-      console.error('Logout error:', error);
-    } finally {
-      dispatch({ type: 'AUTH_LOGOUT' });
-    }
-  };
-
-  const clearError = (): void => {
-    dispatch({ type: 'AUTH_CLEAR_ERROR' });
-  };
-
-  const checkAuthStatus = async (): Promise<void> => {
-    try {
-      dispatch({ type: 'AUTH_START' });
-      const response = await apiService.getProfile();
-      
-      if (response.success && response.data) {
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
-      } else {
-        dispatch({ type: 'AUTH_LOGOUT' });
-      }
-    } catch (error) {
-      dispatch({ type: 'AUTH_LOGOUT' });
-    }
-  };
-
-  // Check auth status on app start
+  // Load user from storage on mount
   useEffect(() => {
-    checkAuthStatus();
+    loadUser();
   }, []);
 
+  const loadUser = async () => {
+    try {
+      const savedUser = await AsyncStorage.getItem('@user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const login = async (credentials: LoginCredentials) => {
+    setIsLoading(true);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Mock login - accept any email/password
+    let mockUser: User;
+    
+    if (credentials.email.includes('coordinator') || credentials.email.includes('admin')) {
+      mockUser = MOCK_USERS.coordinator;
+    } else {
+      mockUser = MOCK_USERS.student;
+    }
+
+    // Save to storage
+    await AsyncStorage.setItem('@user', JSON.stringify(mockUser));
+    setUser(mockUser);
+    setIsLoading(false);
+  };
+
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Create new student user
+    const newUser: User = {
+      id: Math.random().toString(36).substr(2, 9),
+      email: data.email,
+      firstName: data.name.split(' ')[0],
+      lastName: data.name.split(' ')[1] || '',
+      role: 'STUDENT',
+      school: data.school,
+    };
+
+    // Save to storage
+    await AsyncStorage.setItem('@user', JSON.stringify(newUser));
+    setUser(newUser);
+    setIsLoading(false);
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    await AsyncStorage.removeItem('@user');
+    setUser(null);
+    setIsLoading(false);
+  };
+
+  const switchRole = (role: 'STUDENT' | 'COORDINATOR') => {
+    if (user) {
+      const updatedUser = { ...user, role };
+      setUser(updatedUser);
+      AsyncStorage.setItem('@user', JSON.stringify(updatedUser));
+    }
+  };
+
   const value: AuthContextType = {
-    ...state,
+    user,
+    isAuthenticated: !!user,
+    isLoading,
     login,
     register,
     logout,
-    clearError,
-    checkAuthStatus,
+    switchRole,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 // Auth Hook

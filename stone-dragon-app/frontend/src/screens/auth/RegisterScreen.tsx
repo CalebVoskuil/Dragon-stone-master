@@ -1,530 +1,507 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
-  Alert,
+  TouchableOpacity,
+  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
-import {
-  Text,
-  TextInput,
-  Button,
-  Card,
-  Title,
-  Paragraph,
-  ActivityIndicator,
-  Menu,
-  Divider,
-} from 'react-native-paper';
+import { Eye, EyeOff, Check } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useForm, Controller } from 'react-hook-form';
-
+import { GradientBackground, SDButton, SDInput, SDCard } from '../../components/ui';
 import { useAuth } from '../../store/AuthContext';
-import { apiService } from '../../services/api';
-import { School, UserRole } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography } from '../../theme/theme';
 
-interface RegisterFormData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  schoolId: string;
-}
-
-const RegisterScreen: React.FC = () => {
+/**
+ * RegisterScreen - New user registration
+ * Collects user information and creates account
+ */
+export default function RegisterScreen() {
   const navigation = useNavigation();
-  const { login } = useAuth();
-  const [schools, setSchools] = useState<School[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-  const [schoolMenuVisible, setSchoolMenuVisible] = useState(false);
-  const [roleMenuVisible, setRoleMenuVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingSchools, setIsLoadingSchools] = useState(true);
+  const { register } = useAuth();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    dateOfBirth: '',
+    school: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [showSchoolPicker, setShowSchoolPicker] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<RegisterFormData>({
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      firstName: '',
-      lastName: '',
-      role: 'STUDENT',
-      schoolId: '',
-    },
-  });
+  const schools = [
+    'Cape Town High School',
+    "Wynberg Boys' High School",
+    "Wynberg Girls' High School",
+    "Rondebosch Boys' High School",
+    "Rondebosch Girls' High School",
+    'University of Cape Town',
+    'Stellenbosch University',
+    'Cape Peninsula University of Technology',
+    'Other',
+  ];
 
-  const watchedRole = watch('role');
-  const watchedSchoolId = watch('schoolId');
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
-  useEffect(() => {
-    loadSchools();
-  }, []);
-
-  useEffect(() => {
-    if (watchedSchoolId && schools.length > 0) {
-      const school = schools.find(s => s.id === watchedSchoolId);
-      setSelectedSchool(school || null);
+    if (!formData.name.trim()) {
+      newErrors.name = 'Full name is required';
     }
-  }, [watchedSchoolId, schools]);
 
-  const loadSchools = async () => {
-    try {
-      setIsLoadingSchools(true);
-      const response = await apiService.getSchools();
-      if (response.success && response.data) {
-        setSchools(response.data);
-      }
-    } catch (error) {
-      console.error('Error loading schools:', error);
-      Alert.alert('Error', 'Failed to load schools');
-    } finally {
-      setIsLoadingSchools(false);
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!formData.school) {
+      newErrors.school = 'Please select your school';
+    }
+
+    if (!acceptedPrivacy) {
+      newErrors.privacy = 'You must accept the Privacy Policy to continue';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const getRoleDisplayName = (role: UserRole) => {
-    switch (role) {
-      case 'STUDENT': return 'Student';
-      case 'VOLUNTEER': return 'Volunteer';
-      case 'COORDINATOR': return 'Coordinator';
-      case 'ADMIN': return 'Administrator';
-      default: return role;
-    }
-  };
-
-  const onSubmit = async (data: RegisterFormData) => {
-    try {
-      setIsLoading(true);
-
-      const registerData = {
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role,
-        schoolId: data.schoolId || undefined,
-      };
-
-      const response = await apiService.register(registerData);
-
-      if (response.success) {
-        Alert.alert(
-          'Registration Successful',
-          'Your account has been created successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: async () => {
-                // Auto-login after successful registration
-                try {
-                  await login(data.email, data.password);
-                  // Navigation will be handled by the auth context
-                } catch (loginError) {
-                  console.error('Auto-login failed:', loginError);
-                  // Navigate to login screen if auto-login fails
-                  navigation.navigate('Login' as never);
-                }
-              },
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Registration Failed', response.message || 'Failed to create account');
-      }
-    } catch (error: any) {
-      console.error('Error during registration:', error);
-      Alert.alert(
-        'Registration Failed',
-        error.response?.data?.message || 'Failed to create account'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const navigateToLogin = () => {
+  const handleLogin = () => {
     navigation.navigate('Login' as never);
   };
 
-  if (isLoadingSchools) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading schools...</Text>
-      </View>
-    );
-  }
+  const handlePrivacyPolicy = () => {
+    // TODO: Navigate to privacy policy screen
+    console.log('View Privacy Policy');
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+      setErrors({});
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        school: formData.school,
+        dateOfBirth: formData.dateOfBirth,
+      });
+      // Auto-login after registration - navigation handled by AuthContext
+    } catch (error) {
+      setErrors({ general: 'Registration failed. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.content}>
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.title}>Create Account</Title>
-              <Paragraph style={styles.subtitle}>
-                Join the Stone Dragon Volunteer Program
-              </Paragraph>
+    <GradientBackground>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>
+                Join Stone Dragon NPO and start making a difference
+              </Text>
+            </View>
 
-              <Controller
-                control={control}
-                name="email"
-                rules={{
-                  required: 'Email is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Enter a valid email address',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Email"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.email}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    placeholder="your.email@example.com"
-                  />
-                )}
-              />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email.message}</Text>
+            {/* Registration Form */}
+            <SDCard variant="elevated" padding="lg" style={styles.formCard}>
+              {errors.general && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{errors.general}</Text>
+                </View>
               )}
 
-              <Controller
-                control={control}
-                name="password"
-                rules={{
-                  required: 'Password is required',
-                  minLength: {
-                    value: 6,
-                    message: 'Password must be at least 6 characters',
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Password"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.password}
-                    secureTextEntry={!showPassword}
-                    style={styles.input}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                    placeholder="Enter your password"
-                  />
-                )}
+              <SDInput
+                label="Full Name"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChangeText={(value) => handleInputChange('name', value)}
+                error={errors.name}
+                required
+                autoCapitalize="words"
               />
-              {errors.password && (
-                <Text style={styles.errorText}>{errors.password.message}</Text>
-              )}
 
-              <Controller
-                control={control}
-                name="confirmPassword"
-                rules={{
-                  required: 'Please confirm your password',
-                  validate: (value) => {
-                    const password = watch('password');
-                    return value === password || 'Passwords do not match';
-                  },
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Confirm Password"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.confirmPassword}
-                    secureTextEntry={!showConfirmPassword}
-                    style={styles.input}
-                    right={
-                      <TextInput.Icon
-                        icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                      />
-                    }
-                    placeholder="Confirm your password"
-                  />
-                )}
+              <SDInput
+                label="Email Address"
+                placeholder="your.email@example.com"
+                value={formData.email}
+                onChangeText={(value) => handleInputChange('email', value)}
+                error={errors.email}
+                required
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
               />
-              {errors.confirmPassword && (
-                <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
-              )}
 
-              <Controller
-                control={control}
-                name="firstName"
-                rules={{
-                  required: 'First name is required',
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="First Name"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.firstName}
-                    style={styles.input}
-                    placeholder="Enter your first name"
-                  />
-                )}
-              />
-              {errors.firstName && (
-                <Text style={styles.errorText}>{errors.firstName.message}</Text>
-              )}
-
-              <Controller
-                control={control}
-                name="lastName"
-                rules={{
-                  required: 'Last name is required',
-                }}
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    label="Last Name"
-                    mode="outlined"
-                    value={value}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    error={!!errors.lastName}
-                    style={styles.input}
-                    placeholder="Enter your last name"
-                  />
-                )}
-              />
-              {errors.lastName && (
-                <Text style={styles.errorText}>{errors.lastName.message}</Text>
-              )}
-
-              <View style={styles.roleContainer}>
-                <Text style={styles.roleLabel}>Role</Text>
-                <Menu
-                  visible={roleMenuVisible}
-                  onDismiss={() => setRoleMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setRoleMenuVisible(true)}
-                      style={styles.roleButton}
-                      contentStyle={styles.roleButtonContent}
-                    >
-                      {getRoleDisplayName(watchedRole)}
-                    </Button>
-                  }
+              {/* School Picker */}
+              <View>
+                <Text style={styles.label}>
+                  School <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowSchoolPicker(true)}
+                  style={[styles.pickerButton, errors.school && styles.pickerButtonError]}
                 >
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'STUDENT');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Student"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'VOLUNTEER');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Volunteer"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'COORDINATOR');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Coordinator"
-                  />
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('role', 'ADMIN');
-                      setRoleMenuVisible(false);
-                    }}
-                    title="Administrator"
-                  />
-                </Menu>
+                  <Text
+                    style={[
+                      styles.pickerText,
+                      !formData.school && styles.pickerPlaceholder,
+                    ]}
+                  >
+                    {formData.school || 'Select your school'}
+                  </Text>
+                </TouchableOpacity>
+                {errors.school && <Text style={styles.fieldError}>{errors.school}</Text>}
               </View>
 
-              <View style={styles.schoolContainer}>
-                <Text style={styles.schoolLabel}>School (Optional)</Text>
-                <Menu
-                  visible={schoolMenuVisible}
-                  onDismiss={() => setSchoolMenuVisible(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setSchoolMenuVisible(true)}
-                      style={styles.schoolButton}
-                      contentStyle={styles.schoolButtonContent}
-                    >
-                      {selectedSchool ? selectedSchool.name : 'Select School (Optional)'}
-                    </Button>
-                  }
+              <View>
+                <SDInput
+                  label="Password"
+                  placeholder="Minimum 8 characters"
+                  value={formData.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                  error={errors.password}
+                  hint="Minimum 8 characters"
+                  required
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.passwordToggle}
                 >
-                  <Menu.Item
-                    onPress={() => {
-                      setValue('schoolId', '');
-                      setSelectedSchool(null);
-                      setSchoolMenuVisible(false);
-                    }}
-                    title="No School"
-                  />
-                  {schools.map((school) => (
-                    <Menu.Item
-                      key={school.id}
-                      onPress={() => {
-                        setValue('schoolId', school.id);
-                        setSchoolMenuVisible(false);
-                      }}
-                      title={school.name}
-                    />
-                  ))}
-                </Menu>
+                  {showPassword ? (
+                    <EyeOff color={Colors.textSecondary} size={20} />
+                  ) : (
+                    <Eye color={Colors.textSecondary} size={20} />
+                  )}
+                </TouchableOpacity>
               </View>
 
-              <Button
-                mode="contained"
-                onPress={handleSubmit(onSubmit)}
-                disabled={isLoading}
-                style={styles.submitButton}
-                contentStyle={styles.buttonContent}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
+              <View>
+                <SDInput
+                  label="Confirm Password"
+                  placeholder="Re-enter your password"
+                  value={formData.confirmPassword}
+                  onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                  error={errors.confirmPassword}
+                  required
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.passwordToggle}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff color={Colors.textSecondary} size={20} />
+                  ) : (
+                    <Eye color={Colors.textSecondary} size={20} />
+                  )}
+                </TouchableOpacity>
+              </View>
 
-              <Divider style={styles.divider} />
-
-              <Button
-                mode="text"
-                onPress={navigateToLogin}
-                style={styles.loginButton}
+              {/* Privacy Policy Checkbox */}
+              <TouchableOpacity
+                onPress={() => setAcceptedPrivacy(!acceptedPrivacy)}
+                style={styles.checkboxContainer}
               >
-                Already have an account? Login
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+                <View style={[styles.checkbox, acceptedPrivacy && styles.checkboxChecked]}>
+                  {acceptedPrivacy && <Check color={Colors.light} size={16} />}
+                </View>
+                <View style={styles.checkboxLabel}>
+                  <Text style={styles.checkboxText}>I accept the </Text>
+                  <TouchableOpacity onPress={handlePrivacyPolicy}>
+                    <Text style={styles.linkText}>Privacy Policy</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+              {errors.privacy && <Text style={styles.fieldError}>{errors.privacy}</Text>}
+
+              <SDButton
+                variant="primary-filled"
+                size="lg"
+                fullWidth
+                onPress={handleSubmit}
+                loading={loading}
+              >
+                Create Account
+              </SDButton>
+            </SDCard>
+
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={handleLogin}>
+                <Text style={styles.loginLink}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        {/* School Picker Modal */}
+        <Modal
+          visible={showSchoolPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowSchoolPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Your School</Text>
+                <TouchableOpacity onPress={() => setShowSchoolPicker(false)}>
+                  <Text style={styles.modalClose}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                {schools.map((school) => (
+                  <TouchableOpacity
+                    key={school}
+                    onPress={() => {
+                      handleInputChange('school', school);
+                      setShowSchoolPicker(false);
+                    }}
+                    style={styles.schoolOption}
+                  >
+                    <Text
+                      style={[
+                        styles.schoolOptionText,
+                        formData.school === school && styles.schoolOptionSelected,
+                      ]}
+                    >
+                      {school}
+                    </Text>
+                    {formData.school === school && (
+                      <Check color={Colors.deepPurple} size={20} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </GradientBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: spacing.md,
-  },
-  content: {
+  keyboardView: {
     flex: 1,
   },
-  card: {
-    elevation: 4,
+  scrollContent: {
+    flexGrow: 1,
+    padding: spacing.lg,
+    justifyContent: 'center',
+  },
+  header: {
+    marginBottom: spacing.xl,
+    alignItems: 'center',
   },
   title: {
-    textAlign: 'center',
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
+    ...typography.h1,
+    color: Colors.light,
     marginBottom: spacing.sm,
   },
   subtitle: {
+    ...typography.body,
+    color: Colors.light,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    color: theme.colors.onSurfaceVariant,
+    opacity: 0.9,
   },
-  input: {
+  formCard: {
+    marginBottom: spacing.lg,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: `${Colors.red}1A`,
+    borderWidth: 1,
+    borderColor: `${Colors.red}33`,
+    borderRadius: Sizes.radiusMd,
     marginBottom: spacing.md,
   },
   errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-    marginBottom: spacing.sm,
+    fontSize: Sizes.fontSm,
+    color: Colors.red,
+  },
+  label: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    marginBottom: spacing.xs,
+    fontWeight: '500',
+  },
+  required: {
+    color: Colors.red,
+  },
+  pickerButton: {
+    height: Sizes.inputHeight,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Sizes.radiusMd,
+    paddingHorizontal: spacing.md,
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  pickerButtonError: {
+    borderColor: Colors.red,
+  },
+  pickerText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+  },
+  pickerPlaceholder: {
+    color: Colors.textSecondary,
+  },
+  fieldError: {
+    color: Colors.red,
+    fontSize: Sizes.fontSm,
     marginTop: -spacing.sm,
-  },
-  roleContainer: {
     marginBottom: spacing.md,
   },
-  roleLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
+  passwordToggle: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 36,
+    padding: spacing.xs,
   },
-  roleButton: {
-    justifyContent: 'flex-start',
-  },
-  roleButtonContent: {
-    justifyContent: 'flex-start',
-  },
-  schoolContainer: {
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  schoolLabel: {
-    fontSize: 16,
-    color: theme.colors.onSurface,
-    marginBottom: spacing.xs,
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
   },
-  schoolButton: {
-    justifyContent: 'flex-start',
+  checkboxChecked: {
+    backgroundColor: Colors.deepPurple,
+    borderColor: Colors.deepPurple,
   },
-  schoolButtonContent: {
-    justifyContent: 'flex-start',
-  },
-  submitButton: {
-    marginTop: spacing.lg,
-  },
-  buttonContent: {
-    paddingVertical: spacing.sm,
-  },
-  divider: {
-    marginVertical: spacing.lg,
-  },
-  loginButton: {
-    marginTop: spacing.sm,
-  },
-  loadingContainer: {
+  checkboxLabel: {
     flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  checkboxText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+  },
+  linkText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.deepPurple,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  loginContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: spacing.md,
-    color: theme.colors.onSurfaceVariant,
+  loginText: {
+    ...typography.body,
+    color: Colors.light,
+  },
+  loginLink: {
+    ...typography.body,
+    color: Colors.golden,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.card,
+    borderTopLeftRadius: Sizes.radiusXl,
+    borderTopRightRadius: Sizes.radiusXl,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    ...typography.h2,
+    color: Colors.text,
+  },
+  modalClose: {
+    fontSize: Sizes.fontMd,
+    color: Colors.deepPurple,
+    fontWeight: '600',
+  },
+  schoolOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  schoolOptionText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+  },
+  schoolOptionSelected: {
+    color: Colors.deepPurple,
+    fontWeight: '600',
   },
 });
-
-export default RegisterScreen;
