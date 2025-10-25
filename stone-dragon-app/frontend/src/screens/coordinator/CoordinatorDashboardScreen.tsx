@@ -37,13 +37,13 @@ export default function CoordinatorDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [stats, setStats] = useState({
-    totalLogs: 0,
-    pendingLogs: 0,
-    approvedLogs: 0,
-    rejectedLogs: 0,
+    pending: 0,
+    today: 0,
+    approved: 0,
+    totalStudents: 0,
     totalHours: 0,
+    avgResponseTime: '0',
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -62,7 +62,29 @@ export default function CoordinatorDashboardScreen() {
 
       if (response.success && response.data) {
         const data = response.data;
-        setStats(data.statistics);
+        
+        // Calculate today's claims from recent logs
+        const todayClaims = (data.recentLogs || []).filter((log) => {
+          const logDate = new Date(log.createdAt);
+          const today = new Date();
+          return logDate.toDateString() === today.toDateString();
+        }).length;
+
+        // Get unique students count
+        const uniqueStudents = new Set(
+          (data.recentLogs || []).map(log => log.userId)
+        ).size;
+
+        // Map statistics to SDStatGrid format
+        setStats({
+          pending: data.statistics.pendingLogs,
+          today: todayClaims,
+          approved: data.statistics.approvedLogs,
+          totalStudents: uniqueStudents,
+          totalHours: data.statistics.totalHours,
+          avgResponseTime: '2', // Placeholder - could be calculated from log review times
+        });
+        
         setRecentLogs(data.recentLogs || []);
       }
     } catch (err: any) {
@@ -73,11 +95,15 @@ export default function CoordinatorDashboardScreen() {
     }
   };
 
-  const filteredLogs = recentLogs.filter((log) =>
-    statusFilter === 'all' ? true : log.status === statusFilter
-  );
+  // Filter logs from the last 24 hours
+  const recentClaims = recentLogs.filter((log) => {
+    const logDate = new Date(log.createdAt);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - logDate.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= 24;
+  });
 
-  const pendingCount = stats.pendingLogs;
+  const pendingCount = stats.pending;
 
   const handleApprove = async (id: string, message: string = '') => {
     try {
@@ -211,45 +237,20 @@ export default function CoordinatorDashboardScreen() {
               {/* Statistics Grid */}
               <SDStatGrid stats={stats} />
 
-            {/* Filter Tabs */}
-            <View style={styles.filterTabs}>
-              {(['all', 'pending', 'approved', 'rejected'] as const).map((filter) => (
-                <TouchableOpacity
-                  key={filter}
-                  onPress={() => setStatusFilter(filter)}
-                  style={[
-                    styles.filterTab,
-                    statusFilter === filter && styles.filterTabActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterTabText,
-                      statusFilter === filter && styles.filterTabTextActive,
-                    ]}
-                  >
-                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Claims List */}
+            {/* Recent Claims List */}
             <View style={styles.claimsList}>
               <Text style={styles.sectionTitle}>
-                {statusFilter === 'pending' ? 'Pending Claims' : 'All Claims'}
+                Recent
               </Text>
-              {filteredLogs.length > 0 ? (
-                filteredLogs.map((log) => (
+              {recentClaims.length > 0 ? (
+                recentClaims.map((log) => (
                   <View key={log.id}>{renderClaim({ item: log })}</View>
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No claims found</Text>
+                  <Text style={styles.emptyTitle}>No recent claims</Text>
                   <Text style={styles.emptyDescription}>
-                    {statusFilter === 'pending'
-                      ? 'All caught up! No pending claims to review.'
-                      : 'No claims match the selected filter.'}
+                    No claims have been submitted in the last 24 hours.
                   </Text>
                 </View>
               )}
@@ -328,28 +329,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
-  },
-  filterTabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  filterTab: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: Sizes.radiusMd,
-    backgroundColor: Colors.background,
-  },
-  filterTabActive: {
-    backgroundColor: Colors.deepPurple,
-  },
-  filterTabText: {
-    fontSize: Sizes.fontSm,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  filterTabTextActive: {
-    color: Colors.light,
   },
   claimsList: {
     gap: spacing.md,

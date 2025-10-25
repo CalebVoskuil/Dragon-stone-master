@@ -162,7 +162,14 @@ export interface ReviewVolunteerLogData {
 
 // Coordinator types
 export interface CoordinatorDashboard {
-  schools: SchoolStats[];
+  statistics: {
+    totalLogs: number;
+    pendingLogs: number;
+    approvedLogs: number;
+    rejectedLogs: number;
+    totalHours: number;
+  };
+  recentLogs: VolunteerLog[];
 }
 
 export interface SchoolStats {
