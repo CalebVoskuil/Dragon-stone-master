@@ -30,10 +30,10 @@ export const Colors = {
   borderLight: 'rgba(255, 255, 255, 0.2)',
   
   // Glassmorphic
-  glassLight: 'rgba(255, 255, 255, 0.8)',
+  glassLight: 'rgba(255, 255, 255, 0.98)',
   glassMedium: 'rgba(255, 255, 255, 0.6)',
   glassDark: 'rgba(255, 255, 255, 0.2)',
-  glassBorder: 'rgba(255, 255, 255, 0.2)',
+  glassBorder: 'rgba(255, 255, 255, 0.3)',
   
   // Gradient Colors for Background
   gradientStart: '#58398B',     // Deep Purple

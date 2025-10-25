@@ -190,7 +190,7 @@ export default function CoordinatorDashboardScreen() {
               </SDButton>
             </View>
           ) : (
-            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+            <GlassmorphicCard intensity={100} style={styles.mainCard}>
               {/* Statistics Grid */}
               <SDStatGrid stats={stats} />
 
@@ -301,6 +301,7 @@ const styles = StyleSheet.create({
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   filterTabs: {
     flexDirection: 'row',
