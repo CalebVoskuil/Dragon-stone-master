@@ -44,6 +44,10 @@ export default function LeaderboardModal({
     { id: '5', rank: 5, name: 'Emma Wilson', school: 'Cape Town High School', hours: 27, points: 540 },
   ];
 
+  // Separate top 3 and rest
+  const topThree = leaderboard.slice(0, 3);
+  const rest = leaderboard.slice(3);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -58,9 +62,9 @@ export default function LeaderboardModal({
       case 1:
         return <Trophy color={Colors.golden} size={24} />;
       case 2:
-        return <Medal color="#C0C0C0" size={24} />;
+        return <Medal color="#A8A8A8" size={24} />;
       case 3:
-        return <Medal color="#CD7F32" size={24} />;
+        return <Medal color="#B87333" size={24} />;
       default:
         return null;
     }
@@ -107,13 +111,63 @@ export default function LeaderboardModal({
               <Text style={styles.subtitle}>Top Volunteers</Text>
             </View>
 
-            {/* Leaderboard List */}
+            {/* Podium for Top 3 */}
+            {topThree.length === 3 && (
+              <View style={styles.podiumContainer}>
+                {/* Bronze - 3rd Place - Left */}
+                <View style={styles.podiumPosition}>
+                  <View style={[styles.podiumAvatar, styles.podiumAvatarBronze]}>
+                    <Text style={styles.podiumAvatarText}>{getInitials(topThree[2].name)}</Text>
+                  </View>
+                  <Medal color="#B87333" size={16} style={styles.podiumMedal} />
+                  <Text style={styles.podiumName} numberOfLines={1}>{topThree[2].name.split(' ')[0]}</Text>
+                  <Text style={styles.podiumHours}>{topThree[2].hours}h</Text>
+                  <View style={[styles.podiumBase, styles.podiumBronze]}>
+                    <Text style={styles.podiumRank}>3</Text>
+                  </View>
+                </View>
+
+                {/* Gold - 1st Place - Center */}
+                <View style={[styles.podiumPosition, styles.podiumFirst]}>
+                  <Trophy color={Colors.golden} size={22} style={styles.podiumTrophy} />
+                  <View style={[styles.podiumAvatar, styles.podiumAvatarGold]}>
+                    <Text style={styles.podiumAvatarText}>{getInitials(topThree[0].name)}</Text>
+                  </View>
+                  <Text style={styles.podiumName} numberOfLines={1}>{topThree[0].name.split(' ')[0]}</Text>
+                  <Text style={styles.podiumHours}>{topThree[0].hours}h</Text>
+                  <View style={[styles.podiumBase, styles.podiumGold]}>
+                    <Text style={styles.podiumRank}>1</Text>
+                  </View>
+                </View>
+
+                {/* Silver - 2nd Place - Right */}
+                <View style={styles.podiumPosition}>
+                  <View style={[styles.podiumAvatar, styles.podiumAvatarSilver]}>
+                    <Text style={styles.podiumAvatarText}>{getInitials(topThree[1].name)}</Text>
+                  </View>
+                  <Medal color="#A8A8A8" size={16} style={styles.podiumMedal} />
+                  <Text style={styles.podiumName} numberOfLines={1}>{topThree[1].name.split(' ')[0]}</Text>
+                  <Text style={styles.podiumHours}>{topThree[1].hours}h</Text>
+                  <View style={[styles.podiumBase, styles.podiumSilver]}>
+                    <Text style={styles.podiumRank}>2</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Rest of Leaderboard List */}
+            {rest.length > 0 && (
+              <View style={styles.listHeader}>
+                <Text style={styles.listHeaderText}>Other Rankings</Text>
+              </View>
+            )}
+
             <ScrollView 
               style={styles.scrollView} 
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
             >
-              {leaderboard.map((entry) => (
+              {rest.map((entry) => (
                 <View key={entry.id} style={styles.entryCard}>
                   <View style={styles.entryLeft}>
                     {/* Rank Badge */}
@@ -219,6 +273,112 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     fontWeight: '600',
+  },
+  podiumContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
+    backgroundColor: Colors.background,
+  },
+  podiumPosition: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  podiumFirst: {
+    // Removed marginBottom to align from bottom
+  },
+  podiumAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.deepPurple,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    borderWidth: 2,
+    borderColor: Colors.background,
+  },
+  podiumAvatarGold: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.golden,
+    borderWidth: 3,
+    borderColor: Colors.golden,
+  },
+  podiumAvatarSilver: {
+    backgroundColor: '#A8A8A8',
+    borderColor: '#A8A8A8',
+  },
+  podiumAvatarBronze: {
+    backgroundColor: '#B87333',
+    borderColor: '#B87333',
+  },
+  podiumAvatarText: {
+    fontSize: Sizes.fontSm,
+    fontWeight: '700',
+    color: Colors.light,
+  },
+  podiumMedal: {
+    marginBottom: spacing.xs,
+  },
+  podiumTrophy: {
+    marginBottom: spacing.xs,
+    position: 'absolute',
+    top: -spacing.md,
+  },
+  podiumName: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  podiumHours: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+    marginBottom: spacing.xs,
+  },
+  podiumBase: {
+    width: '100%',
+    borderTopLeftRadius: Sizes.radiusMd,
+    borderTopRightRadius: Sizes.radiusMd,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  podiumGold: {
+    height: 80,
+    backgroundColor: Colors.golden,
+  },
+  podiumSilver: {
+    height: 64,
+    backgroundColor: '#C0C0C0',
+  },
+  podiumBronze: {
+    height: 48,
+    backgroundColor: '#CD7F32',
+  },
+  podiumRank: {
+    fontSize: Sizes.fontXl,
+    fontWeight: '700',
+    color: Colors.light,
+  },
+  listHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  listHeaderText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
   },
   scrollView: {
     flex: 1,
