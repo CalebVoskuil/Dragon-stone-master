@@ -7,4 +7,5 @@ export { default as ClaimDetailModal } from './ClaimDetailModal';
 export { default as StudentDetailModal } from './StudentDetailModal';
 export { default as LeaderboardModal } from './LeaderboardModal';
 export { default as NotificationCenterModal } from './NotificationCenterModal';
+export { default as StudentCoordinatorsModal } from './StudentCoordinatorsModal';
 
