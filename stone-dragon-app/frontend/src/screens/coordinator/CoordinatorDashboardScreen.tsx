@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Settings, Bell } from 'lucide-react-native';
+import { Trophy, Bell } from 'lucide-react-native';
 import {
   GradientBackground,
   GlassmorphicCard,
@@ -20,6 +20,8 @@ import {
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import SDStatGrid from '../../components/admin/SDStatGrid';
 import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
+import LeaderboardModal from '../../components/admin/LeaderboardModal';
+import NotificationCenterModal from '../../components/admin/NotificationCenterModal';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -48,6 +50,8 @@ export default function CoordinatorDashboardScreen() {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -189,10 +193,10 @@ export default function CoordinatorDashboardScreen() {
         <BlurView intensity={60} tint="light" style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Profile' as never)}
+              onPress={() => setLeaderboardVisible(true)}
               style={styles.headerButton}
             >
-              <Settings color={Colors.deepPurple} size={20} />
+              <Trophy color={Colors.deepPurple} size={20} />
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
@@ -200,7 +204,7 @@ export default function CoordinatorDashboardScreen() {
             </View>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('Notifications' as never)}
+              onPress={() => setNotificationVisible(true)}
               style={styles.headerButton}
             >
               <Bell color={Colors.deepPurple} size={20} />
@@ -266,6 +270,18 @@ export default function CoordinatorDashboardScreen() {
           claim={selectedClaim}
           onApprove={handleApprove}
           onReject={handleReject}
+        />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
         />
       </SafeAreaView>
     </GradientBackground>
