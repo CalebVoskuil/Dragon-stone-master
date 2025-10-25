@@ -41,14 +41,17 @@ export default function ClaimsScreen() {
 
   useEffect(() => {
     fetchClaims();
-  }, []);
+  }, [statusFilter]); // Refetch when status filter changes
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await apiService.getPendingLogs();
+      // Fetch all logs or filter by status
+      const params = statusFilter === 'all' ? {} : { status: statusFilter };
+      const response = await apiService.getVolunteerLogs(params);
+      
       if (response.success && response.data) {
         setAllClaims(response.data);
       }
@@ -84,12 +87,13 @@ export default function ClaimsScreen() {
   };
 
   const filteredClaims = allClaims.filter((claim) => {
+    if (!searchTerm) return true;
+    
     const studentName = claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : '';
     const claimId = `#${claim.id.substring(0, 8).toUpperCase()}`;
     const matchesSearch = studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          claimId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || claim.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const handleApprove = async (id: string, message: string = '') => {
