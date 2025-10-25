@@ -130,6 +130,8 @@ export type RootStackParamList = {
   Profile: undefined;
   Schools: undefined;
   Badges: undefined;
+  Leaderboard: undefined;
+  Notifications: undefined;
 };
 
 export type MainTabParamList = {
@@ -146,7 +148,11 @@ export interface CreateVolunteerLogData {
   description: string;
   date: string;
   schoolId: string;
-  proofFile?: File;
+  proofFile?: {
+    uri: string;
+    mimeType?: string;
+    fileName?: string;
+  };
 }
 
 export interface UpdateVolunteerLogData {

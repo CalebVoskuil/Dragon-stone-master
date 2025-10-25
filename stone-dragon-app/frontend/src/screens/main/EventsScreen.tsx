@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react-native';
 import {
@@ -17,83 +18,16 @@ import {
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { eventsService, Event } from '../../services/eventsService';
 
-interface Event {
-  id: string;
-  title: string;
-  organization: string;
-  date: string;
-  time: string;
-  location: string;
-  spotsAvailable: number;
-  totalSpots: number;
-  description: string;
-  hoursAwarded: number;
-  isRegistered: boolean;
-}
-
-/**
- * EventsScreen - Browse and register for volunteer events
- * Shows upcoming volunteer opportunities
- */
 export default function EventsScreen() {
   const [filter, setFilter] = useState<'all' | 'registered' | 'available'>('all');
+  const [events, setEvents] = useState<Event[]>([]);
 
-  // Mock events data - replace with actual API call
-  const events: Event[] = [
-    {
-      id: '1',
-      title: 'Beach Cleanup Drive',
-      organization: 'Cape Town Environmental Group',
-      date: 'Nov 15, 2025',
-      time: '09:00 AM - 12:00 PM',
-      location: 'Camps Bay Beach',
-      spotsAvailable: 15,
-      totalSpots: 30,
-      description: 'Join us for a morning beach cleanup to keep our shores beautiful.',
-      hoursAwarded: 3,
-      isRegistered: true,
-    },
-    {
-      id: '2',
-      title: 'Food Bank Distribution',
-      organization: 'Community Outreach Foundation',
-      date: 'Nov 20, 2025',
-      time: '10:00 AM - 02:00 PM',
-      location: 'District Six Community Center',
-      spotsAvailable: 8,
-      totalSpots: 20,
-      description: 'Help distribute food parcels to families in need.',
-      hoursAwarded: 4,
-      isRegistered: false,
-    },
-    {
-      id: '3',
-      title: 'Youth Mentorship Program',
-      organization: 'Stone Dragon NPO',
-      date: 'Nov 25, 2025',
-      time: '03:00 PM - 05:00 PM',
-      location: 'Langa Youth Center',
-      spotsAvailable: 5,
-      totalSpots: 15,
-      description: 'Mentor young students with homework and life skills.',
-      hoursAwarded: 2,
-      isRegistered: false,
-    },
-    {
-      id: '4',
-      title: 'Animal Shelter Support',
-      organization: 'Cape Animal Welfare',
-      date: 'Dec 1, 2025',
-      time: '11:00 AM - 03:00 PM',
-      location: 'Animal Shelter, Plumstead',
-      spotsAvailable: 12,
-      totalSpots: 12,
-      description: 'Help care for rescued animals and maintain shelter facilities.',
-      hoursAwarded: 4,
-      isRegistered: false,
-    },
-  ];
+  // Load events from shared service
+  useEffect(() => {
+    setEvents(eventsService.getAllEvents());
+  }, []);
 
   const filteredEvents = events.filter((event) => {
     if (filter === 'registered') return event.isRegistered;
@@ -102,8 +36,87 @@ export default function EventsScreen() {
   });
 
   const handleRegister = (eventId: string) => {
-    // TODO: Implement actual registration API call
-    console.log('Register for event:', eventId);
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    // Check if event is full
+    if (event.spotsAvailable === 0) {
+      Alert.alert('Event Full', 'Sorry, this event is already full.');
+      return;
+    }
+
+    // Show confirmation dialog
+    Alert.alert(
+      'Confirm Registration',
+      `Are you sure you want to register for "${event.title}"?\n\nThis event awards ${event.hoursAwarded} volunteer hours.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Register',
+          onPress: () => {
+            // Use shared service to register
+            console.log('🎯 Attempting to register for event:', eventId);
+            const success = eventsService.registerForEvent(eventId);
+            console.log('✅ Registration success:', success);
+            if (success) {
+              // Refresh events from service
+              const updatedEvents = eventsService.getAllEvents();
+              console.log('🔄 Updated events:', updatedEvents);
+              setEvents(updatedEvents);
+
+              // Show success message
+              Alert.alert(
+                'Registration Successful!',
+                `You've been registered for "${event.title}". You'll receive ${event.hoursAwarded} volunteer hours upon completion.`,
+                [{ text: 'OK' }]
+              );
+            } else {
+              Alert.alert('Registration Failed', 'Unable to register for this event.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUnregister = (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    Alert.alert(
+      'Confirm Unregistration',
+      `Are you sure you want to unregister from "${event.title}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Unregister',
+          style: 'destructive',
+          onPress: () => {
+            // Use shared service to unregister
+            const success = eventsService.unregisterFromEvent(eventId);
+            if (success) {
+              // Refresh events from service
+              setEvents(eventsService.getAllEvents());
+
+              // Show confirmation message
+              Alert.alert(
+                'Unregistered Successfully',
+                `You've been unregistered from "${event.title}".`,
+                [{ text: 'OK' }]
+              );
+            } else {
+              Alert.alert('Unregistration Failed', 'Unable to unregister from this event.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderEvent = (event: Event) => (
@@ -142,8 +155,19 @@ export default function EventsScreen() {
       </Text>
 
       {event.isRegistered ? (
-        <View style={styles.registeredBadge}>
-          <Text style={styles.registeredText}>✓ Registered</Text>
+        <View style={styles.registeredSection}>
+          <View style={styles.registeredBadge}>
+            <Text style={styles.registeredText}>✓ Registered</Text>
+          </View>
+          <SDButton
+            variant="ghost"
+            size="sm"
+            fullWidth
+            onPress={() => handleUnregister(event.id)}
+            style={styles.unregisterButton}
+          >
+            Unregister
+          </SDButton>
         </View>
       ) : (
         <SDButton
@@ -323,6 +347,9 @@ const styles = StyleSheet.create({
     lineHeight: Sizes.fontSm * 1.5,
     marginBottom: spacing.md,
   },
+  registeredSection: {
+    gap: spacing.sm,
+  },
   registeredBadge: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -334,6 +361,9 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.golden,
     fontWeight: '600',
+  },
+  unregisterButton: {
+    borderColor: Colors.red,
   },
   emptyState: {
     alignItems: 'center',
