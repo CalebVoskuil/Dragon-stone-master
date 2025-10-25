@@ -19,6 +19,7 @@ import {
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import SDStatGrid from '../../components/admin/SDStatGrid';
+import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -45,6 +46,8 @@ export default function CoordinatorDashboardScreen() {
     totalHours: 0,
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedClaim, setSelectedClaim] = useState<any>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -76,29 +79,43 @@ export default function CoordinatorDashboardScreen() {
 
   const pendingCount = stats.pendingLogs;
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'approved');
+      await apiService.reviewVolunteerLog(id, 'approved', message);
       // Refresh data after approval
       await fetchDashboardData();
     } catch (error) {
       console.error('Error approving claim:', error);
+      throw error;
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'rejected');
+      await apiService.reviewVolunteerLog(id, 'rejected', message);
       // Refresh data after rejection
       await fetchDashboardData();
     } catch (error) {
       console.error('Error rejecting claim:', error);
+      throw error;
     }
   };
 
   const handleCardPress = (id: string) => {
-    // TODO: Navigate to claim detail screen
-    console.log('View claim details:', id);
+    const log = recentLogs.find((log) => log.id === id);
+    if (log) {
+      setSelectedClaim({
+        id: log.id,
+        studentName: log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Unknown',
+        hours: log.hours,
+        description: log.description,
+        date: log.date,
+        status: log.status,
+        createdAt: log.createdAt,
+        coordinatorComment: log.coordinatorComment,
+      });
+      setModalVisible(true);
+    }
   };
 
   const onRefresh = async () => {
@@ -240,6 +257,15 @@ export default function CoordinatorDashboardScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Claim Detail Modal */}
+        <ClaimDetailModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          claim={selectedClaim}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
