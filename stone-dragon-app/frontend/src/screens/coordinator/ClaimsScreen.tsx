@@ -17,6 +17,7 @@ import {
   GlassmorphicCard,
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
+import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -35,6 +36,8 @@ export default function ClaimsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedClaim, setSelectedClaim] = useState<any>(null);
 
   useEffect(() => {
     fetchClaims();
@@ -89,21 +92,40 @@ export default function ClaimsScreen() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'approved');
+      await apiService.reviewVolunteerLog(id, 'approved', message);
       await fetchClaims();
     } catch (error) {
       console.error('Error approving claim:', error);
+      throw error;
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'rejected');
+      await apiService.reviewVolunteerLog(id, 'rejected', message);
       await fetchClaims();
     } catch (error) {
       console.error('Error rejecting claim:', error);
+      throw error;
+    }
+  };
+
+  const handleCardPress = (id: string) => {
+    const claim = allClaims.find((c) => c.id === id);
+    if (claim) {
+      setSelectedClaim({
+        id: claim.id,
+        studentName: claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : 'Unknown',
+        hours: claim.hours,
+        description: claim.description,
+        date: claim.date,
+        status: claim.status,
+        createdAt: claim.createdAt,
+        coordinatorComment: claim.coordinatorComment,
+      });
+      setModalVisible(true);
     }
   };
 
@@ -161,6 +183,7 @@ export default function ClaimsScreen() {
       onSelect={handleSelect}
       onApprove={handleApprove}
       onReject={handleReject}
+      onCardPress={handleCardPress}
       onLongPress={handleLongPress}
       selectionMode={selectionMode}
     />
@@ -251,6 +274,15 @@ export default function ClaimsScreen() {
             />
           )}
         </GlassmorphicCard>
+
+        {/* Claim Detail Modal */}
+        <ClaimDetailModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          claim={selectedClaim}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
