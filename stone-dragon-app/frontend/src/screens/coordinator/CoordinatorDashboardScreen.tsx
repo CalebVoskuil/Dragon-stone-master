@@ -146,7 +146,7 @@ export default function CoordinatorDashboardScreen() {
         <BlurView intensity={60} tint="light" style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Settings' as never)}
+              onPress={() => navigation.navigate('Profile' as never)}
               style={styles.headerButton}
             >
               <Settings color={Colors.deepPurple} size={20} />

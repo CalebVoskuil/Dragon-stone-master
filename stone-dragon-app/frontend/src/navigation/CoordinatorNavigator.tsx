@@ -1,13 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, ClipboardList, Users, Trophy, Settings } from 'lucide-react-native';
+import { Home, ClipboardList, Users, Trophy, User } from 'lucide-react-native';
 
 // Import coordinator screens
 import CoordinatorDashboardScreen from '../screens/coordinator/CoordinatorDashboardScreen';
 import ClaimsScreen from '../screens/coordinator/ClaimsScreen';
 import StudentsListScreen from '../screens/coordinator/StudentsListScreen';
 import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
-import SettingsScreen from '../screens/coordinator/SettingsScreen';
+import ProfileScreen from '../screens/coordinator/ProfileScreen';
 
 // Import custom tab bar
 import CustomTabBar from '../components/navigation/CustomTabBar';
@@ -59,11 +59,11 @@ export default function CoordinatorNavigator() {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
