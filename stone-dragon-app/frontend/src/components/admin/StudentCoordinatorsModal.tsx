@@ -1,0 +1,489 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Animated,
+} from 'react-native';
+import { X, Search, ArrowUpDown, Check } from 'lucide-react-native';
+import { Colors } from '../../constants/Colors';
+import { Sizes, spacing } from '../../constants/Sizes';
+import { typography } from '../../theme/theme';
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  school: string;
+  grade: string;
+  hours: string;
+  role?: 'student' | 'student_coordinator';
+}
+
+interface StudentCoordinatorsModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (selectedIds: string[]) => void;
+  selectedIds?: string[];
+}
+
+export default function StudentCoordinatorsModal({
+  visible,
+  onClose,
+  onConfirm,
+  selectedIds = [],
+}: StudentCoordinatorsModalProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'grade' | 'hours'>('name');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>(selectedIds);
+  const [slideAnim] = useState(new Animated.Value(1000));
+
+  // Mock student data
+  const mockStudents: Student[] = [
+    {
+      id: '1',
+      name: 'Emma Wilson',
+      email: 'emma.w@example.com',
+      school: 'Cape Town High School',
+      grade: 'Grade 10',
+      hours: '18h',
+      role: 'student',
+    },
+    {
+      id: '2',
+      name: 'James Taylor',
+      email: 'james.t@example.com',
+      school: 'Cape Town High School',
+      grade: 'Grade 12',
+      hours: '36h',
+      role: 'student',
+    },
+    {
+      id: '3',
+      name: 'Sarah Johnson',
+      email: 'sarah.j@example.com',
+      school: 'Cape Town High School',
+      grade: 'Grade 11',
+      hours: '24h',
+      role: 'student',
+    },
+  ];
+
+  React.useEffect(() => {
+    if (visible) {
+      setSelectedStudents(selectedIds);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 1000,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, selectedIds]);
+
+  const toggleStudent = (studentId: string) => {
+    setSelectedStudents((prev) => {
+      if (prev.includes(studentId)) {
+        return prev.filter((id) => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  const handleConfirm = () => {
+    onConfirm(selectedStudents);
+    onClose();
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const filteredStudents = mockStudents.filter((student) =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedStudents = [...filteredStudents].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'grade':
+        return a.grade.localeCompare(b.grade);
+      case 'hours':
+        return parseInt(b.hours) - parseInt(a.hours);
+      default:
+        return 0;
+    }
+  });
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerContent}>
+                <Text style={styles.title}>Select Student Co-ordinators</Text>
+                <Text style={styles.subtitle}>
+                  Choose students to grant co-ordinator privileges for this event
+                </Text>
+              </View>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <X color={Colors.text} size={24} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Selected Students */}
+            {selectedStudents.length > 0 && (
+              <View style={styles.selectedBanner}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.selectedStudents}>
+                    {selectedStudents.map((studentId) => {
+                      const student = mockStudents.find(s => s.id === studentId);
+                      if (!student) return null;
+                      return (
+                        <TouchableOpacity
+                          key={student.id}
+                          style={styles.selectedAvatar}
+                          onPress={() => toggleStudent(student.id)}
+                        >
+                          <View style={styles.selectedAvatarCircle}>
+                            <Text style={styles.selectedAvatarText}>
+                              {getInitials(student.name)}
+                            </Text>
+                          </View>
+                          <View style={styles.removeIcon}>
+                            <X color={Colors.light} size={12} />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <Search color={Colors.textSecondary} size={20} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search students by name or email..."
+                placeholderTextColor={Colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            {/* Sort Selector */}
+            <TouchableOpacity style={styles.sortButton}>
+              <ArrowUpDown color={Colors.text} size={20} />
+              <Text style={styles.sortText}>Sort by Name</Text>
+            </TouchableOpacity>
+
+            {/* Students List */}
+            <ScrollView style={styles.studentsList} showsVerticalScrollIndicator={false}>
+              {sortedStudents.map((student) => {
+                const isSelected = selectedStudents.includes(student.id);
+                return (
+                  <TouchableOpacity
+                    key={student.id}
+                    style={[styles.studentCard, isSelected && styles.studentCardSelected]}
+                    onPress={() => toggleStudent(student.id)}
+                  >
+                    <View style={styles.studentInfo}>
+                      <View style={[styles.avatar, isSelected && styles.avatarSelected]}>
+                        <Text style={[styles.avatarText, isSelected && styles.avatarTextSelected]}>
+                          {getInitials(student.name)}
+                        </Text>
+                      </View>
+                      <View style={styles.studentDetails}>
+                        <Text style={styles.studentName}>{student.name}</Text>
+                        <View style={styles.studentMeta}>
+                          <Text style={styles.studentMetaText}>
+                            {student.school}
+                          </Text>
+                          <Text style={styles.studentMetaText}>•</Text>
+                          <Text style={styles.studentMetaText}>
+                            {student.grade}
+                          </Text>
+                          <Text style={styles.studentMetaText}>•</Text>
+                          <Text style={styles.studentMetaText}>
+                            {student.hours}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    {isSelected && (
+                      <View style={styles.checkmark}>
+                        <Check color={Colors.light} size={18} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <View style={styles.actions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={handleConfirm}
+            >
+              <Text style={styles.confirmText}>
+                Confirm ({selectedStudents.length})
+              </Text>
+            </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: Colors.light,
+    borderTopLeftRadius: Sizes.radiusXl,
+    borderTopRightRadius: Sizes.radiusXl,
+    height: '90%',
+  },
+  modalContent: {
+    flex: 1,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  headerContent: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  title: {
+    ...typography.h2,
+    color: Colors.text,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    ...typography.caption,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  selectedBanner: {
+    backgroundColor: Colors.deepPurple,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.lg,
+    borderRadius: Sizes.radiusMd,
+    marginBottom: spacing.md,
+  },
+  selectedStudents: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  selectedAvatar: {
+    position: 'relative',
+  },
+  selectedAvatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.light,
+  },
+  selectedAvatarText: {
+    ...typography.body,
+    color: Colors.light,
+    fontWeight: '600',
+  },
+  removeIcon: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.red,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: Sizes.radiusMd,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    ...typography.body,
+    color: Colors.text,
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  sortText: {
+    ...typography.body,
+    color: Colors.text,
+  },
+  studentsList: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+  },
+  studentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.light,
+    borderRadius: Sizes.radiusLg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  studentCardSelected: {
+    borderColor: Colors.deepPurple,
+    backgroundColor: `${Colors.deepPurple}10`,
+  },
+  studentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.textSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  avatarSelected: {
+    backgroundColor: Colors.deepPurple,
+  },
+  avatarText: {
+    ...typography.body,
+    color: Colors.light,
+    fontWeight: '600',
+  },
+  avatarTextSelected: {
+    color: Colors.light,
+  },
+  studentDetails: {
+    flex: 1,
+  },
+  studentName: {
+    ...typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  studentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  studentMetaText: {
+    ...typography.caption,
+    color: Colors.textSecondary,
+  },
+  checkmark: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.deepPurple,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: Sizes.radiusLg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  cancelText: {
+    ...typography.button,
+    color: Colors.text,
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: Colors.deepPurple,
+    borderRadius: Sizes.radiusLg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  confirmText: {
+    ...typography.button,
+    color: Colors.light,
+  },
+});
+
