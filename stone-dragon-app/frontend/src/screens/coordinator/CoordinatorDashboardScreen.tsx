@@ -143,6 +143,8 @@ export default function CoordinatorDashboardScreen() {
         status: log.status,
         createdAt: log.createdAt,
         coordinatorComment: log.coordinatorComment,
+        proofFileName: log.proofFileName,
+        proofFilePath: log.proofFilePath,
       });
       setModalVisible(true);
     }

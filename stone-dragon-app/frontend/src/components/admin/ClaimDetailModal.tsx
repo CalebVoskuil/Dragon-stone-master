@@ -11,12 +11,13 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { X, Check, Clock, Calendar, User, FileText, MessageSquare } from 'lucide-react-native';
+import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { SDButton } from '../ui';
+import { apiService } from '../../services/api';
 
 interface ClaimDetailModalProps {
   visible: boolean;
@@ -30,6 +31,8 @@ interface ClaimDetailModalProps {
     status: 'pending' | 'approved' | 'rejected';
     createdAt: string;
     coordinatorComment?: string;
+    proofFileName?: string;
+    proofFilePath?: string;
   } | null;
   onApprove: (id: string, message: string) => Promise<void>;
   onReject: (id: string, message: string) => Promise<void>;
@@ -74,6 +77,24 @@ export default function ClaimDetailModal({
       console.error('Error rejecting claim:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewProof = () => {
+    if (claim?.proofFileName) {
+      // Construct the full URL to the proof file
+      // The backend serves files at /uploads/ route
+      const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
+      
+      console.log('Opening proof file:', proofUrl);
+      
+      // In a real implementation, you might want to use:
+      // - Linking.openURL(proofUrl) for external apps
+      // - A custom image viewer modal for images
+      // - A PDF viewer component for PDFs
+      
+      // For now, we'll just show the URL
+      alert(`Proof file: ${proofUrl}`);
     }
   };
 
@@ -206,6 +227,20 @@ export default function ClaimDetailModal({
                     <Text style={styles.descriptionText}>{claim.description}</Text>
                   </View>
                 </View>
+
+                {/* Proof File */}
+                {claim.proofFileName && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Proof Document</Text>
+                    <TouchableOpacity style={styles.proofButton} onPress={handleViewProof}>
+                      <Eye color={Colors.deepPurple} size={18} />
+                      <Text style={styles.proofButtonText}>View Proof Document</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.proofHint}>
+                      Tap to view the uploaded proof document
+                    </Text>
+                  </View>
+                )}
 
                 {/* Existing Coordinator Comment (if any) */}
                 {claim.coordinatorComment && (
@@ -420,6 +455,27 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.text,
     lineHeight: 20,
+  },
+  proofButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: `${Colors.deepPurple}0D`,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: `${Colors.deepPurple}33`,
+  },
+  proofButtonText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.deepPurple,
+    fontWeight: '600',
+  },
+  proofHint: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
   },
   existingCommentBox: {
     flexDirection: 'row',

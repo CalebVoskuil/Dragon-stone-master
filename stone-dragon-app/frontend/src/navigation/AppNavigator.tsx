@@ -16,6 +16,7 @@ import CoordinatorNavigator from './CoordinatorNavigator';
 // Import additional screens
 import SchoolsScreen from '../screens/main/SchoolsScreen';
 import MyLogsScreen from '../screens/main/MyLogsScreen';
+import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
 import NotificationsScreen from '../screens/coordinator/NotificationsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -71,6 +72,13 @@ const MainStackNavigator: React.FC = () => {
           headerShown: true, 
           title: 'My Logs',
           headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen 
+        name="Leaderboard" 
+        component={LeaderboardScreen}
+        options={{ 
+          headerShown: false
         }}
       />
       <Stack.Screen 
