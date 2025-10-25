@@ -166,8 +166,8 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('student@demo.com');
-                      setPassword('password');
+                      setEmail('student1@example.com');
+                      setPassword('password123');
                     }}
                   >
                     Student
@@ -176,8 +176,8 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('coordinator@demo.com');
-                      setPassword('password');
+                      setEmail('coordinator1@example.com');
+                      setPassword('password123');
                     }}
                   >
                     Coordinator
