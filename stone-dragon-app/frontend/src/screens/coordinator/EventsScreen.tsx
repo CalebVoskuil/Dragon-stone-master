@@ -14,7 +14,7 @@ import {
   GlassmorphicCard,
   SDButton,
 } from '../../components/ui';
-import { StudentCoordinatorsModal } from '../../components/admin';
+import { StudentCoordinatorsModal, EventDetailsModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -35,6 +35,8 @@ export default function EventsScreen() {
   const [category, setCategory] = useState('');
   const [coordinatorModalVisible, setCoordinatorModalVisible] = useState(false);
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
+  const [eventDetailsModalVisible, setEventDetailsModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   // Mock student data (should match the modal's data)
   const mockStudents = [
@@ -52,39 +54,141 @@ export default function EventsScreen() {
       .substring(0, 2);
   };
 
-  // Mock events data
+  // Mock events data with student information
   const events = [
     {
       id: '1',
       name: 'Youth Mentorship Program',
+      description: 'Mentor young students with homework and life skills. Help them develop confidence and academic success.',
       date: '25 November 2025',
+      time: '03:00 PM - 05:00 PM',
+      location: 'Langa Youth Center',
+      duration: 2,
+      maxVolunteers: 15,
       registered: 12,
-      max: 15,
       verified: false,
+      status: 'upcoming',
+      students: [
+        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'registered' },
+        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'registered' },
+        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'registered' },
+        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'registered' },
+        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'registered' },
+        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'registered' },
+        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'registered' },
+        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'registered' },
+        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'registered' },
+        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'registered' },
+        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'registered' },
+        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'registered' },
+      ],
     },
     {
       id: '2',
       name: 'Animal Shelter Support',
+      description: 'Help care for rescued animals and maintain shelter facilities. Feed animals, clean cages, and provide companionship.',
       date: '5 October 2025',
+      time: '11:00 AM - 03:00 PM',
+      location: 'Animal Shelter, Plumstead',
+      duration: 4,
+      maxVolunteers: 20,
       registered: 20,
-      max: 20,
       verified: true,
+      status: 'completed',
+      students: [
+        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'completed' },
+        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'completed' },
+        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'completed' },
+        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'completed' },
+        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'completed' },
+        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'completed' },
+        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'completed' },
+        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'completed' },
+        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'completed' },
+        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'completed' },
+        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'completed' },
+        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'completed' },
+        { id: '13', name: 'Maria Rodriguez', email: 'maria.rodriguez@student.com', status: 'completed' },
+        { id: '14', name: 'John Smith', email: 'john.smith@student.com', status: 'completed' },
+        { id: '15', name: 'Emily White', email: 'emily.white@student.com', status: 'completed' },
+        { id: '16', name: 'Chris Johnson', email: 'chris.johnson@student.com', status: 'completed' },
+        { id: '17', name: 'Amanda Green', email: 'amanda.green@student.com', status: 'completed' },
+        { id: '18', name: 'Mark Davis', email: 'mark.davis@student.com', status: 'completed' },
+        { id: '19', name: 'Jessica Brown', email: 'jessica.brown@student.com', status: 'completed' },
+        { id: '20', name: 'Kevin Wilson', email: 'kevin.wilson@student.com', status: 'completed' },
+      ],
     },
     {
       id: '3',
       name: 'School Garden Project',
+      description: 'Help maintain and expand the school garden. Plant vegetables, weed beds, and teach students about sustainable gardening.',
       date: '18 September 2025',
+      time: '09:00 AM - 12:00 PM',
+      location: 'Cape Town High School',
+      duration: 3,
+      maxVolunteers: 35,
       registered: 32,
-      max: 35,
       verified: true,
+      status: 'completed',
+      students: [
+        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'completed' },
+        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'completed' },
+        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'completed' },
+        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'completed' },
+        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'completed' },
+        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'completed' },
+        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'completed' },
+        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'completed' },
+        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'completed' },
+        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'completed' },
+        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'completed' },
+        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'completed' },
+        { id: '13', name: 'Maria Rodriguez', email: 'maria.rodriguez@student.com', status: 'completed' },
+        { id: '14', name: 'John Smith', email: 'john.smith@student.com', status: 'completed' },
+        { id: '15', name: 'Emily White', email: 'emily.white@student.com', status: 'completed' },
+        { id: '16', name: 'Chris Johnson', email: 'chris.johnson@student.com', status: 'completed' },
+        { id: '17', name: 'Amanda Green', email: 'amanda.green@student.com', status: 'completed' },
+        { id: '18', name: 'Mark Davis', email: 'mark.davis@student.com', status: 'completed' },
+        { id: '19', name: 'Jessica Brown', email: 'jessica.brown@student.com', status: 'completed' },
+        { id: '20', name: 'Kevin Wilson', email: 'kevin.wilson@student.com', status: 'completed' },
+        { id: '21', name: 'Rachel Adams', email: 'rachel.adams@student.com', status: 'completed' },
+        { id: '22', name: 'Daniel Miller', email: 'daniel.miller@student.com', status: 'completed' },
+        { id: '23', name: 'Olivia Taylor', email: 'olivia.taylor@student.com', status: 'completed' },
+        { id: '24', name: 'Nathan Clark', email: 'nathan.clark@student.com', status: 'completed' },
+        { id: '25', name: 'Grace Lewis', email: 'grace.lewis@student.com', status: 'completed' },
+        { id: '26', name: 'Ethan Walker', email: 'ethan.walker@student.com', status: 'completed' },
+        { id: '27', name: 'Chloe Hall', email: 'chloe.hall@student.com', status: 'completed' },
+        { id: '28', name: 'Lucas Allen', email: 'lucas.allen@student.com', status: 'completed' },
+        { id: '29', name: 'Maya Young', email: 'maya.young@student.com', status: 'completed' },
+        { id: '30', name: 'Noah King', email: 'noah.king@student.com', status: 'completed' },
+        { id: '31', name: 'Ava Wright', email: 'ava.wright@student.com', status: 'completed' },
+        { id: '32', name: 'Liam Lopez', email: 'liam.lopez@student.com', status: 'completed' },
+      ],
     },
     {
       id: '4',
       name: 'Hospital Visit Program',
+      description: 'Visit patients in the children\'s ward, read stories, play games, and provide emotional support to families.',
       date: '30 September 2025',
+      time: '02:00 PM - 04:00 PM',
+      location: 'Groote Schuur Hospital',
+      duration: 2,
+      maxVolunteers: 12,
       registered: 10,
-      max: 12,
       verified: true,
+      status: 'ongoing',
+      students: [
+        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'participated' },
+        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'participated' },
+        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'participated' },
+        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'participated' },
+        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'participated' },
+        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'participated' },
+        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'participated' },
+        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'participated' },
+        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'participated' },
+        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'participated' },
+      ],
     },
   ];
 
@@ -114,6 +218,11 @@ export default function EventsScreen() {
 
   const removeCoordinator = (coordinatorId: string) => {
     setSelectedCoordinators((prev) => prev.filter((id) => id !== coordinatorId));
+  };
+
+  const handleEventPress = (event: any) => {
+    setSelectedEvent(event);
+    setEventDetailsModalVisible(true);
   };
 
   return (
@@ -301,7 +410,12 @@ export default function EventsScreen() {
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.eventsContainer}>
                 {events.map((event) => (
-                  <View key={event.id} style={styles.eventCard}>
+                  <TouchableOpacity 
+                    key={event.id} 
+                    style={styles.eventCard}
+                    onPress={() => handleEventPress(event)}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.eventHeader}>
                       <Text style={styles.eventName}>{event.name}</Text>
                       {event.verified && (
@@ -316,11 +430,11 @@ export default function EventsScreen() {
                       <View style={styles.eventMetaItem}>
                         <Users color={Colors.textSecondary} size={14} />
                         <Text style={styles.eventMetaText}>
-                          {event.registered}/{event.max}
+                          {event.registered}/{event.maxVolunteers}
                         </Text>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </ScrollView>
@@ -336,6 +450,13 @@ export default function EventsScreen() {
             console.log('Selected student coordinators:', ids);
           }}
           selectedIds={selectedCoordinators}
+        />
+
+        {/* Event Details Modal */}
+        <EventDetailsModal
+          visible={eventDetailsModalVisible}
+          onClose={() => setEventDetailsModalVisible(false)}
+          event={selectedEvent}
         />
       </SafeAreaView>
     </GradientBackground>
