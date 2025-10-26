@@ -8,7 +8,7 @@ declare module 'express-serve-static-core' {
 }
 
 // Type definitions for string literals (SQLite doesn't support enums)
-export type UserRole = 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
 export type LogStatus = 'pending' | 'approved' | 'rejected';
 
 // Extend Express Request to include user

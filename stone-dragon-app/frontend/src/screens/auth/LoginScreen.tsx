@@ -183,6 +183,28 @@ export default function LoginScreen() {
                     Coordinator
                   </SDButton>
                 </View>
+                <View style={styles.demoButtons}>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('studentcoordinator1@example.com');
+                      setPassword('password123');
+                    }}
+                  >
+                    Student Coord
+                  </SDButton>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('admin1@example.com');
+                      setPassword('password123');
+                    }}
+                  >
+                    Admin
+                  </SDButton>
+                </View>
               </View>
             )}
           </ScrollView>
@@ -281,5 +303,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
 });

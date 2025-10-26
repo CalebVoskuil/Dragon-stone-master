@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Calendar, MapPin, Clock, Users, ChevronDown } from 'lucide-react-native';
 import {
@@ -18,12 +20,15 @@ import { StudentCoordinatorsModal, EventDetailsModal } from '../../components/ad
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
+import { useAuth } from '../../store/AuthContext';
 
 /**
  * EventsScreen - Events management
  * Create and view volunteer events
  */
 export default function EventsScreen() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'create' | 'events'>('create');
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
@@ -37,13 +42,42 @@ export default function EventsScreen() {
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
   const [eventDetailsModalVisible, setEventDetailsModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock student data (should match the modal's data)
-  const mockStudents = [
-    { id: '1', name: 'Emma Wilson', initials: 'EW' },
-    { id: '2', name: 'James Taylor', initials: 'JT' },
-    { id: '3', name: 'Sarah Johnson', initials: 'SJ' },
-  ];
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      // Load events and students in parallel
+      const [eventsResponse, usersResponse] = await Promise.all([
+        apiService.getEvents(),
+        apiService.getStudentsList ? apiService.getStudentsList() : Promise.resolve({ success: true, data: [] })
+      ]);
+
+      if (eventsResponse.success && eventsResponse.data) {
+        setEvents(eventsResponse.data);
+      }
+
+      if (usersResponse.success && usersResponse.data) {
+        // Filter for students and student coordinators
+        const studentList = usersResponse.data.filter((u: any) => 
+          u.role === 'STUDENT' || u.role === 'STUDENT_COORDINATOR'
+        );
+        setStudents(studentList);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -54,166 +88,47 @@ export default function EventsScreen() {
       .substring(0, 2);
   };
 
-  // Mock events data with student information
-  const events = [
-    {
-      id: '1',
-      name: 'Youth Mentorship Program',
-      description: 'Mentor young students with homework and life skills. Help them develop confidence and academic success.',
-      date: '25 November 2025',
-      time: '03:00 PM - 05:00 PM',
-      location: 'Langa Youth Center',
-      duration: 2,
-      maxVolunteers: 15,
-      registered: 12,
-      verified: false,
-      status: 'upcoming',
-      students: [
-        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'registered' },
-        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'registered' },
-        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'registered' },
-        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'registered' },
-        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'registered' },
-        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'registered' },
-        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'registered' },
-        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'registered' },
-        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'registered' },
-        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'registered' },
-        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'registered' },
-        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'registered' },
-      ],
-    },
-    {
-      id: '2',
-      name: 'Animal Shelter Support',
-      description: 'Help care for rescued animals and maintain shelter facilities. Feed animals, clean cages, and provide companionship.',
-      date: '5 October 2025',
-      time: '11:00 AM - 03:00 PM',
-      location: 'Animal Shelter, Plumstead',
-      duration: 4,
-      maxVolunteers: 20,
-      registered: 20,
-      verified: true,
-      status: 'completed',
-      students: [
-        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'completed' },
-        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'completed' },
-        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'completed' },
-        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'completed' },
-        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'completed' },
-        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'completed' },
-        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'completed' },
-        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'completed' },
-        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'completed' },
-        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'completed' },
-        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'completed' },
-        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'completed' },
-        { id: '13', name: 'Maria Rodriguez', email: 'maria.rodriguez@student.com', status: 'completed' },
-        { id: '14', name: 'John Smith', email: 'john.smith@student.com', status: 'completed' },
-        { id: '15', name: 'Emily White', email: 'emily.white@student.com', status: 'completed' },
-        { id: '16', name: 'Chris Johnson', email: 'chris.johnson@student.com', status: 'completed' },
-        { id: '17', name: 'Amanda Green', email: 'amanda.green@student.com', status: 'completed' },
-        { id: '18', name: 'Mark Davis', email: 'mark.davis@student.com', status: 'completed' },
-        { id: '19', name: 'Jessica Brown', email: 'jessica.brown@student.com', status: 'completed' },
-        { id: '20', name: 'Kevin Wilson', email: 'kevin.wilson@student.com', status: 'completed' },
-      ],
-    },
-    {
-      id: '3',
-      name: 'School Garden Project',
-      description: 'Help maintain and expand the school garden. Plant vegetables, weed beds, and teach students about sustainable gardening.',
-      date: '18 September 2025',
-      time: '09:00 AM - 12:00 PM',
-      location: 'Cape Town High School',
-      duration: 3,
-      maxVolunteers: 35,
-      registered: 32,
-      verified: true,
-      status: 'completed',
-      students: [
-        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'completed' },
-        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'completed' },
-        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'completed' },
-        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'completed' },
-        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'completed' },
-        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'completed' },
-        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'completed' },
-        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'completed' },
-        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'completed' },
-        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'completed' },
-        { id: '11', name: 'Sophie Lee', email: 'sophie.lee@student.com', status: 'completed' },
-        { id: '12', name: 'Alex Chen', email: 'alex.chen@student.com', status: 'completed' },
-        { id: '13', name: 'Maria Rodriguez', email: 'maria.rodriguez@student.com', status: 'completed' },
-        { id: '14', name: 'John Smith', email: 'john.smith@student.com', status: 'completed' },
-        { id: '15', name: 'Emily White', email: 'emily.white@student.com', status: 'completed' },
-        { id: '16', name: 'Chris Johnson', email: 'chris.johnson@student.com', status: 'completed' },
-        { id: '17', name: 'Amanda Green', email: 'amanda.green@student.com', status: 'completed' },
-        { id: '18', name: 'Mark Davis', email: 'mark.davis@student.com', status: 'completed' },
-        { id: '19', name: 'Jessica Brown', email: 'jessica.brown@student.com', status: 'completed' },
-        { id: '20', name: 'Kevin Wilson', email: 'kevin.wilson@student.com', status: 'completed' },
-        { id: '21', name: 'Rachel Adams', email: 'rachel.adams@student.com', status: 'completed' },
-        { id: '22', name: 'Daniel Miller', email: 'daniel.miller@student.com', status: 'completed' },
-        { id: '23', name: 'Olivia Taylor', email: 'olivia.taylor@student.com', status: 'completed' },
-        { id: '24', name: 'Nathan Clark', email: 'nathan.clark@student.com', status: 'completed' },
-        { id: '25', name: 'Grace Lewis', email: 'grace.lewis@student.com', status: 'completed' },
-        { id: '26', name: 'Ethan Walker', email: 'ethan.walker@student.com', status: 'completed' },
-        { id: '27', name: 'Chloe Hall', email: 'chloe.hall@student.com', status: 'completed' },
-        { id: '28', name: 'Lucas Allen', email: 'lucas.allen@student.com', status: 'completed' },
-        { id: '29', name: 'Maya Young', email: 'maya.young@student.com', status: 'completed' },
-        { id: '30', name: 'Noah King', email: 'noah.king@student.com', status: 'completed' },
-        { id: '31', name: 'Ava Wright', email: 'ava.wright@student.com', status: 'completed' },
-        { id: '32', name: 'Liam Lopez', email: 'liam.lopez@student.com', status: 'completed' },
-      ],
-    },
-    {
-      id: '4',
-      name: 'Hospital Visit Program',
-      description: 'Visit patients in the children\'s ward, read stories, play games, and provide emotional support to families.',
-      date: '30 September 2025',
-      time: '02:00 PM - 04:00 PM',
-      location: 'Groote Schuur Hospital',
-      duration: 2,
-      maxVolunteers: 12,
-      registered: 10,
-      verified: true,
-      status: 'ongoing',
-      students: [
-        { id: '1', name: 'Emma Wilson', email: 'emma.wilson@student.com', status: 'participated' },
-        { id: '2', name: 'James Taylor', email: 'james.taylor@student.com', status: 'participated' },
-        { id: '3', name: 'Sarah Johnson', email: 'sarah.johnson@student.com', status: 'participated' },
-        { id: '4', name: 'Michael Brown', email: 'michael.brown@student.com', status: 'participated' },
-        { id: '5', name: 'Lisa Davis', email: 'lisa.davis@student.com', status: 'participated' },
-        { id: '6', name: 'David Wilson', email: 'david.wilson@student.com', status: 'participated' },
-        { id: '7', name: 'Anna Martinez', email: 'anna.martinez@student.com', status: 'participated' },
-        { id: '8', name: 'Tom Anderson', email: 'tom.anderson@student.com', status: 'participated' },
-        { id: '9', name: 'Kate Thompson', email: 'kate.thompson@student.com', status: 'participated' },
-        { id: '10', name: 'Ryan Garcia', email: 'ryan.garcia@student.com', status: 'participated' },
-      ],
-    },
-  ];
+  const handleCreateEvent = async () => {
+    if (!eventName || !description || !date || !maxVolunteers) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
-  const handleCreateEvent = () => {
-    console.log('Create event:', {
-      eventName,
-      description,
-      date,
-      startTime,
-      location,
-      duration,
-      maxVolunteers,
-      category,
-      coordinators: selectedCoordinators,
-    });
-    // Reset form
-    setEventName('');
-    setDescription('');
-    setDate('');
-    setStartTime('');
-    setLocation('');
-    setDuration('');
-    setMaxVolunteers('');
-    setCategory('');
-    setSelectedCoordinators([]);
+    try {
+      setSubmitting(true);
+      const response = await apiService.createEvent({
+        title: eventName,
+        description,
+        date: new Date(date).toISOString(),
+        time: startTime,
+        location,
+        duration: duration ? parseFloat(duration) : undefined,
+        maxVolunteers: parseInt(maxVolunteers),
+        studentCoordinatorIds: selectedCoordinators,
+      });
+
+      if (response.success) {
+        Alert.alert('Success', 'Event created successfully');
+        // Reset form
+        setEventName('');
+        setDescription('');
+        setDate('');
+        setStartTime('');
+        setLocation('');
+        setDuration('');
+        setMaxVolunteers('');
+        setCategory('');
+        setSelectedCoordinators([]);
+        // Reload events
+        await loadData();
+        setActiveTab('events');
+      }
+    } catch (error: any) {
+      console.error('Create event error:', error);
+      Alert.alert('Error', error.message || 'Failed to create event');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const removeCoordinator = (coordinatorId: string) => {
@@ -366,7 +281,7 @@ export default function EventsScreen() {
                   <Text style={styles.sectionTitle}>Student Co-ordinators</Text>
                   <View style={styles.coordinatorsContainer}>
                     {selectedCoordinators.map((coordinatorId) => {
-                      const student = mockStudents.find(s => s.id === coordinatorId);
+                      const student = students.find((s: any) => s.id === coordinatorId);
                       if (!student) return null;
                       return (
                         <TouchableOpacity
@@ -495,7 +410,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.deepPurple,
   },
   tabText: {
-    ...typography.button,
+    ...typography.subhead,
     color: Colors.text,
   },
   tabTextActive: {
@@ -514,7 +429,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.subhead,
     color: Colors.text,
     marginBottom: spacing.md,
     fontWeight: '600',
@@ -572,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   coordinatorText: {
-    ...typography.h3,
+    ...typography.subhead,
     color: Colors.light,
     fontWeight: '600',
   },
@@ -620,7 +535,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   eventName: {
-    ...typography.h3,
+    ...typography.subhead,
     color: Colors.text,
     flex: 1,
     fontWeight: '600',

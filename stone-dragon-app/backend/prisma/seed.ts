@@ -113,6 +113,19 @@ async function main() {
         schoolId: 'school-2',
       },
     }),
+    // Student Coordinator
+    prisma.user.upsert({
+      where: { email: 'studentcoordinator1@example.com' },
+      update: {},
+      create: {
+        email: 'studentcoordinator1@example.com',
+        password: hashedPassword,
+        firstName: 'Student',
+        lastName: 'Coordinator',
+        role: 'STUDENT_COORDINATOR',
+        schoolId: 'school-1',
+      },
+    }),
     // Admin
     prisma.user.upsert({
       where: { email: 'admin@stonedragon.org' },
@@ -122,6 +135,17 @@ async function main() {
         password: hashedPassword,
         firstName: 'Admin',
         lastName: 'User',
+        role: 'ADMIN',
+      },
+    }),
+    prisma.user.upsert({
+      where: { email: 'admin1@example.com' },
+      update: {},
+      create: {
+        email: 'admin1@example.com',
+        password: hashedPassword,
+        firstName: 'Admin',
+        lastName: 'One',
         role: 'ADMIN',
       },
     }),
@@ -190,65 +214,164 @@ async function main() {
 
   console.log('✅ Badges created:', badges.length);
 
-  // Create some volunteer logs
-  const volunteerLogs = await Promise.all([
-    prisma.volunteerLog.create({
+  // Create events
+  const events = await Promise.all([
+    prisma.event.create({
       data: {
-        hours: 3.5,
-        description: 'Helped organize school library books and assisted students with finding resources.',
-        date: new Date('2024-01-15'),
-        status: 'approved',
-        userId: users[0].id, // student1
-        schoolId: 'school-1',
-        reviewedBy: users[3].id, // coordinator1
-        reviewedAt: new Date('2024-01-16'),
-        coordinatorComment: 'Great work organizing the library!',
+        id: 'event-1',
+        title: 'Youth Mentorship Program',
+        description: 'Mentor young students with homework and life skills. Help them develop confidence and academic success.',
+        date: new Date('2025-11-25'),
+        time: '03:00 PM - 05:00 PM',
+        location: 'Langa Youth Center',
+        duration: 2,
+        maxVolunteers: 15,
+        coordinatorId: users[3].id, // coordinator1
       },
     }),
+    prisma.event.create({
+      data: {
+        id: 'event-2',
+        title: 'Beach Cleanup Drive',
+        description: 'Join us for a morning beach cleanup to keep our shores beautiful.',
+        date: new Date('2025-11-15'),
+        time: '09:00 AM - 12:00 PM',
+        location: 'Camps Bay Beach',
+        duration: 3,
+        maxVolunteers: 30,
+        coordinatorId: users[3].id, // coordinator1
+      },
+    }),
+    prisma.event.create({
+      data: {
+        id: 'event-3',
+        title: 'Food Bank Distribution',
+        description: 'Help distribute food parcels to families in need.',
+        date: new Date('2025-12-20'),
+        time: '10:00 AM - 02:00 PM',
+        location: 'District Six Community Center',
+        duration: 4,
+        maxVolunteers: 20,
+        coordinatorId: users[4].id, // coordinator2
+      },
+    }),
+  ]);
+
+  console.log('✅ Events created:', events.length);
+
+  // Assign student coordinator to event-1 (studentcoordinator1 -> event-1)
+  await prisma.eventCoordinator.create({
+    data: {
+      eventId: 'event-1',
+      userId: users[5].id, // studentcoordinator1
+    },
+  });
+
+  // Register students for events
+  await Promise.all([
+    prisma.eventRegistration.create({
+      data: {
+        eventId: 'event-1',
+        userId: users[0].id, // student1 -> event-1
+      },
+    }),
+    prisma.eventRegistration.create({
+      data: {
+        eventId: 'event-2',
+        userId: users[0].id, // student1 -> event-2
+      },
+    }),
+    prisma.eventRegistration.create({
+      data: {
+        eventId: 'event-1',
+        userId: users[1].id, // student2 -> event-1
+      },
+    }),
+  ]);
+
+  console.log('✅ Event registrations created');
+
+  // Create some volunteer logs with different claim types
+  const volunteerLogs = await Promise.all([
+    // Event claim (for event with student coordinator) - pending
     prisma.volunteerLog.create({
       data: {
         hours: 2.0,
-        description: 'Assisted with school garden maintenance and planting new vegetables.',
-        date: new Date('2024-01-20'),
-        status: 'approved',
+        description: 'Attended Youth Mentorship Program and helped students with homework.',
+        date: new Date('2025-11-25'),
+        claimType: 'event',
+        eventId: 'event-1',
+        status: 'pending',
         userId: users[0].id, // student1
         schoolId: 'school-1',
-        reviewedBy: users[3].id, // coordinator1
-        reviewedAt: new Date('2024-01-21'),
-        coordinatorComment: 'Excellent contribution to our school garden!',
       },
     }),
+    // Event claim (for event without student coordinator) - pending
+    prisma.volunteerLog.create({
+      data: {
+        hours: 3.0,
+        description: 'Participated in Beach Cleanup Drive.',
+        date: new Date('2025-11-15'),
+        claimType: 'event',
+        eventId: 'event-2',
+        status: 'pending',
+        userId: users[0].id, // student1
+        schoolId: 'school-1',
+      },
+    }),
+    // Donation claim - pending
+    prisma.volunteerLog.create({
+      data: {
+        hours: 5.0,
+        description: 'Donated 5 bags of clothes to local charity.',
+        date: new Date('2025-10-20'),
+        claimType: 'donation',
+        donationItems: 5,
+        status: 'pending',
+        userId: users[1].id, // student2
+        schoolId: 'school-2',
+      },
+    }),
+    // Volunteer claim - approved
     prisma.volunteerLog.create({
       data: {
         hours: 4.0,
         description: 'Helped with community cleanup event at the local park.',
-        date: new Date('2024-01-25'),
-        status: 'pending',
+        date: new Date('2025-10-15'),
+        claimType: 'volunteer',
+        status: 'approved',
         userId: users[1].id, // student2
         schoolId: 'school-2',
+        reviewedBy: users[4].id, // coordinator2
+        reviewedAt: new Date('2025-10-16'),
+        coordinatorComment: 'Great community initiative!',
       },
     }),
+    // Other claim - pending (coordinator will set hours)
     prisma.volunteerLog.create({
       data: {
-        hours: 6.0,
-        description: 'Volunteered at the local food bank, organizing donations and helping distribute food to families.',
-        date: new Date('2024-01-28'),
+        hours: 0,
+        description: 'Organized a fundraising event for local animal shelter. Need coordinator to determine hours.',
+        date: new Date('2025-10-18'),
+        claimType: 'other',
+        status: 'pending',
+        userId: users[0].id, // student1
+        schoolId: 'school-1',
+      },
+    }),
+    // Regular volunteer claim - approved (legacy)
+    prisma.volunteerLog.create({
+      data: {
+        hours: 3.5,
+        description: 'Helped organize school library books and assisted students with finding resources.',
+        date: new Date('2025-09-15'),
+        claimType: 'volunteer',
         status: 'approved',
-        userId: users[2].id, // volunteer1
+        userId: users[0].id, // student1
         schoolId: 'school-1',
         reviewedBy: users[3].id, // coordinator1
-        reviewedAt: new Date('2024-01-29'),
-        coordinatorComment: 'Outstanding community service!',
-      },
-    }),
-    prisma.volunteerLog.create({
-      data: {
-        hours: 2.5,
-        description: 'Tutored younger students in mathematics after school.',
-        date: new Date('2024-02-01'),
-        status: 'pending',
-        userId: users[1].id, // student2
-        schoolId: 'school-2',
+        reviewedAt: new Date('2025-09-16'),
+        coordinatorComment: 'Great work organizing the library!',
       },
     }),
   ]);
@@ -300,6 +423,7 @@ async function main() {
   console.log('\n📊 Summary:');
   console.log(`- Schools: ${schools.length}`);
   console.log(`- Users: ${users.length}`);
+  console.log(`- Events: ${events.length}`);
   console.log(`- Badges: ${badges.length}`);
   console.log(`- Volunteer Logs: ${volunteerLogs.length}`);
   console.log(`- User Badges: ${userBadges.length}`);
@@ -308,7 +432,9 @@ async function main() {
   console.log('Student: student1@example.com / password123');
   console.log('Volunteer: volunteer1@example.com / password123');
   console.log('Coordinator: coordinator1@example.com / password123');
-  console.log('Admin: admin@stonedragon.org / password123');
+  console.log('Student Coordinator: studentcoordinator1@example.com / password123');
+  console.log('Admin: admin1@example.com / password123');
+  console.log('Admin (Original): admin@stonedragon.org / password123');
 }
 
 main()

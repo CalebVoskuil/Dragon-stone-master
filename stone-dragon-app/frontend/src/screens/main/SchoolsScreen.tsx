@@ -19,7 +19,8 @@ import {
 
 import { apiService } from '../../services/api';
 import { School } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { theme } from '../../theme/theme';
+import { spacing } from '../../constants/Sizes';
 
 const SchoolsScreen: React.FC = () => {
   const [schools, setSchools] = useState<School[]>([]);

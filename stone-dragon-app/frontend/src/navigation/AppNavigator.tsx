@@ -18,6 +18,7 @@ import SchoolsScreen from '../screens/main/SchoolsScreen';
 import MyLogsScreen from '../screens/main/MyLogsScreen';
 import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
 import NotificationsScreen from '../screens/coordinator/NotificationsScreen';
+import StudentCoordinatorClaimsScreen from '../screens/studentCoordinator/StudentCoordinatorClaimsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -41,6 +42,8 @@ const MainStackNavigator: React.FC = () => {
   const { user } = useAuth();
   
   // Determine which navigator to use based on user role
+  // COORDINATOR and ADMIN get the coordinator view
+  // STUDENT, VOLUNTEER, and STUDENT_COORDINATOR get the student view
   const isCoordinator = user?.role === 'COORDINATOR' || user?.role === 'ADMIN';
 
   return (
@@ -87,6 +90,15 @@ const MainStackNavigator: React.FC = () => {
         options={{ 
           headerShown: true, 
           title: 'Notifications',
+          headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen 
+        name="StudentCoordinatorClaims" 
+        component={StudentCoordinatorClaimsScreen}
+        options={{ 
+          headerShown: true, 
+          title: 'Event Claims',
           headerBackTitle: 'Back'
         }}
       />
