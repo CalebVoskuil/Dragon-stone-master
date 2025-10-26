@@ -23,6 +23,7 @@ import {
   Bell,
   HelpCircle,
   Shield,
+  FileText,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -115,6 +116,12 @@ export default function ProfileScreen() {
   ];
 
   const menuItems = [
+    // Show Claims option only for Student Coordinators
+    ...(user?.role === 'STUDENT_COORDINATOR' ? [{
+      icon: FileText,
+      label: 'Claims',
+      onPress: () => (navigation as any).navigate('StudentCoordinatorClaims'),
+    }] : []),
     {
       icon: Settings,
       label: 'Account Settings',

@@ -84,7 +84,7 @@ export default function ClaimDetailModal({
     if (claim?.proofFileName) {
       // Construct the full URL to the proof file
       // The backend serves files at /uploads/ route
-      const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
+      const proofUrl = `http://192.168.0.115:3001/uploads/${claim.proofFileName}`;
       
       console.log('Opening proof file:', proofUrl);
       

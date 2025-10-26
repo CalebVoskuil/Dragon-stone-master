@@ -18,29 +18,47 @@ import {
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
-import { eventsService, Event } from '../../services/eventsService';
+import { apiService } from '../../services/api';
+import { Event } from '../../types';
 
 export default function EventsScreen() {
   const [filter, setFilter] = useState<'all' | 'registered' | 'available'>('all');
   const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Load events from shared service
+  // Load events from API
   useEffect(() => {
-    setEvents(eventsService.getAllEvents());
+    loadEvents();
   }, []);
 
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getEvents();
+      if (response.success && response.data) {
+        setEvents(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load events:', error);
+      Alert.alert('Error', 'Failed to load events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredEvents = events.filter((event) => {
-    if (filter === 'registered') return event.isRegistered;
-    if (filter === 'available') return !event.isRegistered;
+    // For now, show all events since we don't have isRegistered flag yet
+    // TODO: Add logic to check if user is registered based on eventRegistrations
     return true;
   });
 
-  const handleRegister = (eventId: string) => {
+  const handleRegister = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
-    // Check if event is full
-    if (event.spotsAvailable === 0) {
+    // Check if event is full (registered >= maxVolunteers)
+    const registered = event.eventRegistrations?.length || 0;
+    if (registered >= event.maxVolunteers) {
       Alert.alert('Event Full', 'Sorry, this event is already full.');
       return;
     }
@@ -48,7 +66,7 @@ export default function EventsScreen() {
     // Show confirmation dialog
     Alert.alert(
       'Confirm Registration',
-      `Are you sure you want to register for "${event.title}"?\n\nThis event awards ${event.hoursAwarded} volunteer hours.`,
+      `Are you sure you want to register for "${event.title}"?\n\nThis event awards ${event.duration || 0} volunteer hours.`,
       [
         {
           text: 'Cancel',
@@ -56,25 +74,25 @@ export default function EventsScreen() {
         },
         {
           text: 'Register',
-          onPress: () => {
-            // Use shared service to register
-            console.log('🎯 Attempting to register for event:', eventId);
-            const success = eventsService.registerForEvent(eventId);
-            console.log('✅ Registration success:', success);
-            if (success) {
-              // Refresh events from service
-              const updatedEvents = eventsService.getAllEvents();
-              console.log('🔄 Updated events:', updatedEvents);
-              setEvents(updatedEvents);
+          onPress: async () => {
+            try {
+              const response = await apiService.registerForEvent(eventId);
+              if (response.success) {
+                // Refresh events
+                await loadEvents();
 
-              // Show success message
-              Alert.alert(
-                'Registration Successful!',
-                `You've been registered for "${event.title}". You'll receive ${event.hoursAwarded} volunteer hours upon completion.`,
-                [{ text: 'OK' }]
-              );
-            } else {
-              Alert.alert('Registration Failed', 'Unable to register for this event.');
+                // Show success message
+                Alert.alert(
+                  'Registration Successful!',
+                  `You've been registered for "${event.title}". You'll receive ${event.duration || 0} volunteer hours upon completion.`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Registration Failed', response.message || 'Unable to register for this event.');
+              }
+            } catch (error) {
+              console.error('Registration error:', error);
+              Alert.alert('Error', 'Failed to register for event');
             }
           },
         },
@@ -82,7 +100,7 @@ export default function EventsScreen() {
     );
   };
 
-  const handleUnregister = (eventId: string) => {
+  const handleUnregister = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
@@ -97,21 +115,25 @@ export default function EventsScreen() {
         {
           text: 'Unregister',
           style: 'destructive',
-          onPress: () => {
-            // Use shared service to unregister
-            const success = eventsService.unregisterFromEvent(eventId);
-            if (success) {
-              // Refresh events from service
-              setEvents(eventsService.getAllEvents());
+          onPress: async () => {
+            try {
+              const response = await apiService.unregisterFromEvent(eventId);
+              if (response.success) {
+                // Refresh events
+                await loadEvents();
 
-              // Show confirmation message
-              Alert.alert(
-                'Unregistered Successfully',
-                `You've been unregistered from "${event.title}".`,
-                [{ text: 'OK' }]
-              );
-            } else {
-              Alert.alert('Unregistration Failed', 'Unable to unregister from this event.');
+                // Show confirmation message
+                Alert.alert(
+                  'Unregistered Successfully',
+                  `You've been unregistered from "${event.title}".`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Unregistration Failed', 'Unable to unregister from this event.');
+              }
+            } catch (error) {
+              console.error('Unregistration error:', error);
+              Alert.alert('Error', 'Failed to unregister from event');
             }
           },
         },
@@ -119,69 +141,80 @@ export default function EventsScreen() {
     );
   };
 
-  const renderEvent = (event: Event) => (
-    <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>
-      <Text style={styles.eventTitle}>{event.title}</Text>
-      <Text style={styles.eventOrg}>{event.organization}</Text>
+  const renderEvent = (event: Event) => {
+    const registered = event.eventRegistrations?.length || 0;
+    const spotsAvailable = event.maxVolunteers - registered;
+    const eventDate = new Date(event.date).toLocaleDateString();
+    // TODO: Check if current user is registered (need user ID from auth context)
+    const isRegistered = false;
 
-      <View style={styles.eventDetails}>
-        <View style={styles.eventDetail}>
-          <Calendar color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>
-            {event.date} • {event.time}
-          </Text>
-        </View>
+    return (
+      <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>
+        <Text style={styles.eventTitle}>{event.title}</Text>
 
-        <View style={styles.eventDetail}>
-          <MapPin color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>{event.location}</Text>
-        </View>
-
-        <View style={styles.eventDetail}>
-          <Clock color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>{event.hoursAwarded} hours awarded</Text>
-        </View>
-
-        <View style={styles.eventDetail}>
-          <Users color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>
-            {event.spotsAvailable}/{event.totalSpots} spots available
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.eventDescription} numberOfLines={2}>
-        {event.description}
-      </Text>
-
-      {event.isRegistered ? (
-        <View style={styles.registeredSection}>
-          <View style={styles.registeredBadge}>
-            <Text style={styles.registeredText}>✓ Registered</Text>
+        <View style={styles.eventDetails}>
+          <View style={styles.eventDetail}>
+            <Calendar color={Colors.deepPurple} size={16} />
+            <Text style={styles.eventDetailText}>
+              {eventDate}{event.time ? ` • ${event.time}` : ''}
+            </Text>
           </View>
+
+          {event.location && (
+            <View style={styles.eventDetail}>
+              <MapPin color={Colors.deepPurple} size={16} />
+              <Text style={styles.eventDetailText}>{event.location}</Text>
+            </View>
+          )}
+
+          {event.duration && (
+            <View style={styles.eventDetail}>
+              <Clock color={Colors.deepPurple} size={16} />
+              <Text style={styles.eventDetailText}>{event.duration} hours awarded</Text>
+            </View>
+          )}
+
+          <View style={styles.eventDetail}>
+            <Users color={Colors.deepPurple} size={16} />
+            <Text style={styles.eventDetailText}>
+              {spotsAvailable}/{event.maxVolunteers} spots available
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.eventDescription} numberOfLines={2}>
+          {event.description}
+        </Text>
+
+        {isRegistered ? (
+          <View style={styles.registeredSection}>
+            <View style={styles.registeredBadge}>
+              <Text style={styles.registeredText}>✓ Registered</Text>
+            </View>
+            <SDButton
+              variant="ghost"
+              size="sm"
+              fullWidth
+              onPress={() => handleUnregister(event.id)}
+              style={styles.unregisterButton}
+            >
+              Unregister
+            </SDButton>
+          </View>
+        ) : (
           <SDButton
-            variant="ghost"
+            variant="primary-filled"
             size="sm"
             fullWidth
-            onPress={() => handleUnregister(event.id)}
-            style={styles.unregisterButton}
+            onPress={() => handleRegister(event.id)}
+            disabled={spotsAvailable === 0}
           >
-            Unregister
+            {spotsAvailable === 0 ? 'Full' : 'Register'}
           </SDButton>
-        </View>
-      ) : (
-        <SDButton
-          variant="primary-filled"
-          size="sm"
-          fullWidth
-          onPress={() => handleRegister(event.id)}
-          disabled={event.spotsAvailable === 0}
-        >
-          {event.spotsAvailable === 0 ? 'Full' : 'Register'}
-        </SDButton>
-      )}
-    </SDCard>
-  );
+        )}
+      </SDCard>
+    );
+  };
 
   return (
     <GradientBackground>

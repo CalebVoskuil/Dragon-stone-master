@@ -5,21 +5,64 @@ const prisma = new PrismaClient();
 
 export const createVolunteerLog = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { hours, description, date, schoolId } = req.body;
+    const { hours, description, date, schoolId, claimType, eventId, donationItems } = req.body;
     const userId = (req as any).user.id;
     const proofFile = req.file;
 
+    // Validate claim type
+    const validClaimTypes = ['event', 'donation', 'volunteer', 'other'];
+    if (claimType && !validClaimTypes.includes(claimType)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid claim type',
+      });
+      return;
+    }
+
+    // Build data object based on claim type
+    const data: any = {
+      description: description as string,
+      date: new Date(date),
+      schoolId: schoolId as string,
+      userId: userId as string,
+      proofFileName: proofFile?.filename ?? null,
+      proofFilePath: proofFile?.path ?? null,
+      status: 'pending' as const,
+      claimType: claimType || 'volunteer',
+    };
+
+    // Handle hours based on claim type
+    if (claimType === 'other') {
+      // For 'other' type, hours will be set by coordinator, default to 0
+      data.hours = 0;
+    } else {
+      data.hours = hours ? parseFloat(hours) : 0;
+    }
+
+    // Add event-specific fields
+    if (claimType === 'event' && eventId) {
+      data.eventId = eventId;
+      
+      // If hours not provided for event, try to get from event duration
+      if (!hours) {
+        const event = await prisma.event.findUnique({
+          where: { id: eventId },
+          select: { duration: true },
+        });
+        
+        if (event?.duration) {
+          data.hours = event.duration;
+        }
+      }
+    }
+
+    // Add donation-specific fields
+    if (claimType === 'donation' && donationItems) {
+      data.donationItems = parseFloat(donationItems);
+    }
+
     const volunteerLog = await prisma.volunteerLog.create({
-      data: {
-        hours: parseFloat(hours),
-        description: description as string,
-        date: new Date(date),
-        schoolId: schoolId as string,
-        userId: userId as string,
-        proofFileName: proofFile?.filename ?? null,
-        proofFilePath: proofFile?.path ?? null,
-        status: 'pending' as const,
-      },
+      data,
       include: {
         user: {
           select: {
@@ -33,6 +76,17 @@ export const createVolunteerLog = async (req: Request, res: Response): Promise<v
           select: {
             id: true,
             name: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            date: true,
+            time: true,
+            location: true,
+            duration: true,
           },
         },
       },
@@ -60,9 +114,25 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
 
     const where: any = {};
 
-    // Students and volunteers can only see their own logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER') {
+    // Students, volunteers, and student coordinators can only see their own logs
+    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
+    }
+
+    // Coordinators see logs but exclude event claims with student coordinators
+    if (userRole === 'COORDINATOR' || userRole === 'ADMIN') {
+      // Get all event IDs that have student coordinators
+      const eventsWithCoordinators = await prisma.eventCoordinator.findMany({
+        select: { eventId: true },
+      });
+      const eventIdsWithCoordinators = eventsWithCoordinators.map((ec) => ec.eventId);
+
+      // Exclude event claims for events with student coordinators
+      where.OR = [
+        { claimType: { not: 'event' } }, // Non-event claims
+        { claimType: 'event', eventId: { notIn: eventIdsWithCoordinators } }, // Event claims without student coordinators
+        { claimType: 'event', eventId: null }, // Event claims without eventId
+      ];
     }
 
     // Coordinators can filter by school
@@ -90,12 +160,32 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
               firstName: true,
               lastName: true,
               email: true,
+              role: true,
             },
           },
           school: {
             select: {
               id: true,
               name: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              date: true,
+              time: true,
+              location: true,
+              duration: true,
+            },
+          },
+          reviewer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
             },
           },
         },
@@ -131,8 +221,8 @@ export const getVolunteerLogById = async (req: Request, res: Response): Promise<
 
     const where: any = { id };
 
-    // Students and volunteers can only see their own logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER') {
+    // Students, volunteers, and student coordinators can only see their own logs
+    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
     }
 
@@ -145,12 +235,32 @@ export const getVolunteerLogById = async (req: Request, res: Response): Promise<
             firstName: true,
             lastName: true,
             email: true,
+            role: true,
           },
         },
         school: {
           select: {
             id: true,
             name: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            date: true,
+            time: true,
+            location: true,
+            duration: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
       },
@@ -195,8 +305,8 @@ export const updateVolunteerLog = async (req: Request, res: Response): Promise<v
 
     const where: any = { id };
 
-    // Students and volunteers can only update their own pending logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER') {
+    // Students, volunteers, and student coordinators can only update their own pending logs
+    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
       where.status = 'pending';
     }
@@ -267,8 +377,8 @@ export const deleteVolunteerLog = async (req: Request, res: Response): Promise<v
 
     const where: any = { id };
 
-    // Students and volunteers can only delete their own pending logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER') {
+    // Students, volunteers, and student coordinators can only delete their own pending logs
+    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
       where.status = 'pending';
     }

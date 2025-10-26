@@ -26,7 +26,7 @@ import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
-import { eventsService } from '../../services/eventsService';
+import { Event, ClaimType } from '../../types';
 
 type ActivityType = 'Event' | 'Donation' | 'Volunteer' | 'Other';
 
@@ -34,6 +34,7 @@ interface FormData {
   type: ActivityType | '';
   // Event fields
   event: string;
+  eventId?: string;
   // Donation fields
   item: string;
   amount: string;
@@ -186,18 +187,16 @@ export default function LogHoursScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  // Fetch registered events from shared service
+  // Fetch registered events from API
   const fetchRegisteredEvents = async () => {
     console.log('🔄 Fetching registered events...');
     setLoadingEvents(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Get registered events from shared service
-      const registeredEvents = eventsService.getRegisteredEvents();
-      console.log('📅 Registered events from service:', registeredEvents);
-      setRegisteredEvents(registeredEvents);
+      const response = await apiService.getMyEvents();
+      if (response.success && response.data) {
+        console.log('📅 Registered events from API:', response.data);
+        setRegisteredEvents(response.data);
+      }
     } catch (error) {
       console.error('Error fetching registered events:', error);
     } finally {
@@ -216,11 +215,17 @@ export default function LogHoursScreen() {
   };
 
   const handleEventSelect = (event: any) => {
-    setFormData(prev => ({ ...prev, event: event.title }));
+    setFormData(prev => ({ 
+      ...prev, 
+      event: event.title,
+      eventId: event.id 
+    }));
     setShowEventDropdown(false);
     
-    // Auto-fill hours with the event's awarded hours
-    setFormData(prev => ({ ...prev, hours: event.hoursAwarded.toString() }));
+    // Auto-fill hours with the event's duration if available
+    if (event.duration) {
+      setFormData(prev => ({ ...prev, hours: event.duration.toString() }));
+    }
   };
 
   const handleFileSelect = (file: any) => {
@@ -345,13 +350,32 @@ export default function LogHoursScreen() {
         fullDescription = `Other Activity - Title: ${formData.activityTitle}\nDescription: ${formData.description}`;
       }
 
-      const logData = {
-        hours: formData.type === 'Donation' ? 0.1 : parseFloat(formData.hours),
+      // Map ActivityType to ClaimType
+      const claimTypeMap: Record<ActivityType, ClaimType> = {
+        'Event': 'event',
+        'Donation': 'donation',
+        'Volunteer': 'volunteer',
+        'Other': 'other',
+      };
+
+      const logData: any = {
+        hours: formData.type === 'Other' ? 0 : (formData.type === 'Donation' ? parseFloat(formData.amount) : parseFloat(formData.hours)),
         description: fullDescription,
         date: new Date().toISOString(),
         schoolId: user.schoolId,
+        claimType: claimTypeMap[formData.type as ActivityType],
         proofFile: selectedFile || undefined,
       };
+
+      // Add event-specific fields
+      if (formData.type === 'Event' && formData.eventId) {
+        logData.eventId = formData.eventId;
+      }
+
+      // Add donation-specific fields
+      if (formData.type === 'Donation') {
+        logData.donationItems = parseFloat(formData.amount);
+      }
 
       console.log('Sending log data:', logData);
 

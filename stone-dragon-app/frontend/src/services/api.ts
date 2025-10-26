@@ -10,7 +10,8 @@ import {
   Badge,
   BadgeProgress,
   CoordinatorDashboard,
-  SchoolStats
+  SchoolStats,
+  Event
 } from '../types';
 
 class ApiService {
@@ -23,7 +24,7 @@ class ApiService {
       // - For Android Emulator: use 'http://10.0.2.2:3001/api'
       // - For Physical Device: use your computer's IP (e.g., 'http://192.168.1.100:3001/api')
       // - For Production: update to your production API URL
-      baseURL: 'http://192.168.0.208:3001/api', 
+      baseURL: 'http://192.168.0.115:3001/api', 
       timeout: 10000,
       withCredentials: true, // Important for session-based auth (cookies)
       headers: {
@@ -134,6 +135,15 @@ class ApiService {
     formData.append('description', data.description);
     formData.append('date', data.date);
     formData.append('schoolId', data.schoolId);
+    formData.append('claimType', data.claimType);
+    
+    if (data.eventId) {
+      formData.append('eventId', data.eventId);
+    }
+    
+    if (data.donationItems) {
+      formData.append('donationItems', data.donationItems.toString());
+    }
     
     if (data.proofFile) {
       // Format the file properly for FormData upload
@@ -243,6 +253,84 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<ApiResponse> {
     const response: AxiosResponse<ApiResponse> = await this.api.get('/health');
+    return response.data;
+  }
+
+  // Event endpoints
+  async createEvent(data: {
+    title: string;
+    description: string;
+    date: string;
+    time?: string;
+    location?: string;
+    duration?: number;
+    maxVolunteers: number;
+    studentCoordinatorIds?: string[];
+  }): Promise<ApiResponse<Event>> {
+    const response: AxiosResponse<ApiResponse<Event>> = await this.api.post('/events', data);
+    return response.data;
+  }
+
+  async getEvents(params?: { upcoming?: boolean }): Promise<ApiResponse<Event[]>> {
+    const response: AxiosResponse<ApiResponse<Event[]>> = await this.api.get('/events', { params });
+    return response.data;
+  }
+
+  async getEventById(id: string): Promise<ApiResponse<Event>> {
+    const response: AxiosResponse<ApiResponse<Event>> = await this.api.get(`/events/${id}`);
+    return response.data;
+  }
+
+  async updateEvent(id: string, data: {
+    title?: string;
+    description?: string;
+    date?: string;
+    time?: string;
+    location?: string;
+    duration?: number;
+    maxVolunteers?: number;
+    studentCoordinatorIds?: string[];
+  }): Promise<ApiResponse<Event>> {
+    const response: AxiosResponse<ApiResponse<Event>> = await this.api.put(`/events/${id}`, data);
+    return response.data;
+  }
+
+  async deleteEvent(id: string): Promise<ApiResponse> {
+    const response: AxiosResponse<ApiResponse> = await this.api.delete(`/events/${id}`);
+    return response.data;
+  }
+
+  async registerForEvent(id: string): Promise<ApiResponse> {
+    const response: AxiosResponse<ApiResponse> = await this.api.post(`/events/${id}/register`);
+    return response.data;
+  }
+
+  async unregisterFromEvent(id: string): Promise<ApiResponse> {
+    const response: AxiosResponse<ApiResponse> = await this.api.delete(`/events/${id}/register`);
+    return response.data;
+  }
+
+  async getMyEvents(): Promise<ApiResponse<Event[]>> {
+    const response: AxiosResponse<ApiResponse<Event[]>> = await this.api.get('/events/my-events');
+    return response.data;
+  }
+
+  // Student Coordinator endpoints
+  async getAssignedEvents(): Promise<ApiResponse<Event[]>> {
+    const response: AxiosResponse<ApiResponse<Event[]>> = await this.api.get('/student-coordinator/assigned-events');
+    return response.data;
+  }
+
+  async getPendingEventClaims(params?: { status?: string }): Promise<ApiResponse<VolunteerLog[]>> {
+    const response: AxiosResponse<ApiResponse<VolunteerLog[]>> = await this.api.get('/student-coordinator/event-claims', { params });
+    return response.data;
+  }
+
+  async reviewEventClaim(logId: string, status: 'approved' | 'rejected', comment?: string): Promise<ApiResponse<VolunteerLog>> {
+    const response: AxiosResponse<ApiResponse<VolunteerLog>> = await this.api.put(`/student-coordinator/review-claim/${logId}`, {
+      status,
+      coordinatorComment: comment,
+    });
     return response.data;
   }
 }
