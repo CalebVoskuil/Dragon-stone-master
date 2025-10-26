@@ -324,33 +324,74 @@ export default function EventsScreen() {
           ) : (
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.eventsContainer}>
-                {events.map((event) => (
-                  <TouchableOpacity 
-                    key={event.id} 
-                    style={styles.eventCard}
-                    onPress={() => handleEventPress(event)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.eventHeader}>
-                      <Text style={styles.eventName}>{event.name}</Text>
-                      {event.verified && (
-                        <Text style={styles.verifiedBadge}>✓</Text>
-                      )}
-                    </View>
-                    <View style={styles.eventMeta}>
-                      <View style={styles.eventMetaItem}>
-                        <Calendar color={Colors.textSecondary} size={14} />
-                        <Text style={styles.eventMetaText}>{event.date}</Text>
-                      </View>
-                      <View style={styles.eventMetaItem}>
-                        <Users color={Colors.textSecondary} size={14} />
-                        <Text style={styles.eventMetaText}>
-                          {event.registered}/{event.maxVolunteers}
+                {loading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.deepPurple} />
+                    <Text style={styles.loadingText}>Loading events...</Text>
+                  </View>
+                ) : events.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No events yet</Text>
+                    <Text style={styles.emptySubtext}>Create your first event to get started</Text>
+                  </View>
+                ) : (
+                  events.map((event) => {
+                    const registered = event.eventRegistrations?.length || event._count?.eventRegistrations || 0;
+                    const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    });
+                    
+                    return (
+                      <TouchableOpacity 
+                        key={event.id} 
+                        style={styles.eventCard}
+                        onPress={() => handleEventPress(event)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.eventHeader}>
+                          <Text style={styles.eventName}>{event.title}</Text>
+                        </View>
+                        
+                        <Text style={styles.eventDescription} numberOfLines={2}>
+                          {event.description}
                         </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                        
+                        <View style={styles.eventMeta}>
+                          <View style={styles.eventMetaItem}>
+                            <Calendar color={Colors.textSecondary} size={16} />
+                            <Text style={styles.eventMetaText}>
+                              {eventDate}
+                              {event.time ? ` • ${event.time}` : ''}
+                            </Text>
+                          </View>
+                          
+                          {event.location && (
+                            <View style={styles.eventMetaItem}>
+                              <MapPin color={Colors.textSecondary} size={16} />
+                              <Text style={styles.eventMetaText}>{event.location}</Text>
+                            </View>
+                          )}
+                          
+                          <View style={styles.eventMetaItem}>
+                            <Users color={Colors.textSecondary} size={16} />
+                            <Text style={styles.eventMetaText}>
+                              {registered}/{event.maxVolunteers} registered
+                            </Text>
+                          </View>
+                          
+                          {event.duration && (
+                            <View style={styles.eventMetaItem}>
+                              <Clock color={Colors.textSecondary} size={16} />
+                              <Text style={styles.eventMetaText}>{event.duration} hours</Text>
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
               </View>
             </ScrollView>
           )}
@@ -539,20 +580,41 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
     fontWeight: '600',
+    marginBottom: spacing.xs,
   },
-  verifiedBadge: {
-    backgroundColor: '#FFD700',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  eventDescription: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  emptyContainer: {
+    padding: spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    ...typography.h2,
+    color: Colors.text,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    ...typography.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    fontSize: 16,
-    marginLeft: spacing.sm,
   },
   eventMeta: {
-    flexDirection: 'row',
-    gap: spacing.md,
+    flexDirection: 'column',
+    gap: spacing.xs,
   },
   eventMetaItem: {
     flexDirection: 'row',

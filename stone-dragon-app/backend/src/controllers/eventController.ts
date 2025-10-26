@@ -135,9 +135,11 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
 
     // Students and Student Coordinators see all events
     // Coordinators see only their created events
-    if (user.role === 'COORDINATOR' || user.role === 'ADMIN') {
+    // Admins see all events
+    if (user.role === 'COORDINATOR') {
       whereClause.coordinatorId = user.id;
     }
+    // ADMIN sees all events - no filter applied
 
     const events = await prisma.event.findMany({
       where: whereClause,
