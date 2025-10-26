@@ -14,32 +14,12 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 
-interface Student {
-  id: string;
-  name: string;
-  email: string;
-  status: 'registered' | 'participated' | 'completed';
-}
-
-interface EventDetails {
-  id: string;
-  name: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  duration: number;
-  maxVolunteers: number;
-  registered: number;
-  status: 'upcoming' | 'ongoing' | 'completed';
-  verified: boolean;
-  students: Student[];
-}
+import { Event } from '../../types';
 
 interface EventDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  event: EventDetails | null;
+  event: Event | null;
 }
 
 export default function EventDetailsModal({
@@ -49,10 +29,25 @@ export default function EventDetailsModal({
 }: EventDetailsModalProps) {
   if (!event) return null;
 
+  // Calculate registered count
+  const registeredCount = event.eventRegistrations?.length || event._count?.eventRegistrations || 0;
+  
+  // Format date
+  const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  
+  // Determine if event is past
+  const isPast = new Date(event.date) < new Date();
+  const status = isPast ? 'completed' : 'upcoming';
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return Colors.blue;
+        return Colors.deepPurple;
       case 'ongoing':
         return Colors.golden;
       case 'completed':
@@ -75,35 +70,8 @@ export default function EventDetailsModal({
     }
   };
 
-  const getStudentStatusColor = (status: string) => {
-    switch (status) {
-      case 'registered':
-        return Colors.blue;
-      case 'participated':
-        return Colors.golden;
-      case 'completed':
-        return Colors.green;
-      default:
-        return Colors.textSecondary;
-    }
-  };
-
-  const getStudentStatusText = (status: string) => {
-    switch (status) {
-      case 'registered':
-        return 'Registered';
-      case 'participated':
-        return 'Participated';
-      case 'completed':
-        return 'Completed';
-      default:
-        return status;
-    }
-  };
-
-  const registeredStudents = event.students.filter(s => s.status === 'registered');
-  const participatedStudents = event.students.filter(s => s.status === 'participated');
-  const completedStudents = event.students.filter(s => s.status === 'completed');
+  // Get list of registered students
+  const registeredStudents = event.eventRegistrations || [];
 
   return (
     <Modal
@@ -127,21 +95,15 @@ export default function EventDetailsModal({
             >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>{event.name}</Text>
+              <Text style={styles.title}>{event.title}</Text>
               
               {/* Status Badge */}
               <View style={styles.statusContainer}>
-                <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(event.status)}20` }]}>
-                  <Text style={[styles.statusText, { color: getStatusColor(event.status) }]}>
-                    {getStatusText(event.status)}
+                <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(status)}20` }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+                    {getStatusText(status)}
                   </Text>
                 </View>
-                {event.verified && (
-                  <View style={styles.verifiedBadge}>
-                    <CheckCircle color={Colors.golden} size={16} />
-                    <Text style={styles.verifiedText}>Verified</Text>
-                  </View>
-                )}
               </View>
             </View>
 
@@ -151,25 +113,41 @@ export default function EventDetailsModal({
               
               <View style={styles.detailRow}>
                 <Calendar color={Colors.deepPurple} size={18} />
-                <Text style={styles.detailText}>{event.date}</Text>
+                <Text style={styles.detailText}>{eventDate}</Text>
               </View>
               
-              <View style={styles.detailRow}>
-                <Clock color={Colors.deepPurple} size={18} />
-                <Text style={styles.detailText}>{event.time} ({event.duration} hours)</Text>
-              </View>
+              {event.time && (
+                <View style={styles.detailRow}>
+                  <Clock color={Colors.deepPurple} size={18} />
+                  <Text style={styles.detailText}>
+                    {event.time}
+                    {event.duration ? ` (${event.duration} hours awarded)` : ''}
+                  </Text>
+                </View>
+              )}
               
-              <View style={styles.detailRow}>
-                <MapPin color={Colors.deepPurple} size={18} />
-                <Text style={styles.detailText}>{event.location}</Text>
-              </View>
+              {event.location && (
+                <View style={styles.detailRow}>
+                  <MapPin color={Colors.deepPurple} size={18} />
+                  <Text style={styles.detailText}>{event.location}</Text>
+                </View>
+              )}
               
               <View style={styles.detailRow}>
                 <Users color={Colors.deepPurple} size={18} />
                 <Text style={styles.detailText}>
-                  {event.registered}/{event.maxVolunteers} volunteers
+                  {registeredCount}/{event.maxVolunteers} volunteers registered
                 </Text>
               </View>
+              
+              {event.coordinator && (
+                <View style={styles.detailRow}>
+                  <User color={Colors.deepPurple} size={18} />
+                  <Text style={styles.detailText}>
+                    Coordinator: {event.coordinator.firstName} {event.coordinator.lastName}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Description */}
@@ -178,87 +156,45 @@ export default function EventDetailsModal({
               <Text style={styles.description}>{event.description}</Text>
             </View>
 
-            {/* Students Lists */}
-            {registeredStudents.length > 0 && (
+            {/* Registered Students */}
+            {registeredStudents.length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Registered Students ({registeredStudents.length})</Text>
                 <View style={styles.studentsList}>
-                  {registeredStudents.map((student) => (
-                    <View key={student.id} style={styles.studentItem}>
-                      <View style={styles.studentAvatar}>
-                        <User color={Colors.light} size={16} />
+                  {registeredStudents.map((registration) => {
+                    const student = registration.user;
+                    if (!student) return null;
+                    
+                    return (
+                      <View key={registration.id} style={styles.studentItem}>
+                        <View style={styles.studentAvatar}>
+                          <User color={Colors.light} size={16} />
+                        </View>
+                        <View style={styles.studentInfo}>
+                          <Text style={styles.studentName}>
+                            {student.firstName} {student.lastName}
+                          </Text>
+                          <Text style={styles.studentEmail}>{student.email}</Text>
+                        </View>
+                        <View style={[styles.studentStatusBadge, { backgroundColor: `${Colors.deepPurple}20` }]}>
+                          <Text style={[styles.studentStatusText, { color: Colors.deepPurple }]}>
+                            Registered
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.studentInfo}>
-                        <Text style={styles.studentName}>{student.name}</Text>
-                        <Text style={styles.studentEmail}>{student.email}</Text>
-                      </View>
-                      <View style={[styles.studentStatusBadge, { backgroundColor: `${getStudentStatusColor(student.status)}20` }]}>
-                        <Text style={[styles.studentStatusText, { color: getStudentStatusColor(student.status) }]}>
-                          {getStudentStatusText(student.status)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
               </View>
-            )}
-
-            {participatedStudents.length > 0 && (
+            ) : (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Participated Students ({participatedStudents.length})</Text>
-                <View style={styles.studentsList}>
-                  {participatedStudents.map((student) => (
-                    <View key={student.id} style={styles.studentItem}>
-                      <View style={styles.studentAvatar}>
-                        <User color={Colors.light} size={16} />
-                      </View>
-                      <View style={styles.studentInfo}>
-                        <Text style={styles.studentName}>{student.name}</Text>
-                        <Text style={styles.studentEmail}>{student.email}</Text>
-                      </View>
-                      <View style={[styles.studentStatusBadge, { backgroundColor: `${getStudentStatusColor(student.status)}20` }]}>
-                        <Text style={[styles.studentStatusText, { color: getStudentStatusColor(student.status) }]}>
-                          {getStudentStatusText(student.status)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                <View style={styles.emptyState}>
+                  <Users color={Colors.textSecondary} size={48} />
+                  <Text style={styles.emptyTitle}>No Students Yet</Text>
+                  <Text style={styles.emptyDescription}>
+                    Students will appear here once they register for this event.
+                  </Text>
                 </View>
-              </View>
-            )}
-
-            {completedStudents.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Completed Students ({completedStudents.length})</Text>
-                <View style={styles.studentsList}>
-                  {completedStudents.map((student) => (
-                    <View key={student.id} style={styles.studentItem}>
-                      <View style={styles.studentAvatar}>
-                        <User color={Colors.light} size={16} />
-                      </View>
-                      <View style={styles.studentInfo}>
-                        <Text style={styles.studentName}>{student.name}</Text>
-                        <Text style={styles.studentEmail}>{student.email}</Text>
-                      </View>
-                      <View style={[styles.studentStatusBadge, { backgroundColor: `${getStudentStatusColor(student.status)}20` }]}>
-                        <Text style={[styles.studentStatusText, { color: getStudentStatusColor(student.status) }]}>
-                          {getStudentStatusText(student.status)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Empty State */}
-            {event.students.length === 0 && (
-              <View style={styles.emptyState}>
-                <Users color={Colors.textSecondary} size={48} />
-                <Text style={styles.emptyTitle}>No Students Yet</Text>
-                <Text style={styles.emptyDescription}>
-                  Students will appear here once they register for this event.
-                </Text>
               </View>
             )}
             </ScrollView>
@@ -322,11 +258,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
-  closeButton: {
-    padding: spacing.sm,
-    borderRadius: Sizes.radiusMd,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
   statusContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -361,7 +292,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   sectionTitle: {
-    ...typography.h3,
+    ...typography.subhead,
     color: Colors.text,
     marginBottom: spacing.md,
     fontWeight: '600',
@@ -426,7 +357,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   emptyTitle: {
-    ...typography.h3,
+    ...typography.subhead,
     color: Colors.text,
     fontWeight: '600',
   },
