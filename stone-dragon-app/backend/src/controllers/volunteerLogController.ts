@@ -111,6 +111,7 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
     const { page = 1, limit = 10, status, schoolId } = req.query;
     const userId = (req as any).user.id;
     const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
 
     const where: any = {};
 
@@ -119,8 +120,18 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
       where.userId = userId;
     }
 
-    // Coordinators see logs but exclude event claims with student coordinators
-    if (userRole === 'COORDINATOR' || userRole === 'ADMIN') {
+    // Coordinators see logs from their school, excluding event claims with student coordinators
+    if (userRole === 'COORDINATOR') {
+      // Filter by coordinator's school
+      if (!userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'Coordinator must be associated with a school',
+        });
+        return;
+      }
+      where.schoolId = userSchoolId;
+
       // Get all event IDs that have student coordinators
       const eventsWithCoordinators = await prisma.eventCoordinator.findMany({
         select: { eventId: true },
@@ -135,13 +146,19 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
       ];
     }
 
-    // Coordinators can filter by school
-    if (schoolId && (userRole === 'COORDINATOR' || userRole === 'ADMIN')) {
-      where.schoolId = schoolId as string;
+    // Admins can only see approved/rejected claims, and can filter by school
+    if (userRole === 'ADMIN') {
+      // Admins can only see approved or rejected claims (not pending)
+      where.status = { in: ['approved', 'rejected'] };
+
+      // Admins can optionally filter by school
+      if (schoolId) {
+        where.schoolId = schoolId as string;
+      }
     }
 
-    // Filter by status
-    if (status) {
+    // Filter by status (for non-admin roles)
+    if (status && userRole !== 'ADMIN') {
       where.status = status;
     }
 
