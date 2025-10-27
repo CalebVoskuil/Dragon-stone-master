@@ -167,9 +167,6 @@ export default function StudentCoordinatorsModal({
                               {getInitials(student.name)}
                             </Text>
                           </View>
-                          <View style={styles.removeIcon}>
-                            <X color={Colors.light} size={12} />
-                          </View>
                         </TouchableOpacity>
                       );
                     })}
@@ -207,12 +204,12 @@ export default function StudentCoordinatorsModal({
                 return (
                   <TouchableOpacity
                     key={student.id}
-                    style={[styles.studentCard, isSelected && styles.studentCardSelected]}
+                    style={styles.studentCard}
                     onPress={() => toggleStudent(student.id)}
                   >
                     <View style={styles.studentInfo}>
-                      <View style={[styles.avatar, isSelected && styles.avatarSelected]}>
-                        <Text style={[styles.avatarText, isSelected && styles.avatarTextSelected]}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
                           {getInitials(student.name)}
                         </Text>
                       </View>
@@ -308,12 +305,14 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   selectedBanner: {
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     marginHorizontal: spacing.lg,
     borderRadius: Sizes.radiusMd,
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   selectedStudents: {
     flexDirection: 'row',
@@ -326,27 +325,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.light,
   },
   selectedAvatarText: {
     ...typography.body,
-    color: Colors.light,
+    color: Colors.deepPurple,
     fontWeight: '600',
-  },
-  removeIcon: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -391,10 +377,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   },
-  studentCardSelected: {
-    borderColor: Colors.deepPurple,
-    backgroundColor: `${Colors.deepPurple}10`,
-  },
   studentInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -409,19 +391,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: spacing.md,
   },
-  avatarSelected: {
-    backgroundColor: Colors.deepPurple,
-  },
   avatarText: {
     ...typography.body,
     color: Colors.deepPurple,
     fontWeight: '600',
   },
-  avatarTextSelected: {
-    color: Colors.light,
-  },
   studentDetails: {
     flex: 1,
+    marginRight: spacing.sm,
   },
   studentName: {
     ...typography.body,
@@ -433,10 +410,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    flexWrap: 'wrap',
+    flex: 1,
   },
   studentMetaText: {
     ...typography.caption,
     color: Colors.textSecondary,
+    flexShrink: 1,
   },
   checkmark: {
     width: 28,
@@ -460,7 +440,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: {
-    ...typography.button,
+    ...typography.body,
+    fontWeight: '600',
     color: Colors.text,
   },
   confirmButton: {
@@ -471,7 +452,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmText: {
-    ...typography.button,
+    ...typography.body,
+    fontWeight: '600',
     color: Colors.light,
   },
 });
