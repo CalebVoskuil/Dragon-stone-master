@@ -159,6 +159,11 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
     const userRole = (req as any).user.role;
     const userSchoolId = (req as any).user.schoolId;
 
+    // Calculate date ranges for statistics
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
     // Build where clause - coordinators only see their school
     const whereClause: any = {};
     if (userRole === 'COORDINATOR') {
@@ -194,11 +199,13 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
       }),
       prisma.volunteerLog.count({ 
         where: { 
+          ...whereClause,
           createdAt: { gte: todayStart } 
         } 
       }),
       prisma.volunteerLog.count({ 
         where: { 
+          ...whereClause,
           status: 'approved',
           createdAt: { gte: lastWeek }
         } 
@@ -207,6 +214,7 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
       prisma.volunteerLog.findMany({
         distinct: ['userId'],
         where: {
+          ...whereClause,
           OR: [
             { claimType: { not: 'event' } },
             { claimType: 'event', eventId: null },
@@ -216,7 +224,10 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
       }).then(result => result.length),
       // Get ALL pending logs - coordinators review all non-event claims and event claims without student coordinators
       prisma.volunteerLog.findMany({
-        where: whereClause,
+        where: {
+          ...whereClause,
+          status: 'pending',
+        },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -391,19 +402,28 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
     }
 
     if (search) {
-      where.AND = [
-        { role: { in: ['STUDENT', 'STUDENT_COORDINATOR'] } },
-        { schoolId: coordinator.schoolId },
-        {
-          OR: [
-            { firstName: { contains: search as string, mode: 'insensitive' } },
-            { lastName: { contains: search as string, mode: 'insensitive' } },
-            { email: { contains: search as string, mode: 'insensitive' } },
-          ],
-        },
-      ];
-      delete where.role;
-      delete where.schoolId;
+      if (userRole === 'COORDINATOR') {
+        where.AND = [
+          { schoolId: userSchoolId },
+          {
+            OR: [
+              { firstName: { contains: search as string, mode: 'insensitive' } },
+              { lastName: { contains: search as string, mode: 'insensitive' } },
+              { email: { contains: search as string, mode: 'insensitive' } },
+            ],
+          },
+        ];
+      } else {
+        where.AND = [
+          {
+            OR: [
+              { firstName: { contains: search as string, mode: 'insensitive' } },
+              { lastName: { contains: search as string, mode: 'insensitive' } },
+              { email: { contains: search as string, mode: 'insensitive' } },
+            ],
+          },
+        ];
+      }
     }
 
     const [students, total] = await Promise.all([

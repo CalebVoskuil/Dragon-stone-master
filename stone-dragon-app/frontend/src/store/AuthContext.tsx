@@ -90,16 +90,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       setError(null);
 
+      console.log('Attempting login for:', credentials.email);
       const response = await apiService.login(credentials);
+      console.log('Login response:', response);
       
       if (response.success && response.data) {
         const userData = response.data.user as User;
+        console.log('Setting user:', userData);
         setUser(userData);
         await AsyncStorage.setItem('@user', JSON.stringify(userData));
+        console.log('User saved to storage');
       } else {
         throw new Error(response.message || 'Login failed');
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);

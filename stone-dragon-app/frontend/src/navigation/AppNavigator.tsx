@@ -109,7 +109,9 @@ const MainStackNavigator: React.FC = () => {
 
 // Root App Navigator
 const AppNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  console.log('AppNavigator - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
 
   if (isLoading) {
     // You can add a loading screen here

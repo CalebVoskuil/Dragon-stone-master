@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,6 +10,8 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
 import {
@@ -21,6 +23,7 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { apiService } from '../../services/api';
+import { useAuth } from '../../store/AuthContext';
 
 interface Student {
   id: string;
@@ -53,6 +56,7 @@ export default function StudentsListScreen() {
   const isAdmin = user?.role === 'ADMIN';
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'STUDENT' | 'STUDENT_COORDINATOR'>('all');
   const [schoolFilter, setSchoolFilter] = useState<string>('all');
   const [schools, setSchools] = useState<any[]>([]);
   const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
@@ -99,13 +103,18 @@ export default function StudentsListScreen() {
   };
 
 
-  const filteredStudents = students.filter((student) =>
-    student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.school?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.schoolId?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch = 
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.school?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.schoolId?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === 'all' || student.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
+  });
 
   const getInitials = (name: string) => {
     if (!name) return '??';
@@ -119,13 +128,8 @@ export default function StudentsListScreen() {
 
   const handleStudentPress = (student: Student) => {
     setSelectedStudent({
-      id: student.id,
+      ...student,
       name: `${student.firstName} ${student.lastName}`,
-      email: student.email,
-      school: student.school?.name || 'Unknown School',
-      totalHours: student.totalHours || 0,
-      pendingHours: student.pendingLogs || 0,
-      approvedHours: student.approvedLogs || 0,
     });
     setModalVisible(true);
   };
@@ -171,21 +175,20 @@ export default function StudentsListScreen() {
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
           <Text style={styles.title}>Students Directory</Text>
 
-          {/* Admin School Filter */}
-          {isAdmin && (
-            <TouchableOpacity
-              style={styles.schoolDropdown}
-              onPress={() => setSchoolDropdownVisible(true)}
-            >
-              <Text style={styles.schoolDropdownLabel}>Select School</Text>
-              <View style={styles.schoolDropdownValue}>
-                <Text style={styles.schoolDropdownText}>
-                  {schoolFilter === 'all' ? 'All Schools' : schools.find(s => s.id === schoolFilter)?.name || 'Select School'}
+          {/* Role Filter */}
+          <View style={styles.filterRow}>
+            {['all', 'STUDENT', 'STUDENT_COORDINATOR'].map((role) => (
+              <TouchableOpacity
+                key={role}
+                style={[styles.filterButton, roleFilter === role && styles.filterButtonActive]}
+                onPress={() => setRoleFilter(role as typeof roleFilter)}
+              >
+                <Text style={[styles.filterButtonText, roleFilter === role && styles.filterButtonTextActive]}>
+                  {role === 'all' ? 'All' : role === 'STUDENT' ? 'Students' : 'Coordinators'}
                 </Text>
-                <ChevronDown color={Colors.textSecondary} size={20} />
-              </View>
-            </TouchableOpacity>
-          )}
+              </TouchableOpacity>
+            ))}
+          </View>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
@@ -231,50 +234,6 @@ export default function StudentsListScreen() {
           student={selectedStudent}
         />
 
-        {/* School Dropdown Modal */}
-        <Modal
-          visible={schoolDropdownVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setSchoolDropdownVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setSchoolDropdownVisible(false)}
-          >
-            <View style={styles.schoolDropdownModal}>
-              <Text style={styles.schoolDropdownTitle}>Select School</Text>
-              <ScrollView style={styles.schoolList}>
-                <TouchableOpacity
-                  style={[styles.schoolOption, schoolFilter === 'all' && styles.schoolOptionActive]}
-                  onPress={() => {
-                    setSchoolFilter('all');
-                    setSchoolDropdownVisible(false);
-                  }}
-                >
-                  <Text style={[styles.schoolOptionText, schoolFilter === 'all' && styles.schoolOptionTextActive]}>
-                    All Schools
-                  </Text>
-                </TouchableOpacity>
-                {schools.map((school) => (
-                  <TouchableOpacity
-                    key={school.id}
-                    style={[styles.schoolOption, schoolFilter === school.id && styles.schoolOptionActive]}
-                    onPress={() => {
-                      setSchoolFilter(school.id);
-                      setSchoolDropdownVisible(false);
-                    }}
-                  >
-                    <Text style={[styles.schoolOptionText, schoolFilter === school.id && styles.schoolOptionTextActive]}>
-                      {school.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </TouchableOpacity>
-        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -391,15 +350,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.light,
   },
-  studentMeta: {
+  schoolRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
   studentSchool: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
-    marginLeft: spacing.xs,
+    fontWeight: '500',
   },
   studentEmail: {
     fontSize: Sizes.fontXs,
@@ -443,6 +403,32 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontMd,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  filterButton: {
+    flex: 1,
+    padding: spacing.sm,
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusMd,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.deepPurple,
+    borderColor: Colors.deepPurple,
+  },
+  filterButtonText: {
+    fontSize: Sizes.fontSm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  filterButtonTextActive: {
+    color: Colors.light,
   },
 });
 
