@@ -489,7 +489,7 @@ export default function EventsScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            schoolName={(user?.school as any)?.name || user?.school || 'Stone Dragon NPO'}
             welcomeMessage="Events Management"
             notificationCount={0}
             onLeaderboardPress={() => {}}
@@ -531,6 +531,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   outerScrollContent: {
+    paddingTop: 80, // Space for segmented control
     paddingBottom: 100, // Space for nav bar
   },
   bannerWrapper: {
@@ -553,6 +554,48 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: spacing.lg,
     textAlign: 'center',
+  },
+  segmentedControlWrapper: {
+    position: 'absolute',
+    top: 130, // Below the banner
+    left: 0,
+    right: 0,
+    zIndex: 9, // Below banner (zIndex: 10) but above content
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: Sizes.radiusFull,
+    padding: 4,
+    position: 'relative',
+  },
+  slidingBackground: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    backgroundColor: Colors.deepPurple,
+    borderRadius: Sizes.radiusFull,
+    width: '50%',
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  segmentText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.light,
+    opacity: 0.7,
+  },
+  activeSegmentText: {
+    color: Colors.light,
+    opacity: 1,
   },
   tabContainer: {
     flexDirection: 'row',

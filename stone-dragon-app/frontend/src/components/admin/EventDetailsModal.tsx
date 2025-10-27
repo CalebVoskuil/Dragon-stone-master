@@ -83,7 +83,8 @@ export default function EventDetailsModal({
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        indicatorStyle="white"
+        showsVerticalScrollIndicator={true}
       >
         <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>

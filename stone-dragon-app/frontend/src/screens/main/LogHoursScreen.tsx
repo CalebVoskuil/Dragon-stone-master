@@ -763,7 +763,12 @@ export default function LogHoursScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <ScrollView 
+            style={styles.scrollView} 
+            contentContainerStyle={styles.scrollContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
+          >
             {activeTab === 'log' ? (
               <>
                 {errors.general && (

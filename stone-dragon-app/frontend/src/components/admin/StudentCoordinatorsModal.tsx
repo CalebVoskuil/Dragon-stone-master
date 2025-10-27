@@ -197,7 +197,11 @@ export default function StudentCoordinatorsModal({
             </TouchableOpacity>
 
             {/* Students List */}
-            <ScrollView style={styles.studentsList} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.studentsList} 
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
+            >
               {sortedStudents.map((student) => {
                 const isSelected = selectedStudents.includes(student.id);
                 return (

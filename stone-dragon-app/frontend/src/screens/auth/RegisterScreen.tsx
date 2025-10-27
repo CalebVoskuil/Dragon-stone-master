@@ -153,7 +153,11 @@ export default function RegisterScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
+          >
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Create Account</Text>
@@ -313,7 +317,10 @@ export default function RegisterScreen() {
                   <Text style={styles.modalClose}>Done</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView>
+              <ScrollView
+                indicatorStyle="white"
+                showsVerticalScrollIndicator={true}
+              >
                 {loadingSchools ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Colors.deepPurple} />
