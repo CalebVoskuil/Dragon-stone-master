@@ -18,16 +18,43 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
     } = req.body;
     const coordinatorId = (req as any).user.id;
 
+    console.log('Create event request:', {
+      title,
+      date,
+      maxVolunteers,
+      coordinatorId,
+    });
+
+    // Validate date
+    const eventDate = new Date(date);
+    if (isNaN(eventDate.getTime())) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid date format',
+      });
+      return;
+    }
+
+    // Validate maxVolunteers
+    const maxVolunteersNum = parseInt(maxVolunteers);
+    if (isNaN(maxVolunteersNum) || maxVolunteersNum < 1) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid maxVolunteers value',
+      });
+      return;
+    }
+
     // Create the event
     const event = await prisma.event.create({
       data: {
         title,
         description,
-        date: new Date(date),
+        date: eventDate,
         time,
         location,
         duration: duration ? parseFloat(duration) : null,
-        maxVolunteers: parseInt(maxVolunteers),
+        maxVolunteers: maxVolunteersNum,
         coordinatorId,
       },
       include: {
@@ -121,7 +148,6 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
 // Get all events (filtered by role/user)
 export const getEvents = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = (req as any).user;
     const { upcoming } = req.query;
 
     let whereClause: any = {};
@@ -133,13 +159,9 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
       };
     }
 
-    // Students and Student Coordinators see all events
-    // Coordinators see only their created events
+    // Students, Student Coordinators, and Coordinators see all events
     // Admins see all events
-    if (user.role === 'COORDINATOR') {
-      whereClause.coordinatorId = user.id;
-    }
-    // ADMIN sees all events - no filter applied
+    // (Removed coordinator filter to show all events)
 
     const events = await prisma.event.findMany({
       where: whereClause,
@@ -481,6 +503,8 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     const { id } = req.params;
     const userId = (req as any).user.id;
 
+    console.log('Register for event - Event ID:', id, 'User ID:', userId);
+
     if (!id) {
       res.status(400).json({
         success: false,
@@ -502,6 +526,7 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     });
 
     if (!event) {
+      console.log('Event not found:', id);
       res.status(404).json({
         success: false,
         message: 'Event not found',
@@ -509,8 +534,11 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    console.log('Event found:', event.title, 'Current registrations:', event._count.eventRegistrations, 'Max:', event.maxVolunteers);
+
     // Check if event is full
     if (event._count.eventRegistrations >= event.maxVolunteers) {
+      console.log('Event is full');
       res.status(400).json({
         success: false,
         message: 'Event is full',
@@ -529,6 +557,7 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     });
 
     if (existingRegistration) {
+      console.log('Already registered for this event');
       res.status(400).json({
         success: false,
         message: 'Already registered for this event',
@@ -537,12 +566,14 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     }
 
     // Create registration
-    await prisma.eventRegistration.create({
+    const registration = await prisma.eventRegistration.create({
       data: {
         eventId: id,
         userId,
       },
     });
+
+    console.log('Registration created successfully:', registration.id);
 
     res.status(201).json({
       success: true,
@@ -553,6 +584,7 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
     res.status(500).json({
       success: false,
       message: 'Failed to register for event',
+      error: process.env['NODE_ENV'] === 'development' ? (error as Error).message : undefined,
     });
   }
 };

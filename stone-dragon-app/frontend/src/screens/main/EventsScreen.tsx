@@ -20,8 +20,10 @@ import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { apiService } from '../../services/api';
 import { Event } from '../../types';
+import { useAuth } from '../../store/AuthContext';
 
 export default function EventsScreen() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'registered' | 'available'>('all');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,9 +49,14 @@ export default function EventsScreen() {
   };
 
   const filteredEvents = events.filter((event) => {
-    // For now, show all events since we don't have isRegistered flag yet
-    // TODO: Add logic to check if user is registered based on eventRegistrations
-    return true;
+    if (!user) return true;
+    
+    if (filter === 'registered') {
+      // Show only events the user is registered for
+      return event.eventRegistrations?.some(reg => reg.userId === user.id) || false;
+    }
+    
+    return true; // Show all events for 'all' and 'available' filters
   });
 
   const handleRegister = async (eventId: string) => {
@@ -90,9 +97,18 @@ export default function EventsScreen() {
               } else {
                 Alert.alert('Registration Failed', response.message || 'Unable to register for this event.');
               }
-            } catch (error) {
+            } catch (error: any) {
               console.error('Registration error:', error);
-              Alert.alert('Error', 'Failed to register for event');
+              const errorMessage = error.response?.data?.message || error.message || 'Failed to register for event';
+              console.error('Error details:', error.response?.data);
+              
+              // If already registered, refresh to update UI
+              if (error.response?.data?.message === 'Already registered for this event') {
+                await loadEvents();
+                Alert.alert('Already Registered', 'You are already registered for this event.');
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
             }
           },
         },
@@ -145,8 +161,10 @@ export default function EventsScreen() {
     const registered = event.eventRegistrations?.length || 0;
     const spotsAvailable = event.maxVolunteers - registered;
     const eventDate = new Date(event.date).toLocaleDateString();
-    // TODO: Check if current user is registered (need user ID from auth context)
-    const isRegistered = false;
+    // Check if current user is registered
+    const isRegistered = user ? event.eventRegistrations?.some(reg => reg.userId === user.id) || false : false;
+    
+    console.log(`Event: ${event.title}, User: ${user?.id}, Registered: ${isRegistered}, Registrations:`, event.eventRegistrations);
 
     return (
       <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>

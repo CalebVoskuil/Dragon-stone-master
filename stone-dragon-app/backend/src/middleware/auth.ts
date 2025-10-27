@@ -10,9 +10,13 @@ export const authenticateSession = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    console.log('Auth check - Session ID:', req.sessionID);
+    console.log('Auth check - Session data:', req.session);
     const userId = (req.session as any).userId;
+    console.log('Auth check - User ID:', userId);
 
     if (!userId) {
+      console.log('Auth failed - No user ID in session');
       res.status(401).json({
         success: false,
         message: 'Authentication required',

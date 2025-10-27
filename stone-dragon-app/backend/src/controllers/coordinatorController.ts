@@ -302,6 +302,7 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
           firstName: true,
           lastName: true,
           email: true,
+          role: true,
           schoolId: true,
           isActive: true,
           createdAt: true,
