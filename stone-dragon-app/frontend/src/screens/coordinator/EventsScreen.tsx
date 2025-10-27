@@ -520,7 +520,13 @@ export default function EventsScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            schoolName={
+              typeof user?.school === 'string' 
+                ? user.school 
+                : (user?.school && typeof user.school === 'object' && 'name' in user.school) 
+                  ? user.school.name 
+                  : 'School'
+            }
             welcomeMessage="Events Management"
             notificationCount={0}
             onLeaderboardPress={() => setLeaderboardVisible(true)}
@@ -720,13 +726,13 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   coordinatorText: {
     ...typography.subhead,
-    color: Colors.light,
+    color: Colors.deepPurple,
     fontWeight: '600',
   },
   coordinatorName: {
