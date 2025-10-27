@@ -164,7 +164,8 @@ export default function LeaderboardModal({
 
             <ScrollView 
               style={styles.scrollView} 
-              showsVerticalScrollIndicator={false}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.scrollContent}
             >
               {rest.map((entry) => (

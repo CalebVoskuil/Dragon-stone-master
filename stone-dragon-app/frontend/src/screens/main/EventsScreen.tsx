@@ -240,6 +240,8 @@ export default function EventsScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
         >
           <Text style={styles.pageTitle}>Volunteer Events</Text>
 

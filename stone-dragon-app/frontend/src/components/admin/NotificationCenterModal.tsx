@@ -183,7 +183,8 @@ export default function NotificationCenterModal({
               renderItem={renderNotification}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
                   <Bell color={Colors.textSecondary} size={48} />

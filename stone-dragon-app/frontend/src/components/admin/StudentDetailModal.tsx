@@ -72,7 +72,8 @@ export default function StudentDetailModal({
       <View style={styles.modalOverlay}>
         <ScrollView 
           style={styles.scrollView} 
-          showsVerticalScrollIndicator={false}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.modalContainer}>

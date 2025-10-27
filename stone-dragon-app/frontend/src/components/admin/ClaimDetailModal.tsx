@@ -134,7 +134,8 @@ export default function ClaimDetailModal({
         <ScrollView 
           style={styles.outerScrollView}
           contentContainerStyle={styles.outerScrollContent}
-          showsVerticalScrollIndicator={false}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
