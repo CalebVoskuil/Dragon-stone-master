@@ -30,9 +30,7 @@ import {
   SDButton,
   SDCard,
   GlassmorphicCard,
-  GlassmorphicBanner,
 } from '../../components/ui';
-import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -54,8 +52,6 @@ export default function ProfileScreen() {
     totalLogs: 0,
     approvedLogs: 0,
   });
-  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
-  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     fetchUserStats();
@@ -160,8 +156,6 @@ export default function ProfileScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View style={styles.bannerSpacer} />
-
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.light} />
@@ -253,27 +247,6 @@ export default function ProfileScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
-
-        {/* Glassmorphic Banner - Fixed at top */}
-        <View style={styles.bannerWrapper}>
-          <GlassmorphicBanner
-            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
-            welcomeMessage="Profile"
-            onLeaderboardPress={() => setLeaderboardVisible(true)}
-            onNotificationPress={() => setNotificationVisible(true)}
-            userRole={user?.role}
-          />
-        </View>
-
-        {/* Modals */}
-        <LeaderboardModal
-          visible={leaderboardVisible}
-          onClose={() => setLeaderboardVisible(false)}
-        />
-        <NotificationCenterModal
-          visible={notificationVisible}
-          onClose={() => setNotificationVisible(false)}
-        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -282,16 +255,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  bannerWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  bannerSpacer: {
-    height: 130, // Space for the banner
   },
   scrollView: {
     flex: 1,
