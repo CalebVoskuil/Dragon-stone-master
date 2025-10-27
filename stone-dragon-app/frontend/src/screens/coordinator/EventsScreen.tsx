@@ -199,14 +199,13 @@ export default function EventsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <View style={styles.bannerSpacer} />
-        
         <ScrollView 
           style={styles.outerScrollView}
           contentContainerStyle={styles.outerScrollContent}
           indicatorStyle="white"
           showsVerticalScrollIndicator={true}
         >
+          <View style={styles.bannerSpacer} />
           
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
 
@@ -520,13 +519,7 @@ export default function EventsScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={
-              typeof user?.school === 'string' 
-                ? user.school 
-                : (user?.school && typeof user.school === 'object' && 'name' in user.school) 
-                  ? user.school.name 
-                  : 'School'
-            }
+            schoolName={(user?.school as any)?.name || (typeof user?.school === 'string' ? user.school : 'School')}
             welcomeMessage="Events Management"
             notificationCount={0}
             onLeaderboardPress={() => setLeaderboardVisible(true)}
@@ -743,26 +736,31 @@ const styles = StyleSheet.create({
   },
   addButton: {
     alignItems: 'center',
+    gap: 8,
   },
   addCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: Colors.deepPurple,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },
   addText: {
-    fontSize: 32,
+    fontSize: 36,
     color: Colors.deepPurple,
     fontWeight: '300',
+    lineHeight: 36,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   addLabel: {
-    ...typography.body,
+    fontSize: 12,
     color: Colors.text,
+    textAlign: 'center',
   },
   createButton: {
     marginTop: spacing.lg,
