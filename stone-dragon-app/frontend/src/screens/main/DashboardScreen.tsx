@@ -24,6 +24,7 @@ import {
   SDCard,
   SDStatusChip,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
@@ -123,32 +124,6 @@ export default function DashboardScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        {/* Fixed Header with Blur */}
-        <BlurView intensity={60} tint="light" style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Leaderboard' as never)}
-              style={styles.headerButton}
-            >
-              <Trophy color={Colors.deepPurple} size={20} />
-            </TouchableOpacity>
-
-            <View style={styles.headerCenter}>
-              <Text style={styles.greeting}>
-                {getGreeting()}, {firstName}
-              </Text>
-              <Text style={styles.headerSubtitle}>Ready to make a difference today?</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Notifications' as never)}
-              style={styles.headerButton}
-            >
-              <Bell color={Colors.deepPurple} size={20} />
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -158,6 +133,7 @@ export default function DashboardScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <View style={styles.bannerSpacer} />
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.deepPurple} />
@@ -315,6 +291,18 @@ export default function DashboardScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage={`${getGreeting()}, ${firstName}`}
+            notificationCount={stats.pendingLogs}
+            onLeaderboardPress={() => navigation.navigate('Leaderboard' as never)}
+            onNotificationPress={() => navigation.navigate('Notifications' as never)}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -323,6 +311,16 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
   },
   header: {
     paddingTop: spacing.md,
@@ -359,8 +357,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   mainCard: {
     padding: spacing.lg,

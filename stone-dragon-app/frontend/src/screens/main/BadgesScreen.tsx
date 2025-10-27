@@ -15,6 +15,7 @@ import {
   SDCard,
   GlassmorphicCard,
   SDButton,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -166,7 +167,7 @@ export default function BadgesScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Your Badges</Text>
+          <View style={styles.bannerSpacer} />
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -226,6 +227,17 @@ export default function BadgesScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Your Badges"
+            onLeaderboardPress={() => {/* Can add navigation if needed */}}
+            onNotificationPress={() => {/* Can add navigation if needed */}}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -235,12 +247,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
     ...typography.h1,

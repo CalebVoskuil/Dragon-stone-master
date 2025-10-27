@@ -14,6 +14,7 @@ import {
   SDButton,
   SDCard,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -243,7 +244,7 @@ export default function EventsScreen() {
           indicatorStyle="white"
           showsVerticalScrollIndicator={true}
         >
-          <Text style={styles.pageTitle}>Volunteer Events</Text>
+          <View style={styles.bannerSpacer} />
 
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
             {/* Filter Tabs */}
@@ -315,6 +316,17 @@ export default function EventsScreen() {
             </View>
           </GlassmorphicCard>
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Volunteer Events"
+            onLeaderboardPress={() => {/* Can add navigation if needed */}}
+            onNotificationPress={() => {/* Can add navigation if needed */}}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -324,12 +336,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
     ...typography.h1,

@@ -13,6 +13,7 @@ import {
   GradientBackground,
   SDCard,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -199,6 +200,7 @@ export default function NotificationsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <View style={styles.bannerSpacer} />
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
           <View style={styles.header}>
             <Text style={styles.title}>Notifications</Text>
@@ -248,6 +250,17 @@ export default function NotificationsScreen() {
             }
           />
         </GlassmorphicCard>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Notifications"
+            onLeaderboardPress={() => {/* Can add navigation if needed */}}
+            onNotificationPress={() => {/* Can add navigation if needed */}}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -256,6 +269,16 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
   },
   loadingContainer: {
     flex: 1,
