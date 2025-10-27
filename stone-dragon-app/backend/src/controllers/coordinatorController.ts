@@ -5,15 +5,24 @@ const prisma = new PrismaClient();
 
 export const getPendingLogs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = 1, limit = 10, schoolId } = req.query;
+    const { page = 1, limit = 10 } = req.query;
+    const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
 
     const where: any = {
       status: 'pending',
     };
 
-    // Filter by school if specified
-    if (schoolId) {
-      where.schoolId = schoolId as string;
+    // COORDINATORS can only see logs from their school
+    if (userRole === 'COORDINATOR') {
+      if (!userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'Coordinator must be associated with a school',
+        });
+        return;
+      }
+      where.schoolId = userSchoolId;
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -69,6 +78,8 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
     const { logId } = req.params;
     const { status, coordinatorComment } = req.body;
     const coordinatorId = (req as any).user.id;
+    const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
 
     if (!logId) {
       res.status(400).json({
@@ -76,6 +87,31 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
         message: 'Log ID is required',
       });
       return;
+    }
+
+    // COORDINATORS can only review logs from their school
+    if (userRole === 'COORDINATOR') {
+      // First, check if the log belongs to the coordinator's school
+      const existingLog = await prisma.volunteerLog.findUnique({
+        where: { id: logId },
+        select: { schoolId: true },
+      });
+
+      if (!existingLog) {
+        res.status(404).json({
+          success: false,
+          message: 'Volunteer log not found',
+        });
+        return;
+      }
+
+      if (existingLog.schoolId !== userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'You can only review logs from your school',
+        });
+        return;
+      }
     }
 
     const volunteerLog = await prisma.volunteerLog.update({
@@ -118,8 +154,24 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
   }
 };
 
-export const getCoordinatorDashboard = async (_req: Request, res: Response): Promise<void> => {
+export const getCoordinatorDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
+
+    // Build where clause - coordinators only see their school
+    const whereClause: any = {};
+    if (userRole === 'COORDINATOR') {
+      if (!userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'Coordinator must be associated with a school',
+        });
+        return;
+      }
+      whereClause.schoolId = userSchoolId;
+    }
+
     // Get statistics
     const [
       totalLogs,
@@ -129,15 +181,16 @@ export const getCoordinatorDashboard = async (_req: Request, res: Response): Pro
       totalHours,
       recentLogs,
     ] = await Promise.all([
-      prisma.volunteerLog.count(),
-      prisma.volunteerLog.count({ where: { status: 'pending' } }),
-      prisma.volunteerLog.count({ where: { status: 'approved' } }),
-      prisma.volunteerLog.count({ where: { status: 'rejected' } }),
+      prisma.volunteerLog.count({ where: whereClause }),
+      prisma.volunteerLog.count({ where: { ...whereClause, status: 'pending' } }),
+      prisma.volunteerLog.count({ where: { ...whereClause, status: 'approved' } }),
+      prisma.volunteerLog.count({ where: { ...whereClause, status: 'rejected' } }),
       prisma.volunteerLog.aggregate({
-        where: { status: 'approved' },
+        where: { ...whereClause, status: 'approved' },
         _sum: { hours: true },
       }),
       prisma.volunteerLog.findMany({
+        where: whereClause,
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -274,7 +327,9 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
 
 export const getStudentsList = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, search, schoolId } = req.query;
+    const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
 
     const skip = (Number(page) - 1) * Number(limit);
     
@@ -282,6 +337,23 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
     const where: any = {
       role: 'STUDENT',
     };
+
+    // COORDINATORS can only see students from their school
+    if (userRole === 'COORDINATOR') {
+      if (!userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'Coordinator must be associated with a school',
+        });
+        return;
+      }
+      where.schoolId = userSchoolId;
+    }
+
+    // ADMINS can see all students, but can optionally filter by school
+    if (userRole === 'ADMIN' && schoolId) {
+      where.schoolId = schoolId as string;
+    }
 
     if (search) {
       where.OR = [
@@ -365,6 +437,8 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
 export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
   try {
     const { period = 'month' } = req.query;
+    const userRole = (req as any).user.role;
+    const userSchoolId = (req as any).user.schoolId;
 
     // Calculate date range based on period
     const now = new Date();
@@ -383,15 +457,29 @@ export const getLeaderboard = async (req: Request, res: Response): Promise<void>
         break;
     }
 
+    // Build where clause - coordinators only see their school
+    const whereClause: any = {
+      status: 'approved',
+      date: {
+        gte: startDate,
+      },
+    };
+
+    if (userRole === 'COORDINATOR') {
+      if (!userSchoolId) {
+        res.status(403).json({
+          success: false,
+          message: 'Coordinator must be associated with a school',
+        });
+        return;
+      }
+      whereClause.schoolId = userSchoolId;
+    }
+
     // Get top volunteers by approved hours in the period
     const topVolunteers = await prisma.volunteerLog.groupBy({
       by: ['userId'],
-      where: {
-        status: 'approved',
-        date: {
-          gte: startDate,
-        },
-      },
+      where: whereClause,
       _sum: {
         hours: true,
       },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,32 +7,36 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
-import { Search, User, School as SchoolIcon } from 'lucide-react-native';
+import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
-  SDCard,
   GlassmorphicCard,
 } from '../../components/ui';
 import StudentDetailModal from '../../components/admin/StudentDetailModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
+import { useAuth } from '../../store/AuthContext';
 
 interface Student {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  school: string;
-  grade?: string;
-  age?: number;
-  lastActive?: string;
+  school?: {
+    id: string;
+    name: string;
+  };
+  schoolId?: string;
   totalHours: number;
-  dayStreak?: number;
-  points?: number;
-  pendingHours?: number;
-  approvedHours?: number;
-  rejectedHours?: number;
+  pendingLogs?: number;
+  approvedLogs?: number;
 }
 
 /**
@@ -40,129 +44,124 @@ interface Student {
  * View all students with their volunteer statistics
  */
 export default function StudentsListScreen() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState<string>('all');
+  const [schools, setSchools] = useState<any[]>([]);
+  const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock students data
-  const students: Student[] = [
-    { 
-      id: '1', 
-      name: 'Alex Smith', 
-      email: 'alex.smith@studentuct.ac.za', 
-      school: 'Cape Town High School',
-      grade: 'Grade 11',
-      age: 16,
-      lastActive: '2 days ago',
-      totalHours: 42,
-      dayStreak: 5,
-      points: 850,
-      pendingHours: 3, 
-      approvedHours: 39,
-      rejectedHours: 0
-    },
-    { 
-      id: '2', 
-      name: 'Sarah Johnson', 
-      email: 'sarah.johnson@example.com', 
-      school: 'Wynberg Girls High',
-      grade: 'Grade 12',
-      age: 17,
-      lastActive: '1 day ago',
-      totalHours: 38,
-      dayStreak: 12,
-      points: 920,
-      pendingHours: 2.5, 
-      approvedHours: 35.5,
-      rejectedHours: 0
-    },
-    { 
-      id: '3', 
-      name: 'Michael Chen', 
-      email: 'mchen@wynberg.edu', 
-      school: 'Wynberg High School',
-      grade: 'Grade 10',
-      age: 15,
-      lastActive: '5 hours ago',
-      totalHours: 62,
-      dayStreak: 8,
-      points: 1240,
-      pendingHours: 0, 
-      approvedHours: 60,
-      rejectedHours: 2
-    },
-    { 
-      id: '4', 
-      name: 'Emma Wilson', 
-      email: 'emma@example.com', 
-      school: 'Cape Town High School',
-      grade: 'Grade 11',
-      age: 16,
-      lastActive: '3 days ago',
-      totalHours: 27,
-      dayStreak: 3,
-      points: 540,
-      pendingHours: 5, 
-      approvedHours: 22,
-      rejectedHours: 0
-    },
-    { 
-      id: '5', 
-      name: 'James Brown', 
-      email: 'james@example.com', 
-      school: 'Stellenbosch High School',
-      grade: 'Grade 12',
-      age: 18,
-      lastActive: '1 week ago',
-      totalHours: 51,
-      dayStreak: 0,
-      points: 1020,
-      pendingHours: 4, 
-      approvedHours: 47,
-      rejectedHours: 0
-    },
-  ];
+  useEffect(() => {
+    if (isAdmin) {
+      fetchSchools();
+    }
+    fetchStudents();
+  }, [isAdmin, schoolFilter]);
 
-  const filteredStudents = students.filter((student) =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.school.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchSchools = async () => {
+    try {
+      const response = await apiService.getSchools();
+      if (response.success && response.data) {
+        setSchools(response.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching schools:', err);
+    }
+  };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params: any = { limit: 100 };
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      if (isAdmin && schoolFilter !== 'all') {
+        params.schoolId = schoolFilter;
+      }
+
+      const response = await apiService.getStudentsList(params);
+      
+      if (response.success && response.data) {
+        setStudents(response.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching students:', err);
+      setError(err.message || 'Failed to load students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchStudents();
+    setRefreshing(false);
+  };
+
+  // Debounce search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm !== undefined) {
+        fetchStudents();
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
 
   const handleStudentPress = (student: Student) => {
-    console.log('Student pressed:', student.name);
-    setSelectedStudent(student);
+    setSelectedStudent({
+      id: student.id,
+      name: `${student.firstName} ${student.lastName}`,
+      email: student.email,
+      school: student.school?.name || 'Unknown School',
+      totalHours: student.totalHours || 0,
+      pendingHours: student.pendingLogs || 0,
+      approvedHours: student.approvedLogs || 0,
+    });
     setModalVisible(true);
   };
 
   const renderStudent = ({ item }: { item: Student }) => (
     <TouchableOpacity 
-      onPress={() => {
-        console.log('TouchableOpacity pressed for:', item.name);
-        handleStudentPress(item);
-      }}
+      onPress={() => handleStudentPress(item)}
       activeOpacity={0.7}
       style={styles.studentCard}
     >
       <View style={styles.studentContent}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+          <Text style={styles.avatarText}>
+            {getInitials(item.firstName, item.lastName)}
+          </Text>
         </View>
         <View style={styles.studentInfo}>
-          <Text style={styles.studentName}>{item.name}</Text>
-          <View style={styles.schoolRow}>
+          <Text style={styles.studentName}>
+            {item.firstName} {item.lastName}
+          </Text>
+          <View style={styles.studentMeta}>
             <SchoolIcon color={Colors.textSecondary} size={14} />
-            <Text style={styles.studentSchool}>{item.school}</Text>
+            <Text style={styles.studentSchool}>
+              {item.school?.name || 'No School'}
+            </Text>
           </View>
+          <Text style={styles.studentEmail}>{item.email}</Text>
+        </View>
+        <View style={styles.studentStats}>
+          <Text style={styles.hoursText}>{item.totalHours || 0}h</Text>
+          <Text style={styles.hoursLabel}>Total</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -172,14 +171,30 @@ export default function StudentsListScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          <Text style={styles.title}>Students</Text>
+          <Text style={styles.title}>Students Directory</Text>
+
+          {/* Admin School Filter */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.schoolDropdown}
+              onPress={() => setSchoolDropdownVisible(true)}
+            >
+              <Text style={styles.schoolDropdownLabel}>Select School</Text>
+              <View style={styles.schoolDropdownValue}>
+                <Text style={styles.schoolDropdownText}>
+                  {schoolFilter === 'all' ? 'All Schools' : schools.find(s => s.id === schoolFilter)?.name || 'Select School'}
+                </Text>
+                <ChevronDown color={Colors.textSecondary} size={20} />
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search color={Colors.textSecondary} size={20} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search students..."
+              placeholder="Search by name or email..."
               placeholderTextColor={Colors.textSecondary}
               value={searchTerm}
               onChangeText={setSearchTerm}
@@ -187,21 +202,35 @@ export default function StudentsListScreen() {
           </View>
 
           {/* Students List */}
-          <FlatList
-            data={filteredStudents}
-            renderItem={renderStudent}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <User color={Colors.textSecondary} size={48} />
-                <Text style={styles.emptyTitle}>No students found</Text>
-                <Text style={styles.emptyDescription}>
-                  {searchTerm ? 'Try adjusting your search' : 'No registered students yet'}
-                </Text>
-              </View>
-            }
-          />
+          {loading && !refreshing ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading students...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={students}
+              renderItem={renderStudent}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <User color={Colors.textSecondary} size={48} />
+                  <Text style={styles.emptyTitle}>No students found</Text>
+                  <Text style={styles.emptyDescription}>
+                    {searchTerm ? 'Try adjusting your search' : 'No registered students yet'}
+                  </Text>
+                </View>
+              }
+            />
+          )}
         </GlassmorphicCard>
 
         {/* Student Detail Modal */}
@@ -210,6 +239,51 @@ export default function StudentsListScreen() {
           onClose={() => setModalVisible(false)}
           student={selectedStudent}
         />
+
+        {/* School Dropdown Modal */}
+        <Modal
+          visible={schoolDropdownVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSchoolDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setSchoolDropdownVisible(false)}
+          >
+            <View style={styles.schoolDropdownModal}>
+              <Text style={styles.schoolDropdownTitle}>Select School</Text>
+              <ScrollView style={styles.schoolList}>
+                <TouchableOpacity
+                  style={[styles.schoolOption, schoolFilter === 'all' && styles.schoolOptionActive]}
+                  onPress={() => {
+                    setSchoolFilter('all');
+                    setSchoolDropdownVisible(false);
+                  }}
+                >
+                  <Text style={[styles.schoolOptionText, schoolFilter === 'all' && styles.schoolOptionTextActive]}>
+                    All Schools
+                  </Text>
+                </TouchableOpacity>
+                {schools.map((school) => (
+                  <TouchableOpacity
+                    key={school.id}
+                    style={[styles.schoolOption, schoolFilter === school.id && styles.schoolOptionActive]}
+                    onPress={() => {
+                      setSchoolFilter(school.id);
+                      setSchoolDropdownVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.schoolOptionText, schoolFilter === school.id && styles.schoolOptionTextActive]}>
+                      {school.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -228,6 +302,30 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: Colors.text,
     marginBottom: spacing.lg,
+  },
+  schoolDropdown: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  schoolDropdownLabel: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  schoolDropdownValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  schoolDropdownText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -252,24 +350,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   studentCard: {
-    marginBottom: spacing.md,
     backgroundColor: Colors.card,
-    borderRadius: Sizes.radiusLg,
+    borderRadius: Sizes.radiusMd,
     padding: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   studentContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.deepPurple,
     justifyContent: 'center',
     alignItems: 'center',
@@ -284,35 +379,114 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   studentName: {
-    fontSize: Sizes.fontLg,
+    fontSize: Sizes.fontMd,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
-  schoolRow: {
+  studentMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    marginBottom: 2,
   },
   studentSchool: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
-    fontWeight: '500',
+    marginLeft: spacing.xs,
+  },
+  studentEmail: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+  },
+  studentStats: {
+    alignItems: 'flex-end',
+  },
+  hoursText: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+  },
+  hoursLabel: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing.xxl,
-    gap: spacing.md,
   },
   emptyTitle: {
     fontSize: Sizes.fontLg,
     fontWeight: '600',
     color: Colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  errorText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  schoolDropdownModal: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusLg,
+    padding: spacing.lg,
+    width: '85%',
+    maxHeight: '70%',
+  },
+  schoolDropdownTitle: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: spacing.md,
+  },
+  schoolList: {
+    maxHeight: 400,
+  },
+  schoolOption: {
+    padding: spacing.md,
+    borderRadius: Sizes.radiusMd,
+    marginBottom: spacing.sm,
+    backgroundColor: Colors.background,
+  },
+  schoolOptionActive: {
+    backgroundColor: Colors.deepPurple,
+  },
+  schoolOptionText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  schoolOptionTextActive: {
+    color: Colors.light,
+  },
 });
-
