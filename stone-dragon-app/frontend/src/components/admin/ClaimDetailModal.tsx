@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -127,7 +126,7 @@ export default function ClaimDetailModal({
       transparent
       onRequestClose={handleClose}
     >
-      <BlurView intensity={60} tint="dark" style={styles.modalOverlay}>
+      <View style={styles.modalOverlay}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
@@ -318,7 +317,7 @@ export default function ClaimDetailModal({
             </View>
           </View>
         </KeyboardAvoidingView>
-      </BlurView>
+      </View>
     </Modal>
   );
 }
@@ -329,6 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: 'transparent', // No overlay effect above white panel
   },
   keyboardView: {
     width: '100%',
