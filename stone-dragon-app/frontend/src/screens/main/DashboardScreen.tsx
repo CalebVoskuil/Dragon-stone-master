@@ -26,6 +26,7 @@ import {
   GlassmorphicCard,
   GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -52,6 +53,8 @@ export default function DashboardScreen() {
     rejectedLogs: 0,
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   const nextBadgeProgress = 75;
   const canLogHours = true; // Update based on user consent status
@@ -298,11 +301,21 @@ export default function DashboardScreen() {
             schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
             welcomeMessage={`${getGreeting()}, ${firstName}`}
             notificationCount={stats.pendingLogs}
-            onLeaderboardPress={() => navigation.navigate('Leaderboard' as never)}
-            onNotificationPress={() => navigation.navigate('Notifications' as never)}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
             userRole={user?.role}
           />
         </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
