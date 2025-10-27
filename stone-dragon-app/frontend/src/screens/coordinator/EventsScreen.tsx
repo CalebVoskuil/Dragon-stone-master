@@ -199,41 +199,6 @@ export default function EventsScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.bannerSpacer} />
         
-        {/* Segmented Control */}
-        <View style={styles.segmentedControl}>
-          <Animated.View
-            style={[
-              styles.slidingBackground,
-              {
-                transform: [
-                  {
-                    translateX: slideAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 150], // Half the width of the control
-                    }),
-                  },
-                ],
-              },
-            ]}
-          />
-          <TouchableOpacity
-            style={styles.segment}
-            onPress={() => handleTabChange('create')}
-          >
-            <Text style={[styles.segmentText, activeTab === 'create' && styles.activeSegmentText]}>
-              Create
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.segment}
-            onPress={() => handleTabChange('events')}
-          >
-            <Text style={[styles.segmentText, activeTab === 'events' && styles.activeSegmentText]}>
-              Events
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
         <ScrollView 
           style={styles.outerScrollView}
           contentContainerStyle={styles.outerScrollContent}
@@ -242,6 +207,41 @@ export default function EventsScreen() {
         >
           
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
+
+          {/* Segmented Control */}
+          <View style={styles.segmentedControl}>
+            <Animated.View
+              style={[
+                styles.slidingBackground,
+                {
+                  transform: [
+                    {
+                      translateX: slideAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'], // Slide from left to right
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+            <TouchableOpacity
+              style={styles.segment}
+              onPress={() => handleTabChange('create')}
+            >
+              <Text style={[styles.segmentText, activeTab === 'create' && styles.activeSegmentText]}>
+                Create
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.segment}
+              onPress={() => handleTabChange('events')}
+            >
+              <Text style={[styles.segmentText, activeTab === 'events' && styles.activeSegmentText]}>
+                Events
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Content */}
           {activeTab === 'create' ? (
@@ -585,38 +585,36 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: Sizes.radiusFull,
     padding: 4,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+    marginBottom: spacing.lg,
     position: 'relative',
   },
   slidingBackground: {
     position: 'absolute',
     top: 4,
     left: 4,
-    right: 4,
     bottom: 4,
     backgroundColor: Colors.deepPurple,
     borderRadius: Sizes.radiusFull,
     width: '50%',
+    zIndex: 0,
   },
   segment: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   segmentText: {
     fontSize: Sizes.fontMd,
     fontWeight: '600',
-    color: Colors.light,
-    opacity: 0.7,
+    color: Colors.deepPurple,
   },
   activeSegmentText: {
     color: Colors.light,
-    opacity: 1,
   },
   tabContainer: {
     flexDirection: 'row',
