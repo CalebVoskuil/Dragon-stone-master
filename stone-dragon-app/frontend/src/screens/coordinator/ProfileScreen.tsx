@@ -65,7 +65,7 @@ export default function ProfileScreen() {
         setCoordinatorStats({
           totalReviewed: stats.approvedLogs + stats.rejectedLogs,
           pendingReview: stats.pendingLogs,
-          activeStudents: stats.totalStudents,
+          activeStudents: stats.activeStudents || 0,
         });
       }
     } catch (error) {

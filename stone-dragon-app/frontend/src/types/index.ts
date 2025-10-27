@@ -223,6 +223,10 @@ export interface CoordinatorDashboard {
     approvedLogs: number;
     rejectedLogs: number;
     totalHours: number;
+    todayLogs: number;
+    lastWeekApproved: number;
+    activeStudents: number;
+    approvalRate: number;
   };
   recentLogs: VolunteerLog[];
 }
