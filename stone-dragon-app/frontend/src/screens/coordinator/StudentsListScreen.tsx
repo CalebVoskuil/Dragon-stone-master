@@ -16,6 +16,7 @@ import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-na
 import {
   GradientBackground,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import StudentDetailModal from '../../components/admin/StudentDetailModal';
 import { Colors } from '../../constants/Colors';
@@ -187,8 +188,16 @@ export default function StudentsListScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          <Text style={styles.title}>Students Directory</Text>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.bannerSpacer} />
+          
+          <GlassmorphicCard intensity={80} style={styles.mainCard}>
 
           {/* Admin School Filter - REQUIRED, NO "ALL SCHOOLS" OPTION */}
           {isAdmin && (
@@ -229,15 +238,13 @@ export default function StudentsListScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : (
-            <FlatList
-              data={students}
-              renderItem={renderStudent}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              ListEmptyComponent={
+            <View style={styles.listContent}>
+              {students.map((student) => (
+                <React.Fragment key={student.id}>
+                  {renderStudent({ item: student })}
+                </React.Fragment>
+              ))}
+              {students.length === 0 && (
                 <View style={styles.emptyState}>
                   <User color={Colors.textSecondary} size={48} />
                   <Text style={styles.emptyTitle}>No students found</Text>
@@ -246,10 +253,23 @@ export default function StudentsListScreen() {
                      isAdmin && !schoolFilter ? 'Please select a school' : 'No registered students yet'}
                   </Text>
                 </View>
-              }
-            />
+              )}
+            </View>
           )}
         </GlassmorphicCard>
+        </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Students Directory"
+            notificationCount={0}
+            onLeaderboardPress={() => {}}
+            onNotificationPress={() => {}}
+            userRole={user?.role}
+          />
+        </View>
 
         {/* Student Detail Modal */}
         <StudentDetailModal
@@ -300,10 +320,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mainCard: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for nav bar
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
+  mainCard: {
     margin: spacing.lg,
     padding: spacing.lg,
+    minHeight: 'auto',
   },
   title: {
     ...typography.h1,

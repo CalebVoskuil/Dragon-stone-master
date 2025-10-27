@@ -17,6 +17,7 @@ import {
   GradientBackground,
   GlassmorphicCard,
   SDButton,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { StudentCoordinatorsModal, EventDetailsModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
@@ -185,9 +186,13 @@ export default function EventsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          {/* Header */}
-          <Text style={styles.title}>Events</Text>
+        <ScrollView 
+          style={styles.outerScrollView}
+          contentContainerStyle={styles.outerScrollContent}
+        >
+          <View style={styles.bannerSpacer} />
+          
+          <GlassmorphicCard intensity={80} style={styles.mainCard}>
 
           {/* Tab Switcher */}
           <View style={styles.tabContainer}>
@@ -211,7 +216,7 @@ export default function EventsScreen() {
 
           {/* Content */}
           {activeTab === 'create' ? (
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.contentView}>
               <View style={styles.formContainer}>
                 {/* Event Details Card */}
                 <View style={styles.section}>
@@ -403,9 +408,9 @@ export default function EventsScreen() {
                   Create Event
                 </SDButton>
               </View>
-            </ScrollView>
+            </View>
           ) : (
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.contentView}>
               <View style={styles.eventsContainer}>
                 {loading ? (
                   <View style={styles.loadingContainer}>
@@ -476,9 +481,22 @@ export default function EventsScreen() {
                   })
                 )}
               </View>
-            </ScrollView>
+            </View>
           )}
         </GlassmorphicCard>
+        </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Events Management"
+            notificationCount={0}
+            onLeaderboardPress={() => {}}
+            onNotificationPress={() => {}}
+            userRole={user?.role}
+          />
+        </View>
 
         {/* Student Coordinators Modal */}
         <StudentCoordinatorsModal
@@ -509,10 +527,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mainCard: {
+  outerScrollView: {
     flex: 1,
-    margin: spacing.md,
+  },
+  outerScrollContent: {
+    paddingBottom: 100, // Space for nav bar
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
+  mainCard: {
+    margin: spacing.lg,
     padding: spacing.lg,
+    minHeight: 'auto',
   },
   title: {
     ...typography.h2,
@@ -543,7 +577,7 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: Colors.light,
   },
-  scrollView: {
+  contentView: {
     flex: 1,
   },
   formContainer: {
