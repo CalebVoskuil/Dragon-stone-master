@@ -262,7 +262,7 @@ export default function StudentsListScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
             welcomeMessage="Students Directory"
             notificationCount={0}
             onLeaderboardPress={() => setLeaderboardVisible(true)}

@@ -233,7 +233,7 @@ export default function CoordinatorDashboardScreen() {
         {/* Glassmorphic Banner - Fixed at top, content scrolls behind */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
             welcomeMessage={`Welcome back, ${user?.firstName || 'Coordinator'}`}
             notificationCount={pendingCount}
             onLeaderboardPress={() => setLeaderboardVisible(true)}
