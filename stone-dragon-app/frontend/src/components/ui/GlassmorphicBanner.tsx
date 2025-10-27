@@ -115,6 +115,9 @@ const styles = StyleSheet.create({
     marginLeft: 0,
     marginRight: 0,
     marginTop: 0,
+    // Curved bottom edges
+    borderBottomLeftRadius: Sizes.radiusXl,
+    borderBottomRightRadius: Sizes.radiusXl,
     // Minimal shadow for subtle depth
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
