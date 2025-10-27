@@ -18,9 +18,12 @@ interface StudentDetailModalProps {
   onClose: () => void;
   student: {
     id: string;
-    name: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
     email: string;
-    school: string;
+    school?: string;
+    schoolId?: string;
     grade?: string;
     age?: number;
     lastActive?: string;
@@ -30,6 +33,8 @@ interface StudentDetailModalProps {
     pendingHours?: number;
     approvedHours?: number;
     rejectedHours?: number;
+    approvedLogs?: number;
+    pendingLogs?: number;
   } | null;
 }
 
@@ -45,6 +50,7 @@ export default function StudentDetailModal({
   if (!student) return null;
 
   const getInitials = (name: string) => {
+    if (!name) return '??';
     return name
       .split(' ')
       .map((part) => part[0])
@@ -52,6 +58,9 @@ export default function StudentDetailModal({
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const displayName = student.name || `${student.firstName} ${student.lastName}` || 'Unknown Student';
+  const displaySchool = student.school || student.schoolId || 'No school';
 
   return (
     <Modal
@@ -76,9 +85,9 @@ export default function StudentDetailModal({
               {/* Header with Avatar */}
               <View style={styles.header}>
                 <View style={styles.avatarLarge}>
-                  <Text style={styles.avatarText}>{getInitials(student.name)}</Text>
+                  <Text style={styles.avatarText}>{getInitials(displayName)}</Text>
                 </View>
-                <Text style={styles.studentName}>{student.name}</Text>
+                <Text style={styles.studentName}>{displayName}</Text>
                 <View style={styles.emailRow}>
                   <Mail color={Colors.textSecondary} size={14} />
                   <Text style={styles.studentEmail}>{student.email}</Text>
@@ -95,7 +104,7 @@ export default function StudentDetailModal({
                 <View style={styles.infoCard}>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>School</Text>
-                    <Text style={styles.infoValue}>{student.school}</Text>
+                    <Text style={styles.infoValue}>{displaySchool}</Text>
                   </View>
 
                   {student.grade && (
@@ -167,38 +176,26 @@ export default function StudentDetailModal({
 
                 {/* Hours Breakdown */}
                 <View style={styles.hoursBreakdown}>
-                  {student.approvedHours !== undefined && (
+                  {student.approvedLogs !== undefined && student.approvedLogs > 0 && (
                     <View style={styles.breakdownRow}>
                       <View style={styles.breakdownLeft}>
                         <View style={[styles.breakdownDot, { backgroundColor: Colors.green }]} />
-                        <Text style={styles.breakdownLabel}>Approved Hours</Text>
+                        <Text style={styles.breakdownLabel}>Approved Logs</Text>
                       </View>
                       <Text style={[styles.breakdownValue, { color: Colors.green }]}>
-                        {student.approvedHours}h
+                        {student.approvedLogs}
                       </Text>
                     </View>
                   )}
 
-                  {student.pendingHours !== undefined && (
+                  {student.pendingLogs !== undefined && student.pendingLogs > 0 && (
                     <View style={styles.breakdownRow}>
                       <View style={styles.breakdownLeft}>
                         <View style={[styles.breakdownDot, { backgroundColor: Colors.orange }]} />
-                        <Text style={styles.breakdownLabel}>Pending Hours</Text>
+                        <Text style={styles.breakdownLabel}>Pending Logs</Text>
                       </View>
                       <Text style={[styles.breakdownValue, { color: Colors.orange }]}>
-                        {student.pendingHours}h
-                      </Text>
-                    </View>
-                  )}
-
-                  {student.rejectedHours !== undefined && (
-                    <View style={styles.breakdownRow}>
-                      <View style={styles.breakdownLeft}>
-                        <View style={[styles.breakdownDot, { backgroundColor: Colors.red }]} />
-                        <Text style={styles.breakdownLabel}>Rejected Hours</Text>
-                      </View>
-                      <Text style={[styles.breakdownValue, { color: Colors.red }]}>
-                        {student.rejectedHours}h
+                        {student.pendingLogs}
                       </Text>
                     </View>
                   )}

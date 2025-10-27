@@ -120,6 +120,11 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
 
 export const getCoordinatorDashboard = async (_req: Request, res: Response): Promise<void> => {
   try {
+    // Calculate date ranges for statistics
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
     // Get statistics
     const [
       totalLogs,
@@ -127,6 +132,9 @@ export const getCoordinatorDashboard = async (_req: Request, res: Response): Pro
       approvedLogs,
       rejectedLogs,
       totalHours,
+      todayLogs,
+      lastWeekApproved,
+      activeStudents,
       recentLogs,
     ] = await Promise.all([
       prisma.volunteerLog.count(),
@@ -137,7 +145,33 @@ export const getCoordinatorDashboard = async (_req: Request, res: Response): Pro
         where: { status: 'approved' },
         _sum: { hours: true },
       }),
+      prisma.volunteerLog.count({ 
+        where: { 
+          createdAt: { gte: todayStart } 
+        } 
+      }),
+      prisma.volunteerLog.count({ 
+        where: { 
+          status: 'approved',
+          createdAt: { gte: lastWeek }
+        } 
+      }),
+      // Count unique students who have submitted at least one log (excluding event claims with student coordinators)
       prisma.volunteerLog.findMany({
+        distinct: ['userId'],
+        where: {
+          OR: [
+            { claimType: { not: 'event' } },
+            { claimType: 'event', eventId: null },
+          ],
+        },
+        select: { userId: true },
+      }).then(result => result.length),
+      // Get ALL pending logs - coordinators review all non-event claims and event claims without student coordinators
+      prisma.volunteerLog.findMany({
+        where: {
+          status: 'pending',
+        },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -158,6 +192,11 @@ export const getCoordinatorDashboard = async (_req: Request, res: Response): Pro
       }),
     ]);
 
+    // Calculate approval rate
+    const approvalRate = totalLogs > 0 
+      ? Math.round((approvedLogs / totalLogs) * 100) 
+      : 0;
+
     const dashboard = {
       statistics: {
         totalLogs,
@@ -165,6 +204,10 @@ export const getCoordinatorDashboard = async (_req: Request, res: Response): Pro
         approvedLogs,
         rejectedLogs,
         totalHours: totalHours._sum.hours || 0,
+        todayLogs,
+        lastWeekApproved,
+        activeStudents,
+        approvalRate,
       },
       recentLogs,
     };
@@ -275,20 +318,38 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
 export const getStudentsList = async (req: Request, res: Response): Promise<void> => {
   try {
     const { page = 1, limit = 20, search } = req.query;
+    const coordinator = (req as any).user;
+
+    if (!coordinator) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authenticated',
+      });
+      return;
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     
-    // Build where clause for search
+    // Build where clause - filter by coordinator's school and role
     const where: any = {
-      role: 'STUDENT',
+      role: { in: ['STUDENT', 'STUDENT_COORDINATOR'] },
+      schoolId: coordinator.schoolId,
     };
 
     if (search) {
-      where.OR = [
-        { firstName: { contains: search as string, mode: 'insensitive' } },
-        { lastName: { contains: search as string, mode: 'insensitive' } },
-        { email: { contains: search as string, mode: 'insensitive' } },
+      where.AND = [
+        { role: { in: ['STUDENT', 'STUDENT_COORDINATOR'] } },
+        { schoolId: coordinator.schoolId },
+        {
+          OR: [
+            { firstName: { contains: search as string, mode: 'insensitive' } },
+            { lastName: { contains: search as string, mode: 'insensitive' } },
+            { email: { contains: search as string, mode: 'insensitive' } },
+          ],
+        },
       ];
+      delete where.role;
+      delete where.schoolId;
     }
 
     const [students, total] = await Promise.all([
