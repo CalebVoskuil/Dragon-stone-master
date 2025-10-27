@@ -165,7 +165,11 @@ export default function ProfileScreen() {
               <SDCard variant="elevated" padding="lg" style={styles.userCard}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <User color={Colors.light} size={40} />
+                    <Text style={styles.avatarText}>
+                      {user?.firstName && user?.lastName 
+                        ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                        : 'C'}
+                    </Text>
                   </View>
                 </View>
 
@@ -176,16 +180,20 @@ export default function ProfileScreen() {
 
                 <View style={styles.userDetails}>
                   <View style={styles.userDetail}>
-                    <Mail color={Colors.textSecondary} size={16} />
+                    <View style={styles.userDetailIcon}>
+                      <Mail color={Colors.deepPurple} size={16} />
+                    </View>
                     <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
                   </View>
 
-                  {user?.school && (
-                    <View style={styles.userDetail}>
-                      <Briefcase color={Colors.textSecondary} size={16} />
-                      <Text style={styles.userDetailText}>{user.school}</Text>
+                  <View style={styles.userDetail}>
+                    <View style={styles.userDetailIcon}>
+                      <Briefcase color={Colors.deepPurple} size={16} />
                     </View>
-                  )}
+                    <Text style={styles.userDetailText}>
+                      {typeof user?.school === 'string' ? user.school : user?.school?.name || 'No school'}
+                    </Text>
+                  </View>
                 </View>
               </SDCard>
 
@@ -285,6 +293,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Colors.light,
+  },
   userName: {
     ...typography.h1,
     color: Colors.text,
@@ -298,16 +311,22 @@ const styles = StyleSheet.create({
   userDetails: {
     width: '100%',
     gap: spacing.sm,
+    alignItems: 'center',
   },
   userDetail: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+  },
+  userDetailIcon: {
+    width: 20,
+    alignItems: 'center',
     justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   userDetailText: {
     fontSize: Sizes.fontSm,
     color: Colors.text,
+    flex: 1,
   },
   statsGrid: {
     flexDirection: 'row',
