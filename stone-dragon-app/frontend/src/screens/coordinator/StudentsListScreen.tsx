@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +11,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Search, User, School as SchoolIcon } from 'lucide-react-native';
+import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
-  SDCard,
   GlassmorphicCard,
 } from '../../components/ui';
 import StudentDetailModal from '../../components/admin/StudentDetailModal';
@@ -49,7 +49,13 @@ interface Student {
  * View all students with their volunteer statistics
  */
 export default function StudentsListScreen() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState<string>('all');
+  const [schools, setSchools] = useState<any[]>([]);
+  const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -112,17 +118,21 @@ export default function StudentsListScreen() {
   };
 
   const handleStudentPress = (student: Student) => {
-    console.log('Student pressed:', student.name);
-    setSelectedStudent(student);
+    setSelectedStudent({
+      id: student.id,
+      name: `${student.firstName} ${student.lastName}`,
+      email: student.email,
+      school: student.school?.name || 'Unknown School',
+      totalHours: student.totalHours || 0,
+      pendingHours: student.pendingLogs || 0,
+      approvedHours: student.approvedLogs || 0,
+    });
     setModalVisible(true);
   };
 
   const renderStudent = ({ item }: { item: Student }) => (
     <TouchableOpacity 
-      onPress={() => {
-        console.log('TouchableOpacity pressed for:', item.name);
-        handleStudentPress(item);
-      }}
+      onPress={() => handleStudentPress(item)}
       activeOpacity={0.7}
       style={styles.studentCard}
     >
@@ -145,6 +155,11 @@ export default function StudentsListScreen() {
             <SchoolIcon color={Colors.textSecondary} size={14} />
             <Text style={styles.studentSchool}>{item.school || item.schoolId || 'No school'}</Text>
           </View>
+          <Text style={styles.studentEmail}>{item.email}</Text>
+        </View>
+        <View style={styles.studentStats}>
+          <Text style={styles.hoursText}>{item.totalHours || 0}h</Text>
+          <Text style={styles.hoursLabel}>Total</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -154,14 +169,30 @@ export default function StudentsListScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          <Text style={styles.title}>Students</Text>
+          <Text style={styles.title}>Students Directory</Text>
+
+          {/* Admin School Filter */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.schoolDropdown}
+              onPress={() => setSchoolDropdownVisible(true)}
+            >
+              <Text style={styles.schoolDropdownLabel}>Select School</Text>
+              <View style={styles.schoolDropdownValue}>
+                <Text style={styles.schoolDropdownText}>
+                  {schoolFilter === 'all' ? 'All Schools' : schools.find(s => s.id === schoolFilter)?.name || 'Select School'}
+                </Text>
+                <ChevronDown color={Colors.textSecondary} size={20} />
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search color={Colors.textSecondary} size={20} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search students..."
+              placeholder="Search by name or email..."
               placeholderTextColor={Colors.textSecondary}
               value={searchTerm}
               onChangeText={setSearchTerm}
@@ -199,6 +230,51 @@ export default function StudentsListScreen() {
           onClose={() => setModalVisible(false)}
           student={selectedStudent}
         />
+
+        {/* School Dropdown Modal */}
+        <Modal
+          visible={schoolDropdownVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSchoolDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setSchoolDropdownVisible(false)}
+          >
+            <View style={styles.schoolDropdownModal}>
+              <Text style={styles.schoolDropdownTitle}>Select School</Text>
+              <ScrollView style={styles.schoolList}>
+                <TouchableOpacity
+                  style={[styles.schoolOption, schoolFilter === 'all' && styles.schoolOptionActive]}
+                  onPress={() => {
+                    setSchoolFilter('all');
+                    setSchoolDropdownVisible(false);
+                  }}
+                >
+                  <Text style={[styles.schoolOptionText, schoolFilter === 'all' && styles.schoolOptionTextActive]}>
+                    All Schools
+                  </Text>
+                </TouchableOpacity>
+                {schools.map((school) => (
+                  <TouchableOpacity
+                    key={school.id}
+                    style={[styles.schoolOption, schoolFilter === school.id && styles.schoolOptionActive]}
+                    onPress={() => {
+                      setSchoolFilter(school.id);
+                      setSchoolDropdownVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.schoolOptionText, schoolFilter === school.id && styles.schoolOptionTextActive]}>
+                      {school.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -217,6 +293,30 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: Colors.text,
     marginBottom: spacing.lg,
+  },
+  schoolDropdown: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  schoolDropdownLabel: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  schoolDropdownValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  schoolDropdownText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -241,24 +341,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   studentCard: {
-    marginBottom: spacing.md,
     backgroundColor: Colors.card,
-    borderRadius: Sizes.radiusLg,
+    borderRadius: Sizes.radiusMd,
     padding: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   studentContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.deepPurple,
     justifyContent: 'center',
     alignItems: 'center',
@@ -279,7 +376,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   studentName: {
-    fontSize: Sizes.fontLg,
+    fontSize: Sizes.fontMd,
     fontWeight: '600',
     color: Colors.text,
   },
@@ -294,25 +391,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.light,
   },
-  schoolRow: {
+  studentMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    marginBottom: 2,
   },
   studentSchool: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
-    fontWeight: '500',
+    marginLeft: spacing.xs,
+  },
+  studentEmail: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+  },
+  studentStats: {
+    alignItems: 'flex-end',
+  },
+  hoursText: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+  },
+  hoursLabel: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing.xxl,
-    gap: spacing.md,
   },
   emptyTitle: {
     fontSize: Sizes.fontLg,
     fontWeight: '600',
     color: Colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
