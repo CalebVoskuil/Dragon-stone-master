@@ -30,6 +30,7 @@ import {
   SDButton,
   SDCard,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
@@ -156,7 +157,7 @@ export default function ProfileScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Profile</Text>
+          <View style={styles.bannerSpacer} />
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -249,6 +250,17 @@ export default function ProfileScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Profile"
+            onLeaderboardPress={() => {/* Can add navigation if needed */}}
+            onNotificationPress={() => {/* Can add navigation if needed */}}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -258,12 +270,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
     ...typography.h1,
