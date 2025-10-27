@@ -88,6 +88,7 @@ export default function LeaderboardModal({
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
@@ -215,11 +216,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'transparent', // No overlay effect above white panel
+    zIndex: 5, // Behind banner (zIndex: 10) and nav bar
   },
   modalContainer: {
     width: '100%',
     height: '100%',
     paddingTop: spacing.xxl,
+    zIndex: 5,
   },
   modalContent: {
     flex: 1,
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 5, // Lower elevation to stay behind banner and nav
   },
   header: {
     flexDirection: 'row',
@@ -251,7 +254,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: `${Colors.golden}20`,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: Sizes.fontSm,
     fontWeight: '700',
-    color: Colors.light,
+    color: Colors.deepPurple,
   },
   studentInfo: {
     flex: 1,
