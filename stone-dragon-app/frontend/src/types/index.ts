@@ -11,7 +11,7 @@ export interface User {
   updatedAt: string;
 }
 
-export type UserRole = 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
 
 // School types
 export interface School {
@@ -25,6 +25,46 @@ export interface School {
   updatedAt: string;
 }
 
+// Event types
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time?: string;
+  location?: string;
+  duration?: number; // Hours awarded
+  maxVolunteers: number;
+  coordinatorId: string;
+  createdAt: string;
+  updatedAt: string;
+  coordinator?: User;
+  eventCoordinators?: EventCoordinator[];
+  eventRegistrations?: EventRegistration[];
+  _count?: {
+    eventRegistrations?: number;
+    volunteerLogs?: number;
+  };
+}
+
+export interface EventCoordinator {
+  id: string;
+  eventId: string;
+  userId: string;
+  createdAt: string;
+  event?: Event;
+  user?: User;
+}
+
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  userId: string;
+  createdAt: string;
+  event?: Event;
+  user?: User;
+}
+
 // Volunteer Log types
 export interface VolunteerLog {
   id: string;
@@ -32,6 +72,8 @@ export interface VolunteerLog {
   description: string;
   date: string;
   status: LogStatus;
+  claimType: ClaimType;
+  donationItems?: number;
   proofFileName?: string;
   proofFilePath?: string;
   coordinatorComment?: string;
@@ -40,13 +82,16 @@ export interface VolunteerLog {
   reviewedAt?: string;
   userId: string;
   schoolId: string;
+  eventId?: string;
   reviewedBy?: string;
   user?: User;
   school?: School;
+  event?: Event;
   reviewer?: User;
 }
 
 export type LogStatus = 'pending' | 'approved' | 'rejected';
+export type ClaimType = 'event' | 'donation' | 'volunteer' | 'other';
 
 // Badge types
 export interface Badge {
@@ -130,6 +175,9 @@ export type RootStackParamList = {
   Profile: undefined;
   Schools: undefined;
   Badges: undefined;
+  Leaderboard: undefined;
+  Notifications: undefined;
+  StudentCoordinatorClaims: undefined;
 };
 
 export type MainTabParamList = {
@@ -146,7 +194,14 @@ export interface CreateVolunteerLogData {
   description: string;
   date: string;
   schoolId: string;
-  proofFile?: File;
+  claimType: ClaimType;
+  eventId?: string;
+  donationItems?: number;
+  proofFile?: {
+    uri: string;
+    mimeType?: string;
+    fileName?: string;
+  };
 }
 
 export interface UpdateVolunteerLogData {
@@ -162,7 +217,18 @@ export interface ReviewVolunteerLogData {
 
 // Coordinator types
 export interface CoordinatorDashboard {
-  schools: SchoolStats[];
+  statistics: {
+    totalLogs: number;
+    pendingLogs: number;
+    approvedLogs: number;
+    rejectedLogs: number;
+    totalHours: number;
+    todayLogs: number;
+    lastWeekApproved: number;
+    activeStudents: number;
+    approvalRate: number;
+  };
+  recentLogs: VolunteerLog[];
 }
 
 export interface SchoolStats {

@@ -10,14 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model - represents students, volunteers, and coordinators
+// User model - represents students, coordinators, and admins
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   firstName String
   lastName  String
-  role      String   @default("STUDENT") // STUDENT, VOLUNTEER, COORDINATOR, ADMIN
+  role      String   @default("STUDENT") // STUDENT, COORDINATOR, STUDENT_COORDINATOR, ADMIN
   schoolId  String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -28,6 +28,9 @@ model User {
   volunteerLogs VolunteerLog[]
   reviewedLogs  VolunteerLog[] @relation("LogReviewer")
   userBadges    UserBadge[]
+  createdEvents Event[]        @relation("EventCreator")
+  eventCoordinations EventCoordinator[]
+  eventRegistrations EventRegistration[]
 
   @@map("users")
 }
@@ -57,6 +60,8 @@ model VolunteerLog {
   description         String
   date                DateTime
   status              String        @default("pending") // pending, approved, rejected
+  claimType           String        @default("volunteer") // event, donation, volunteer, other
+  donationItems       Float?        // For donation claims
   proofFileName       String?
   proofFilePath       String?
   coordinatorComment  String?
@@ -67,11 +72,13 @@ model VolunteerLog {
   // Foreign keys
   userId      String
   schoolId    String
+  eventId     String?
   reviewedBy  String?
 
   // Relations
-  user    User  @relation(fields: [userId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
   school  School @relation(fields: [schoolId], references: [id])
+  event   Event? @relation(fields: [eventId], references: [id])
   reviewer User? @relation("LogReviewer", fields: [reviewedBy], references: [id])
 
   @@map("volunteer_logs")
@@ -112,6 +119,60 @@ model UserBadge {
   @@map("user_badges")
 }
 
+// Event model - represents volunteer events
+model Event {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  date            DateTime
+  time            String?
+  location        String?
+  duration        Float?   // Hours awarded for the event
+  maxVolunteers   Int
+  coordinatorId   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  coordinator         User                  @relation("EventCreator", fields: [coordinatorId], references: [id])
+  eventCoordinators   EventCoordinator[]    // Student coordinators assigned to event
+  eventRegistrations  EventRegistration[]   // Students registered for event
+  volunteerLogs       VolunteerLog[]        // Claims submitted for this event
+
+  @@map("events")
+}
+
+// EventCoordinator junction table - links student coordinators to events
+model EventCoordinator {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_coordinators")
+}
+
+// EventRegistration junction table - links students to events they've registered for
+model EventRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@map("event_registrations")
+}
+
 // Note: SQLite doesn't support enums, so we use string literals
-// UserRole: "STUDENT" | "VOLUNTEER" | "COORDINATOR" | "ADMIN"
+// UserRole: "STUDENT" | "COORDINATOR" | "STUDENT_COORDINATOR" | "ADMIN"
 // LogStatus: "pending" | "approved" | "rejected"
+// ClaimType: "event" | "donation" | "volunteer" | "other"

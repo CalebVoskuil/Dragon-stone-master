@@ -45,17 +45,31 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
     // Store user in session
     (req.session as any).userId = user.id;
     (req.session as any).userRole = user.role;
+    (req.session as any).userSchoolId = user.schoolId;
+
+    // Format user data with school name
+    const { school, ...userData } = user;
+    const formattedUser = {
+      ...userData,
+      school: school?.name,
+    };
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      data: { user },
+      data: { user: formattedUser },
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -70,9 +84,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password }: LoginRequest = req.body;
 
-    // Find user
+    // Find user with school
     const user = await prisma.user.findUnique({
       where: { email },
+      include: {
+        school: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!user || !user.isActive) {
@@ -97,14 +119,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Store user in session
     (req.session as any).userId = user.id;
     (req.session as any).userRole = user.role;
+    (req.session as any).userSchoolId = user.schoolId;
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Remove password from response and format user data
+    const { password: _, school, ...userWithoutPassword } = user;
+    const userData = {
+      ...userWithoutPassword,
+      school: school?.name,
+    };
 
     res.json({
       success: true,
       message: 'Login successful',
-      data: { user: userWithoutPassword },
+      data: { user: userData },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -156,6 +183,12 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -167,10 +200,17 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    // Format user data with school name
+    const { school, ...userData } = user;
+    const formattedUser = {
+      ...userData,
+      school: school?.name,
+    };
+
     res.json({
       success: true,
       message: 'Profile retrieved successfully',
-      data: user,
+      data: formattedUser,
     });
   } catch (error) {
     console.error('Get profile error:', error);

@@ -166,8 +166,8 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('student@demo.com');
-                      setPassword('password');
+                      setEmail('alex.smith@student.ucta.ac.za');
+                      setPassword('password123');
                     }}
                   >
                     Student
@@ -176,11 +176,33 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('coordinator@demo.com');
-                      setPassword('password');
+                      setEmail('coordinator.rallim@example.com');
+                      setPassword('password123');
                     }}
                   >
                     Coordinator
+                  </SDButton>
+                </View>
+                <View style={styles.demoButtons}>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('studentcoord.rallim@example.com');
+                      setPassword('password123');
+                    }}
+                  >
+                    Student Coord
+                  </SDButton>
+                  <SDButton
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      setEmail('admin@stonedragon.org');
+                      setPassword('password123');
+                    }}
+                  >
+                    Admin
                   </SDButton>
                 </View>
               </View>
@@ -281,5 +303,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
 });
