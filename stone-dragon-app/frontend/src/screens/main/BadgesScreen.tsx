@@ -274,6 +274,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    padding: spacing.lg,
     paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
@@ -285,6 +286,7 @@ const styles = StyleSheet.create({
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

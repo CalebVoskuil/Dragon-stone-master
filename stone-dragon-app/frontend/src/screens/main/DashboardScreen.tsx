@@ -223,40 +223,10 @@ export default function DashboardScreen() {
               </SDButton>
             </View>
 
-            {/* Period Selector */}
-            <View style={styles.periodSelector}>
-              {(['week', 'month', 'year'] as const).map((period) => (
-                <TouchableOpacity
-                  key={period}
-                  onPress={() => setSelectedPeriod(period)}
-                  style={[
-                    styles.periodButton,
-                    selectedPeriod === period && styles.periodButtonActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.periodButtonText,
-                      selectedPeriod === period && styles.periodButtonTextActive,
-                    ]}
-                  >
-                    This {period}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* Recent Activity */}
             <View>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Activity</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MyLogs' as never)}
-                  style={styles.viewAllButton}
-                >
-                  <Eye color={Colors.deepPurple} size={16} />
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
               </View>
 
               {recentLogs.length > 0 ? (
@@ -370,11 +340,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    padding: spacing.lg,
     paddingBottom: 100, // Space for nav bar
   },
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

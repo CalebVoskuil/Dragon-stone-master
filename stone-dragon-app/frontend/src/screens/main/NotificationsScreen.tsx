@@ -308,6 +308,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: spacing.lg,
     padding: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   header: {
     flexDirection: 'row',
