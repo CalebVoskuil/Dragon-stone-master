@@ -19,6 +19,8 @@ import {
   GlassmorphicBanner,
 } from '../../components/ui';
 import StudentDetailModal from '../../components/admin/StudentDetailModal';
+import LeaderboardModal from '../../components/admin/LeaderboardModal';
+import NotificationCenterModal from '../../components/admin/NotificationCenterModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -54,6 +56,8 @@ export default function StudentsListScreen() {
   const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -261,8 +265,8 @@ export default function StudentsListScreen() {
             schoolName={user?.school?.name || 'Stone Dragon NPO'}
             welcomeMessage="Students Directory"
             notificationCount={0}
-            onLeaderboardPress={() => {}}
-            onNotificationPress={() => {}}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
             userRole={user?.role}
           />
         </View>
@@ -272,6 +276,18 @@ export default function StudentsListScreen() {
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           student={selectedStudent}
+        />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
         />
 
         {/* School Dropdown Modal - Only shows the 2 schools */}
