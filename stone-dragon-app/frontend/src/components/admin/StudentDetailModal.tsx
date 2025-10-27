@@ -315,11 +315,15 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     fontWeight: '500',
+    marginRight: spacing.sm,
   },
   infoValue: {
     fontSize: Sizes.fontSm,
     color: Colors.text,
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+    flexWrap: 'wrap',
   },
   statsGrid: {
     flexDirection: 'row',

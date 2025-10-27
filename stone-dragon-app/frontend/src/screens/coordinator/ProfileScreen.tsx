@@ -181,14 +181,14 @@ export default function ProfileScreen() {
                 <View style={styles.userDetails}>
                   <View style={styles.userDetail}>
                     <View style={styles.userDetailIcon}>
-                      <Mail color={Colors.deepPurple} size={16} />
+                      <Mail color={Colors.textSecondary} size={16} />
                     </View>
                     <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
                   </View>
 
                   <View style={styles.userDetail}>
                     <View style={styles.userDetailIcon}>
-                      <Briefcase color={Colors.deepPurple} size={16} />
+                      <Briefcase color={Colors.textSecondary} size={16} />
                     </View>
                     <Text style={styles.userDetailText}>
                       {typeof user?.school === 'string' ? user.school : user?.school?.name || 'No school'}
@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 32,
     fontWeight: '700',
-    color: Colors.light,
+    color: Colors.deepPurple,
   },
   userName: {
     ...typography.h1,
