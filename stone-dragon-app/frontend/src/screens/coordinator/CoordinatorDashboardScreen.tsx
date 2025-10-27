@@ -324,8 +324,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingTop: 160, // Increased to account for taller banner (with system UI padding)
-    paddingBottom: spacing.xxl,
+    paddingTop: 130, // Adjusted to bring content slightly higher
+    paddingBottom: 100, // Extra padding to ensure bottom content is visible above nav bar
   },
   thisWeekContainer: {
     flexDirection: 'row',
