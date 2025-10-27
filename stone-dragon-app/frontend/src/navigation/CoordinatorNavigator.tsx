@@ -24,6 +24,8 @@ export default function CoordinatorNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        lazy: true,
+        unmountOnBlur: false,
       }}
     >
       <Tab.Screen

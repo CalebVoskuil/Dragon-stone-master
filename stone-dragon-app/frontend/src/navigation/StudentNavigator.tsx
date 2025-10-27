@@ -24,6 +24,8 @@ export default function StudentNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        lazy: true,
+        unmountOnBlur: false,
       }}
     >
       <Tab.Screen
