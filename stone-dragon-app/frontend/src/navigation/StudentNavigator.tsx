@@ -53,7 +53,7 @@ export default function StudentNavigator() {
         }}
       />
       <Tab.Screen
-        name="Events"
+        name="StudentEvents"
         component={EventsScreen}
         options={{
           title: 'Events',
@@ -61,7 +61,7 @@ export default function StudentNavigator() {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="StudentProfile"
         component={ProfileScreen}
         options={{
           title: 'Profile',
