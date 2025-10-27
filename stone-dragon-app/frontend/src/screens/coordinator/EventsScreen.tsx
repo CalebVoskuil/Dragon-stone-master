@@ -520,7 +520,7 @@ export default function EventsScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={(user?.school as any)?.name || user?.school || 'Stone Dragon NPO'}
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
             welcomeMessage="Events Management"
             notificationCount={0}
             onLeaderboardPress={() => setLeaderboardVisible(true)}

@@ -407,7 +407,7 @@ export default function ClaimsScreen() {
         {/* Glassmorphic Banner - Fixed at top, content scrolls behind */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={user?.school?.name || 'Stone Dragon NPO'}
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
             welcomeMessage="Claims Management"
             notificationCount={filteredClaims.filter(c => c.status === 'pending').length}
             onLeaderboardPress={() => setLeaderboardVisible(true)}
