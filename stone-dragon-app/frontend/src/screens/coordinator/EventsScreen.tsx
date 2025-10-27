@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, MapPin, Clock, Users, ChevronDown } from 'lucide-react-native';
@@ -34,6 +35,7 @@ import { Event } from '../../types';
 export default function EventsScreen() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'create' | 'events'>('create');
+  const slideAnimation = useState(new Animated.Value(0))[0];
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
@@ -178,6 +180,15 @@ export default function EventsScreen() {
     setSelectedCoordinators((prev) => prev.filter((id) => id !== coordinatorId));
   };
 
+  const handleTabChange = (tab: 'create' | 'events') => {
+    setActiveTab(tab);
+    Animated.timing(slideAnimation, {
+      toValue: tab === 'create' ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
   const handleEventPress = (event: any) => {
     setSelectedEvent(event);
     setEventDetailsModalVisible(true);
@@ -186,33 +197,51 @@ export default function EventsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <View style={styles.bannerSpacer} />
+        
+        {/* Segmented Control */}
+        <View style={styles.segmentedControl}>
+          <Animated.View
+            style={[
+              styles.slidingBackground,
+              {
+                transform: [
+                  {
+                    translateX: slideAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 150], // Half the width of the control
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <TouchableOpacity
+            style={styles.segment}
+            onPress={() => handleTabChange('create')}
+          >
+            <Text style={[styles.segmentText, activeTab === 'create' && styles.activeSegmentText]}>
+              Create
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.segment}
+            onPress={() => handleTabChange('events')}
+          >
+            <Text style={[styles.segmentText, activeTab === 'events' && styles.activeSegmentText]}>
+              Events
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
         <ScrollView 
           style={styles.outerScrollView}
           contentContainerStyle={styles.outerScrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
         >
-          <View style={styles.bannerSpacer} />
           
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
-
-          {/* Tab Switcher */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'create' && styles.tabActive]}
-              onPress={() => setActiveTab('create')}
-            >
-              <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
-                Create
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-              onPress={() => setActiveTab('events')}
-            >
-              <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
-                Events
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Content */}
           {activeTab === 'create' ? (
@@ -531,7 +560,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   outerScrollContent: {
-    paddingTop: 80, // Space for segmented control
     paddingBottom: 100, // Space for nav bar
   },
   bannerWrapper: {
@@ -555,20 +583,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     textAlign: 'center',
   },
-  segmentedControlWrapper: {
-    position: 'absolute',
-    top: 130, // Below the banner
-    left: 0,
-    right: 0,
-    zIndex: 9, // Below banner (zIndex: 10) but above content
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
   segmentedControl: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: Sizes.radiusFull,
     padding: 4,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
     position: 'relative',
   },
   slidingBackground: {
