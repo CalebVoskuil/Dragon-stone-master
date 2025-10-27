@@ -125,11 +125,16 @@ export default function ClaimDetailModal({
       animationType="fade"
       transparent
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <View style={styles.modalOverlay}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
+        <ScrollView 
+          style={styles.outerScrollView}
+          contentContainerStyle={styles.outerScrollContent}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -164,8 +169,7 @@ export default function ClaimDetailModal({
                 </View>
               )}
 
-              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Student Info */}
+              {/* Student Info */}
                 <View style={styles.section}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoIcon}>
@@ -275,7 +279,6 @@ export default function ClaimDetailModal({
                     </Text>
                   </View>
                 )}
-              </ScrollView>
 
               {/* Action Buttons (only for pending claims) */}
               {claim.status === 'pending' && (
@@ -316,8 +319,8 @@ export default function ClaimDetailModal({
               )}
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -325,18 +328,20 @@ export default function ClaimDetailModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
     backgroundColor: 'transparent', // No overlay effect above white panel
   },
-  keyboardView: {
-    width: '100%',
-    maxWidth: 500,
+  outerScrollView: {
+    flex: 1,
+  },
+  outerScrollContent: {
+    paddingTop: 140, // Space for banner
+    paddingBottom: 100, // Space for nav bar
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
   },
   modalContainer: {
     width: '100%',
-    maxHeight: '90%',
+    maxWidth: 500,
   },
   modalContent: {
     backgroundColor: Colors.card,
@@ -346,7 +351,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 5, // Lower elevation to stay behind banner and nav
   },
   header: {
     flexDirection: 'row',
@@ -366,7 +371,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: `${Colors.deepPurple}1A`,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -399,12 +404,9 @@ const styles = StyleSheet.create({
     color: Colors.light,
     textTransform: 'uppercase',
   },
-  scrollView: {
-    maxHeight: 500,
-    padding: spacing.lg,
-  },
   section: {
     marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   infoRow: {
     flexDirection: 'row',
@@ -415,7 +417,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: `${Colors.deepPurple}0D`,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },

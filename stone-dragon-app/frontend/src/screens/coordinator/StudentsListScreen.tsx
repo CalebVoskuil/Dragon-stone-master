@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 200, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: Sizes.fontLg,
     fontWeight: '700',
-    color: Colors.light,
+    color: Colors.deepPurple,
   },
   studentInfo: {
     flex: 1,

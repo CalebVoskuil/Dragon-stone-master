@@ -123,6 +123,7 @@ export default function StudentCoordinatorsModal({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
         <Animated.View
@@ -264,12 +265,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent', // No overlay effect above white panel
     justifyContent: 'flex-end',
+    zIndex: 5, // Behind banner (zIndex: 10) and nav bar
   },
   modalContainer: {
     backgroundColor: Colors.light,
     borderTopLeftRadius: Sizes.radiusXl,
     borderTopRightRadius: Sizes.radiusXl,
     height: '90%',
+    zIndex: 5,
   },
   modalContent: {
     flex: 1,
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.textSecondary,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
@@ -407,7 +410,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     ...typography.body,
-    color: Colors.light,
+    color: Colors.deepPurple,
     fontWeight: '600',
   },
   avatarTextSelected: {
