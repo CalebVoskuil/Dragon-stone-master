@@ -166,7 +166,7 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('student1@example.com');
+                      setEmail('alex.smith@student.ucta.ac.za');
                       setPassword('password123');
                     }}
                   >
@@ -176,7 +176,7 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('coordinator1@example.com');
+                      setEmail('coordinator.rallim@example.com');
                       setPassword('password123');
                     }}
                   >
@@ -188,7 +188,7 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('studentcoordinator1@example.com');
+                      setEmail('studentcoord.rallim@example.com');
                       setPassword('password123');
                     }}
                   >
@@ -198,7 +198,7 @@ export default function LoginScreen() {
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      setEmail('admin1@example.com');
+                      setEmail('admin@stonedragon.org');
                       setPassword('password123');
                     }}
                   >

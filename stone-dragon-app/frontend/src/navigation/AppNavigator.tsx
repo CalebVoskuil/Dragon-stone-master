@@ -44,7 +44,7 @@ const MainStackNavigator: React.FC = () => {
   
   // Determine which navigator to use based on user role
   // COORDINATOR and ADMIN get the coordinator view
-  // STUDENT, VOLUNTEER, and STUDENT_COORDINATOR get the student view
+  // STUDENT and STUDENT_COORDINATOR get the student view
   const isCoordinator = user?.role === 'COORDINATOR' || user?.role === 'ADMIN';
 
   return (

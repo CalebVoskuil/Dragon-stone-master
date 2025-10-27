@@ -8,7 +8,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
+  role: 'STUDENT' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
   schoolId?: string;
   school?: string; // School name
   isActive: boolean;
