@@ -11,7 +11,7 @@ export interface User {
   updatedAt: string;
 }
 
-export type UserRole = 'STUDENT' | 'VOLUNTEER' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
 
 // School types
 export interface School {

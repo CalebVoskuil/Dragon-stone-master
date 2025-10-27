@@ -137,31 +137,6 @@ async function main() {
         schoolId: 'school-2',
       },
     }),
-    // Volunteers - 1 per school
-    prisma.user.upsert({
-      where: { email: 'volunteer.rallim@example.com' },
-      update: {},
-      create: {
-        email: 'volunteer.rallim@example.com',
-        password: hashedPassword,
-        firstName: 'Mike',
-        lastName: 'Wilson',
-        role: 'VOLUNTEER',
-        schoolId: 'school-1',
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'volunteer.elkanah@example.com' },
-      update: {},
-      create: {
-        email: 'volunteer.elkanah@example.com',
-        password: hashedPassword,
-        firstName: 'Lisa',
-        lastName: 'Anderson',
-        role: 'VOLUNTEER',
-        schoolId: 'school-2',
-      },
-    }),
     // Coordinators - 1 per school
     prisma.user.upsert({
       where: { email: 'coordinator.rallim@example.com' },
@@ -650,9 +625,9 @@ async function main() {
   console.log('✅ Volunteer logs created:', volunteerLogs.length);
 
   // Award some badges based on total hours
-  const userBadges = [];
+  const userBadges: any[] = [];
 
-  // Student1 has 5.5 hours total - should get "First Steps" badge
+  // Alex (Student at Rallim) has 5.5 hours total - should get "First Steps" badge
   if (users[0]) {
     const firstStepsBadge = await prisma.userBadge.upsert({
       where: {
@@ -664,24 +639,6 @@ async function main() {
       update: {},
       create: {
         userId: users[0].id,
-        badgeId: 'badge-1',
-      },
-    });
-    userBadges.push(firstStepsBadge);
-  }
-
-  // Volunteer1 has 6 hours total - should get "First Steps" badge
-  if (users[2]) {
-    const firstStepsBadge = await prisma.userBadge.upsert({
-      where: {
-        userId_badgeId: {
-          userId: users[2].id,
-          badgeId: 'badge-1',
-        },
-      },
-      update: {},
-      create: {
-        userId: users[2].id,
         badgeId: 'badge-1',
       },
     });
@@ -706,7 +663,6 @@ async function main() {
   console.log('    - john.doe@rallim.edu.za');
   console.log('    - emma.wilson@rallim.edu.za');
   console.log('    - michael.brown@rallim.edu.za');
-  console.log('  Volunteer: volunteer.rallim@example.com');
   console.log('  Coordinator: coordinator.rallim@example.com');
   console.log('  Student Coordinator: studentcoord.rallim@example.com');
   
@@ -716,7 +672,6 @@ async function main() {
   console.log('    - oliver.jones@elkanahhouse.edu.za');
   console.log('    - sophia.davis@elkanahhouse.edu.za');
   console.log('    - liam.miller@elkanahhouse.edu.za');
-  console.log('  Volunteer: volunteer.elkanah@example.com');
   console.log('  Coordinator: coordinator.elkanah@example.com');
   console.log('  Student Coordinator: studentcoord.elkanah@example.com');
   

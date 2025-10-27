@@ -115,8 +115,8 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
 
     const where: any = {};
 
-    // Students, volunteers, and student coordinators can only see their own logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
+    // Students and student coordinators can only see their own logs
+    if (userRole === 'STUDENT' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
     }
 
@@ -238,8 +238,8 @@ export const getVolunteerLogById = async (req: Request, res: Response): Promise<
 
     const where: any = { id };
 
-    // Students, volunteers, and student coordinators can only see their own logs
-    if (userRole === 'STUDENT' || userRole === 'VOLUNTEER' || userRole === 'STUDENT_COORDINATOR') {
+    // Students and student coordinators can only see their own logs
+    if (userRole === 'STUDENT' || userRole === 'STUDENT_COORDINATOR') {
       where.userId = userId;
     }
 
