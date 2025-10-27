@@ -262,7 +262,7 @@ export default function StudentCoordinatorsModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent', // No overlay effect above white panel
     justifyContent: 'flex-end',
   },
   modalContainer: {

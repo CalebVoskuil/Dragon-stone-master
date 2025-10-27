@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { X, User, School, Award, Clock, TrendingUp, Mail } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -69,7 +68,7 @@ export default function StudentDetailModal({
       transparent
       onRequestClose={onClose}
     >
-      <BlurView intensity={60} tint="dark" style={styles.modalOverlay}>
+      <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             {/* Close Button */}
@@ -204,7 +203,7 @@ export default function StudentDetailModal({
             </ScrollView>
           </View>
         </View>
-      </BlurView>
+      </View>
     </Modal>
   );
 }
@@ -215,6 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
+    backgroundColor: 'transparent', // No overlay effect above white panel
   },
   modalContainer: {
     width: '100%',
