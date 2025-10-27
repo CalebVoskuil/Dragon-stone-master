@@ -10,14 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model - represents students, volunteers, and coordinators
+// User model - represents students, coordinators, and admins
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
   firstName String
   lastName  String
-  role      String   @default("STUDENT") // STUDENT, VOLUNTEER, COORDINATOR, STUDENT_COORDINATOR, ADMIN
+  role      String   @default("STUDENT") // STUDENT, COORDINATOR, STUDENT_COORDINATOR, ADMIN
   schoolId  String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -173,6 +173,6 @@ model EventRegistration {
 }
 
 // Note: SQLite doesn't support enums, so we use string literals
-// UserRole: "STUDENT" | "VOLUNTEER" | "COORDINATOR" | "STUDENT_COORDINATOR" | "ADMIN"
+// UserRole: "STUDENT" | "COORDINATOR" | "STUDENT_COORDINATOR" | "ADMIN"
 // LogStatus: "pending" | "approved" | "rejected"
 // ClaimType: "event" | "donation" | "volunteer" | "other"
