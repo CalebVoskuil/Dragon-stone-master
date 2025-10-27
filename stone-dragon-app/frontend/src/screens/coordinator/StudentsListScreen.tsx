@@ -12,7 +12,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
+import { Search, User, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
   GlassmorphicCard,
@@ -169,12 +169,6 @@ export default function StudentsListScreen() {
           <Text style={styles.studentName}>
             {item.firstName} {item.lastName}
           </Text>
-          <View style={styles.studentMeta}>
-            <SchoolIcon color={Colors.textSecondary} size={14} />
-            <Text style={styles.studentSchool}>
-              {item.school?.name || 'No School'}
-            </Text>
-          </View>
           <Text style={styles.studentEmail}>{item.email}</Text>
         </View>
         <View style={styles.studentStats}>
@@ -428,16 +422,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 4,
-  },
-  studentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  studentSchool: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
-    marginLeft: spacing.xs,
   },
   studentEmail: {
     fontSize: Sizes.fontXs,
