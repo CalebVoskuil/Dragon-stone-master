@@ -32,6 +32,7 @@ import {
   GlassmorphicCard,
   GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -53,6 +54,8 @@ export default function ProfileScreen() {
     totalLogs: 0,
     approvedLogs: 0,
   });
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     fetchUserStats();
@@ -256,11 +259,21 @@ export default function ProfileScreen() {
           <GlassmorphicBanner
             schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
             welcomeMessage="Profile"
-            onLeaderboardPress={() => {/* Can add navigation if needed */}}
-            onNotificationPress={() => {/* Can add navigation if needed */}}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
             userRole={user?.role}
           />
         </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );

@@ -15,6 +15,7 @@ import {
   GlassmorphicCard,
   GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -39,6 +40,8 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -256,11 +259,21 @@ export default function NotificationsScreen() {
           <GlassmorphicBanner
             schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
             welcomeMessage="Notifications"
-            onLeaderboardPress={() => {/* Can add navigation if needed */}}
-            onNotificationPress={() => {/* Can add navigation if needed */}}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationModalVisible(true)}
             userRole={user?.role}
           />
         </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationModalVisible}
+          onClose={() => setNotificationModalVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
