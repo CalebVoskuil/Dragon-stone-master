@@ -20,7 +20,7 @@ import {
   SDButton,
   GlassmorphicBanner,
 } from '../../components/ui';
-import { StudentCoordinatorsModal, EventDetailsModal } from '../../components/admin';
+import { StudentCoordinatorsModal, EventDetailsModal, LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -47,6 +47,8 @@ export default function EventsScreen() {
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
   const [eventDetailsModalVisible, setEventDetailsModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -521,8 +523,8 @@ export default function EventsScreen() {
             schoolName={(user?.school as any)?.name || user?.school || 'Stone Dragon NPO'}
             welcomeMessage="Events Management"
             notificationCount={0}
-            onLeaderboardPress={() => {}}
-            onNotificationPress={() => {}}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
             userRole={user?.role}
           />
         </View>
@@ -546,6 +548,18 @@ export default function EventsScreen() {
           visible={eventDetailsModalVisible}
           onClose={() => setEventDetailsModalVisible(false)}
           event={selectedEvent}
+        />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
         />
       </SafeAreaView>
     </GradientBackground>

@@ -21,6 +21,8 @@ import {
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
+import LeaderboardModal from '../../components/admin/LeaderboardModal';
+import NotificationCenterModal from '../../components/admin/NotificationCenterModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -48,6 +50,8 @@ export default function ClaimsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -343,6 +347,18 @@ export default function ClaimsScreen() {
           onReject={handleReject}
         />
 
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
+
         {/* School Dropdown Modal */}
         <Modal
           visible={schoolDropdownVisible}
@@ -394,8 +410,8 @@ export default function ClaimsScreen() {
             schoolName={user?.school?.name || 'Stone Dragon NPO'}
             welcomeMessage="Claims Management"
             notificationCount={filteredClaims.filter(c => c.status === 'pending').length}
-            onLeaderboardPress={() => {}}
-            onNotificationPress={() => {}}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
             userRole={user?.role}
           />
         </View>
