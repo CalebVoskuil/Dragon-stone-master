@@ -16,7 +16,10 @@ import CoordinatorNavigator from './CoordinatorNavigator';
 // Import additional screens
 import SchoolsScreen from '../screens/main/SchoolsScreen';
 import MyLogsScreen from '../screens/main/MyLogsScreen';
-import NotificationsScreen from '../screens/coordinator/NotificationsScreen';
+import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
+import CoordinatorNotificationsScreen from '../screens/coordinator/NotificationsScreen';
+import StudentCoordinatorClaimsScreen from '../screens/studentCoordinator/StudentCoordinatorClaimsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -40,6 +43,8 @@ const MainStackNavigator: React.FC = () => {
   const { user } = useAuth();
   
   // Determine which navigator to use based on user role
+  // COORDINATOR and ADMIN get the coordinator view
+  // STUDENT and STUDENT_COORDINATOR get the student view
   const isCoordinator = user?.role === 'COORDINATOR' || user?.role === 'ADMIN';
 
   return (
@@ -74,11 +79,27 @@ const MainStackNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen 
+        name="Leaderboard" 
+        component={LeaderboardScreen}
+        options={{ 
+          headerShown: false
+        }}
+      />
+      <Stack.Screen 
         name="Notifications" 
-        component={NotificationsScreen}
+        component={isCoordinator ? CoordinatorNotificationsScreen : NotificationsScreen}
         options={{ 
           headerShown: true, 
           title: 'Notifications',
+          headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen 
+        name="StudentCoordinatorClaims" 
+        component={StudentCoordinatorClaimsScreen}
+        options={{ 
+          headerShown: true, 
+          title: 'Event Claims',
           headerBackTitle: 'Back'
         }}
       />
@@ -88,7 +109,9 @@ const MainStackNavigator: React.FC = () => {
 
 // Root App Navigator
 const AppNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  console.log('AppNavigator - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
 
   if (isLoading) {
     // You can add a loading screen here

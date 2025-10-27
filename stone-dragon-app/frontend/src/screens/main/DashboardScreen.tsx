@@ -16,7 +16,7 @@ import {
   Award,
   Eye,
   Bell,
-  Settings,
+  Trophy,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -127,10 +127,10 @@ export default function DashboardScreen() {
         <BlurView intensity={60} tint="light" style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Settings' as never)}
+              onPress={() => navigation.navigate('Leaderboard' as never)}
               style={styles.headerButton}
             >
-              <Settings color={Colors.deepPurple} size={20} />
+              <Trophy color={Colors.deepPurple} size={20} />
             </TouchableOpacity>
 
             <View style={styles.headerCenter}>
@@ -222,7 +222,6 @@ export default function DashboardScreen() {
             <View style={styles.quickActions}>
               <SDButton
                 variant="primary-filled"
-                fullWidth
                 onPress={() => navigation.navigate('LogHours' as never)}
                 disabled={!canLogHours}
                 style={styles.actionButton}
@@ -233,7 +232,6 @@ export default function DashboardScreen() {
 
               <SDButton
                 variant="ghost"
-                fullWidth
                 onPress={() => navigation.navigate('Badges' as never)}
                 style={styles.actionButton}
               >
@@ -439,12 +437,15 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     height: 64,
-    flexDirection: 'column',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
+    flex: 1,
   },
   actionButtonText: {
     fontSize: Sizes.fontSm,
-    marginTop: spacing.xs,
+    fontWeight: '600',
   },
   periodSelector: {
     flexDirection: 'row',

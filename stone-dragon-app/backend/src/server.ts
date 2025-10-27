@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
+import { MemoryStore } from 'express-session';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -17,6 +18,8 @@ import coordinatorRoutes from './routes/coordinator';
 import badgeRoutes from './routes/badges';
 import schoolRoutes from './routes/schools';
 import docsRoutes from './routes/docs';
+import eventRoutes from './routes/events';
+import studentCoordinatorRoutes from './routes/studentCoordinator';
 
 // Load environment variables
 dotenv.config();
@@ -30,8 +33,10 @@ app.use(compression());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env['CORS_ORIGIN'] || 'http://localhost:19006',
+  origin: true, // Allow all origins for development
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Rate limiting
@@ -50,13 +55,17 @@ if (process.env['NODE_ENV'] === 'development') {
 }
 
 // Session configuration
+const sessionStore = new MemoryStore();
 app.use(session({
+  store: sessionStore,
   secret: process.env['SESSION_SECRET'] || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env['NODE_ENV'] === 'production',
+    secure: false, // Set to false for development (HTTP)
+    httpOnly: true, // Prevent JavaScript access
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax',
   },
 }));
 
@@ -86,6 +95,8 @@ app.use('/api/coordinator', coordinatorRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use('/api/docs', docsRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/student-coordinator', studentCoordinatorRoutes);
 
 // API documentation endpoint
 app.get('/api', (_req, res) => {
@@ -97,6 +108,8 @@ app.get('/api', (_req, res) => {
       users: '/api/users',
       volunteerLogs: '/api/volunteer-logs',
       coordinator: '/api/coordinator',
+      studentCoordinator: '/api/student-coordinator',
+      events: '/api/events',
       badges: '/api/badges',
       schools: '/api/schools',
       docs: '/api/docs',

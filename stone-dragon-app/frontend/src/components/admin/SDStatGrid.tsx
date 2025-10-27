@@ -34,15 +34,15 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon: Icon, color, trend, subtitle }: StatCardProps) {
   return (
-    <View style={styles.statCard}>
+    <View style={[styles.statCard, { backgroundColor: `${color}20` }]}>
       <View style={styles.statCardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: `${color}33` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: `${color}40` }]}>
           <Icon color={color} size={20} />
         </View>
 
         {trend && (
           <View style={styles.trendContainer}>
-            <TrendingUp color="rgba(255, 255, 255, 0.6)" size={12} />
+            <TrendingUp color={Colors.text} size={12} />
             <Text style={styles.trendText}>{trend}</Text>
           </View>
         )}
@@ -70,7 +70,6 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.pending}
           icon={Clock}
           color={Colors.orange}
-          trend="+2"
           subtitle="requires attention"
         />
 
@@ -79,7 +78,6 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.today}
           icon={Calendar}
           color={Colors.golden}
-          trend="+5"
           subtitle="submitted today"
         />
 
@@ -88,8 +86,7 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.approved}
           icon={Check}
           color={Colors.green}
-          trend="+12"
-          subtitle="this week"
+          subtitle="total approved"
         />
 
         <StatCard
@@ -109,12 +106,7 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
         </View>
 
         <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>{stats.avgResponseTime}h</Text>
-          <Text style={styles.metricLabel}>Avg Response</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>98%</Text>
+          <Text style={styles.metricValue}>{stats.avgResponseTime}</Text>
           <Text style={styles.metricLabel}>Approval Rate</Text>
         </View>
       </View>
@@ -135,11 +127,10 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: Sizes.radiusLg,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   statCardHeader: {
     flexDirection: 'row',
@@ -161,23 +152,26 @@ const styles = StyleSheet.create({
   },
   trendText: {
     fontSize: Sizes.fontXs,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.text,
+    fontWeight: '600',
   },
   statCardContent: {
     gap: spacing.xs,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.light,
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.dark,
   },
   statTitle: {
     fontSize: Sizes.fontSm,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.text,
+    fontWeight: '600',
   },
   statSubtitle: {
     fontSize: Sizes.fontXs,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
   metricsRow: {
     flexDirection: 'row',
@@ -185,21 +179,24 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: Sizes.radiusMd,
     padding: spacing.md,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   metricValue: {
-    fontSize: Sizes.fontLg,
-    fontWeight: '600',
-    color: Colors.light,
+    fontSize: Sizes.fontXl,
+    fontWeight: '700',
+    color: Colors.dark,
     marginBottom: spacing.xs,
   },
   metricLabel: {
     fontSize: Sizes.fontXs,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textSecondary,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });
 

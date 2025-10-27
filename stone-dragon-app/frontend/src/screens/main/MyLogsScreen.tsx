@@ -23,7 +23,8 @@ import { format } from 'date-fns';
 import { useAuth } from '../../store/AuthContext';
 import { apiService } from '../../services/api';
 import { VolunteerLog } from '../../types';
-import { theme, spacing } from '../../theme/theme';
+import { theme } from '../../theme/theme';
+import { spacing } from '../../constants/Sizes';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
 

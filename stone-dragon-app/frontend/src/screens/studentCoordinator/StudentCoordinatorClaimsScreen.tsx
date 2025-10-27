@@ -9,10 +9,8 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
-  Modal,
-  ScrollView,
 } from 'react-native';
-import { Search, Filter, ChevronDown } from 'lucide-react-native';
+import { Search, Filter } from 'lucide-react-native';
 import {
   GradientBackground,
   SDButton,
@@ -24,21 +22,14 @@ import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { apiService } from '../../services/api';
-import { useAuth } from '../../store/AuthContext';
 
 /**
- * ClaimsScreen - Detailed claims management
- * Full-screen claims triage with search and filters
+ * StudentCoordinatorClaimsScreen - Event claims management for student coordinators
+ * Shows only event claims for events where the user is a student coordinator
  */
-export default function ClaimsScreen() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
-
+export default function StudentCoordinatorClaimsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>(isAdmin ? 'approved' : 'pending');
-  const [schoolFilter, setSchoolFilter] = useState<string>('all');
-  const [schools, setSchools] = useState<any[]>([]);
-  const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [allClaims, setAllClaims] = useState<any[]>([]);
@@ -49,41 +40,17 @@ export default function ClaimsScreen() {
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchSchools();
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
     fetchClaims();
-  }, [statusFilter, schoolFilter]); // Refetch when filters change
-
-  const fetchSchools = async () => {
-    try {
-      const response = await apiService.getSchools();
-      if (response.success && response.data) {
-        setSchools(response.data);
-      }
-    } catch (err: any) {
-      console.error('Error fetching schools:', err);
-    }
-  };
+  }, [statusFilter]);
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Build params based on filters
-      const params: any = {};
-      if (statusFilter !== 'all') {
-        params.status = statusFilter;
-      }
-      if (isAdmin && schoolFilter !== 'all') {
-        params.schoolId = schoolFilter;
-      }
-      
-      const response = await apiService.getVolunteerLogs(params);
+      // Fetch event claims for assigned events
+      const params = statusFilter === 'all' ? {} : { status: statusFilter };
+      const response = await apiService.getPendingEventClaims(params);
       
       if (response.success && response.data) {
         setAllClaims(response.data);
@@ -124,14 +91,16 @@ export default function ClaimsScreen() {
     
     const studentName = claim.user ? `${claim.user.firstName} ${claim.user.lastName}` : '';
     const claimId = `#${claim.id.substring(0, 8).toUpperCase()}`;
+    const eventTitle = claim.event?.title || '';
     const matchesSearch = studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         claimId.toLowerCase().includes(searchTerm.toLowerCase());
+                         claimId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         eventTitle.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
   const handleApprove = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'approved', message);
+      await apiService.reviewEventClaim(id, 'approved', message);
       await fetchClaims();
     } catch (error) {
       console.error('Error approving claim:', error);
@@ -141,7 +110,7 @@ export default function ClaimsScreen() {
 
   const handleReject = async (id: string, message: string = '') => {
     try {
-      await apiService.reviewVolunteerLog(id, 'rejected', message);
+      await apiService.reviewEventClaim(id, 'rejected', message);
       await fetchClaims();
     } catch (error) {
       console.error('Error rejecting claim:', error);
@@ -161,6 +130,8 @@ export default function ClaimsScreen() {
         status: claim.status,
         createdAt: claim.createdAt,
         coordinatorComment: claim.coordinatorComment,
+        eventTitle: claim.event?.title,
+        proofFileName: claim.proofFileName,
       });
       setModalVisible(true);
     }
@@ -184,7 +155,7 @@ export default function ClaimsScreen() {
   const handleBulkApprove = async () => {
     try {
       await Promise.all(
-        selectedClaims.map((claimId) => apiService.reviewVolunteerLog(claimId, 'approved'))
+        selectedClaims.map((claimId) => apiService.reviewEventClaim(claimId, 'approved'))
       );
       await fetchClaims();
       setSelectionMode(false);
@@ -197,7 +168,7 @@ export default function ClaimsScreen() {
   const handleBulkReject = async () => {
     try {
       await Promise.all(
-        selectedClaims.map((claimId) => apiService.reviewVolunteerLog(claimId, 'rejected'))
+        selectedClaims.map((claimId) => apiService.reviewEventClaim(claimId, 'rejected'))
       );
       await fetchClaims();
       setSelectionMode(false);
@@ -212,9 +183,9 @@ export default function ClaimsScreen() {
       id={item.id}
       studentName={item.user ? `${item.user.firstName} ${item.user.lastName}` : 'Unknown'}
       claimId={`#${item.id.substring(0, 8).toUpperCase()}`}
-      date={formatDate(item.createdAt)}
       hours={item.hours}
       description={item.description}
+      date={formatDate(item.createdAt)}
       status={item.status}
       isSelected={selectedClaims.includes(item.id)}
       onSelect={handleSelect}
@@ -223,6 +194,7 @@ export default function ClaimsScreen() {
       onCardPress={handleCardPress}
       onLongPress={handleLongPress}
       selectionMode={selectionMode}
+      eventTitle={item.event?.title}
     />
   );
 
@@ -231,42 +203,26 @@ export default function ClaimsScreen() {
       <SafeAreaView style={styles.container}>
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
           {/* Header */}
-          <Text style={styles.title}>Claims Management</Text>
+          <Text style={styles.title}>Event Claims</Text>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search color={Colors.textSecondary} size={20} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by name or claim ID..."
+              placeholder="Search by student, claim ID, or event..."
               placeholderTextColor={Colors.textSecondary}
               value={searchTerm}
               onChangeText={setSearchTerm}
             />
           </View>
 
-          {/* Admin School Filter */}
-          {isAdmin && (
-            <TouchableOpacity
-              style={styles.schoolDropdown}
-              onPress={() => setSchoolDropdownVisible(true)}
-            >
-              <Text style={styles.schoolDropdownLabel}>School Filter</Text>
-              <View style={styles.schoolDropdownValue}>
-                <Text style={styles.schoolDropdownText}>
-                  {schoolFilter === 'all' ? 'All Schools' : schools.find(s => s.id === schoolFilter)?.name || 'Select School'}
-                </Text>
-                <ChevronDown color={Colors.textSecondary} size={20} />
-              </View>
-            </TouchableOpacity>
-          )}
-
           {/* Filter Tabs */}
           <View style={styles.filterTabs}>
-            {(isAdmin ? ['all', 'approved', 'rejected'] : ['all', 'pending', 'approved', 'rejected']).map((filter) => (
+            {(['all', 'pending', 'approved', 'rejected'] as const).map((filter) => (
               <TouchableOpacity
                 key={filter}
-                onPress={() => setStatusFilter(filter as any)}
+                onPress={() => setStatusFilter(filter)}
                 style={[styles.filterTab, statusFilter === filter && styles.filterTabActive]}
               >
                 <Text style={[styles.filterTabText, statusFilter === filter && styles.filterTabTextActive]}>
@@ -320,7 +276,11 @@ export default function ClaimsScreen() {
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyTitle}>No claims found</Text>
                   <Text style={styles.emptyDescription}>
-                    {searchTerm ? 'Try adjusting your search' : 'No claims match the selected filter'}
+                    {searchTerm 
+                      ? 'Try adjusting your search' 
+                      : statusFilter === 'pending' 
+                        ? 'No pending claims to review'
+                        : `No ${statusFilter} claims`}
                   </Text>
                 </View>
               }
@@ -336,51 +296,6 @@ export default function ClaimsScreen() {
           onApprove={handleApprove}
           onReject={handleReject}
         />
-
-        {/* School Dropdown Modal */}
-        <Modal
-          visible={schoolDropdownVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setSchoolDropdownVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setSchoolDropdownVisible(false)}
-          >
-            <View style={styles.schoolDropdownModal}>
-              <Text style={styles.schoolDropdownTitle}>Select School</Text>
-              <ScrollView style={styles.schoolList}>
-                <TouchableOpacity
-                  style={[styles.schoolOption, schoolFilter === 'all' && styles.schoolOptionActive]}
-                  onPress={() => {
-                    setSchoolFilter('all');
-                    setSchoolDropdownVisible(false);
-                  }}
-                >
-                  <Text style={[styles.schoolOptionText, schoolFilter === 'all' && styles.schoolOptionTextActive]}>
-                    All Schools
-                  </Text>
-                </TouchableOpacity>
-                {schools.map((school) => (
-                  <TouchableOpacity
-                    key={school.id}
-                    style={[styles.schoolOption, schoolFilter === school.id && styles.schoolOptionActive]}
-                    onPress={() => {
-                      setSchoolFilter(school.id);
-                      setSchoolDropdownVisible(false);
-                    }}
-                  >
-                    <Text style={[styles.schoolOptionText, schoolFilter === school.id && styles.schoolOptionTextActive]}>
-                      {school.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </TouchableOpacity>
-        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -501,69 +416,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  schoolDropdown: {
-    backgroundColor: Colors.card,
-    borderRadius: Sizes.radiusMd,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  schoolDropdownLabel: {
-    fontSize: Sizes.fontXs,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  schoolDropdownValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  schoolDropdownText: {
-    fontSize: Sizes.fontMd,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  schoolDropdownModal: {
-    backgroundColor: Colors.card,
-    borderRadius: Sizes.radiusLg,
-    padding: spacing.lg,
-    width: '85%',
-    maxHeight: '70%',
-  },
-  schoolDropdownTitle: {
-    fontSize: Sizes.fontLg,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: spacing.md,
-  },
-  schoolList: {
-    maxHeight: 400,
-  },
-  schoolOption: {
-    padding: spacing.md,
-    borderRadius: Sizes.radiusMd,
-    marginBottom: spacing.sm,
-    backgroundColor: Colors.background,
-  },
-  schoolOptionActive: {
-    backgroundColor: Colors.deepPurple,
-  },
-  schoolOptionText: {
-    fontSize: Sizes.fontMd,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  schoolOptionTextActive: {
-    color: Colors.light,
   },
 });
 

@@ -13,17 +13,16 @@ import {
 import {
   User,
   Mail,
-  School,
-  Calendar,
-  Award,
+  Briefcase,
   Clock,
+  Award,
+  Users,
   LogOut,
   ChevronRight,
   Settings,
   Bell,
   HelpCircle,
   Shield,
-  FileText,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -39,33 +38,38 @@ import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../services/api';
 
 /**
- * ProfileScreen - User profile and settings
- * Displays user information and app settings
+ * ProfileScreen - Coordinator profile and settings
+ * Displays coordinator information and app settings
  */
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userStats, setUserStats] = useState({
-    totalHours: 0,
-    totalLogs: 0,
-    approvedLogs: 0,
+  const [coordinatorStats, setCoordinatorStats] = useState({
+    totalReviewed: 0,
+    pendingReview: 0,
+    activeStudents: 0,
   });
 
   useEffect(() => {
-    fetchUserStats();
+    fetchCoordinatorStats();
   }, []);
 
-  const fetchUserStats = async () => {
+  const fetchCoordinatorStats = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getUserStats();
+      const response = await apiService.getCoordinatorDashboard();
       if (response.success && response.data) {
-        setUserStats(response.data);
+        const stats = response.data.statistics;
+        setCoordinatorStats({
+          totalReviewed: stats.approvedLogs + stats.rejectedLogs,
+          pendingReview: stats.pendingLogs,
+          activeStudents: stats.activeStudents || 0,
+        });
       }
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      console.error('Error fetching coordinator stats:', error);
     } finally {
       setLoading(false);
     }
@@ -73,7 +77,7 @@ export default function ProfileScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchUserStats();
+    await fetchCoordinatorStats();
     setRefreshing(false);
   };
 
@@ -96,32 +100,26 @@ export default function ProfileScreen() {
 
   const stats = [
     {
-      label: 'Total Hours',
-      value: userStats.totalHours,
-      icon: Clock,
+      label: 'Total Reviewed',
+      value: coordinatorStats.totalReviewed,
+      icon: Award,
       color: Colors.deepPurple,
     },
     {
-      label: 'Total Logs',
-      value: userStats.totalLogs,
-      icon: Award,
-      color: Colors.golden,
+      label: 'Pending',
+      value: coordinatorStats.pendingReview,
+      icon: Clock,
+      color: Colors.orange,
     },
     {
-      label: 'Approved',
-      value: userStats.approvedLogs,
-      icon: Calendar,
+      label: 'Students',
+      value: coordinatorStats.activeStudents,
+      icon: Users,
       color: Colors.green,
     },
   ];
 
   const menuItems = [
-    // Show Claims option only for Student Coordinators
-    ...(user?.role === 'STUDENT_COORDINATOR' ? [{
-      icon: FileText,
-      label: 'Claims',
-      onPress: () => (navigation as any).navigate('StudentCoordinatorClaims'),
-    }] : []),
     {
       icon: Settings,
       label: 'Account Settings',
@@ -162,89 +160,87 @@ export default function ProfileScreen() {
               <Text style={styles.loadingText}>Loading profile...</Text>
             </View>
           ) : (
-            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+            <GlassmorphicCard intensity={100} style={styles.mainCard}>
               {/* User Info Card */}
               <SDCard variant="elevated" padding="lg" style={styles.userCard}>
-              <View style={styles.avatarContainer}>
-                <View style={styles.avatar}>
-                  <User color={Colors.light} size={40} />
-                </View>
-              </View>
-
-              <Text style={styles.userName}>
-                {user?.firstName} {user?.lastName}
-              </Text>
-              <Text style={styles.userRole}>
-                {user?.role === 'STUDENT' ? 'Student' : user?.role === 'STUDENT_COORDINATOR' ? 'Student Coordinator' : user?.role}
-              </Text>
-
-              <View style={styles.userDetails}>
-                <View style={styles.userDetail}>
-                  <Mail color={Colors.textSecondary} size={16} />
-                  <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
-                </View>
-
-                {user?.school && (
-                  <View style={styles.userDetail}>
-                    <School color={Colors.textSecondary} size={16} />
-                    <Text style={styles.userDetailText}>{user.school}</Text>
+                <View style={styles.avatarContainer}>
+                  <View style={styles.avatar}>
+                    <User color={Colors.light} size={40} />
                   </View>
-                )}
-              </View>
-            </SDCard>
+                </View>
 
-            {/* Stats Grid */}
-            <View style={styles.statsGrid}>
-              {stats.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <SDCard key={index} variant="elevated" padding="md" style={styles.statCard}>
-                    <View style={[styles.statIcon, { backgroundColor: `${stat.color}1A` }]}>
-                      <Icon color={stat.color} size={20} />
+                <Text style={styles.userName}>
+                  {user?.firstName} {user?.lastName}
+                </Text>
+                <Text style={styles.userRole}>Coordinator</Text>
+
+                <View style={styles.userDetails}>
+                  <View style={styles.userDetail}>
+                    <Mail color={Colors.textSecondary} size={16} />
+                    <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
+                  </View>
+
+                  {user?.school && (
+                    <View style={styles.userDetail}>
+                      <Briefcase color={Colors.textSecondary} size={16} />
+                      <Text style={styles.userDetailText}>{user.school}</Text>
                     </View>
-                    <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
-                  </SDCard>
-                );
-              })}
-            </View>
+                  )}
+                </View>
+              </SDCard>
 
-            {/* Menu Items */}
-            <View style={styles.menuSection}>
-              <Text style={styles.sectionTitle}>Settings</Text>
-              {menuItems.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={item.onPress}
-                    style={styles.menuItem}
-                  >
-                    <View style={styles.menuItemLeft}>
-                      <View style={styles.menuIcon}>
-                        <Icon color={Colors.deepPurple} size={20} />
+              {/* Stats Grid */}
+              <View style={styles.statsGrid}>
+                {stats.map((stat, index) => {
+                  const Icon = stat.icon;
+                  return (
+                    <SDCard key={index} variant="elevated" padding="md" style={styles.statCard}>
+                      <View style={[styles.statIcon, { backgroundColor: `${stat.color}1A` }]}>
+                        <Icon color={stat.color} size={20} />
                       </View>
-                      <Text style={styles.menuLabel}>{item.label}</Text>
-                    </View>
-                    <ChevronRight color={Colors.textSecondary} size={20} />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                      <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+                      <Text style={styles.statLabel}>{stat.label}</Text>
+                    </SDCard>
+                  );
+                })}
+              </View>
 
-            {/* Logout Button */}
-            <SDButton
-              variant="reject"
-              fullWidth
-              onPress={handleLogout}
-              style={styles.logoutButton}
-            >
-              <LogOut color={Colors.light} size={20} />
-              <Text style={styles.logoutText}>Logout</Text>
-            </SDButton>
+              {/* Menu Items */}
+              <View style={styles.menuSection}>
+                <Text style={styles.sectionTitle}>Settings</Text>
+                {menuItems.map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={item.onPress}
+                      style={styles.menuItem}
+                    >
+                      <View style={styles.menuItemLeft}>
+                        <View style={styles.menuIcon}>
+                          <Icon color={Colors.deepPurple} size={20} />
+                        </View>
+                        <Text style={styles.menuLabel}>{item.label}</Text>
+                      </View>
+                      <ChevronRight color={Colors.textSecondary} size={20} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-            <Text style={styles.version}>Version 1.0.0</Text>
-          </GlassmorphicCard>
+              {/* Logout Button */}
+              <SDButton
+                variant="reject"
+                fullWidth
+                onPress={handleLogout}
+                style={styles.logoutButton}
+              >
+                <LogOut color={Colors.light} size={20} />
+                <Text style={styles.logoutText}>Logout</Text>
+              </SDButton>
+
+              <Text style={styles.version}>Version 1.0.0</Text>
+            </GlassmorphicCard>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -272,6 +268,7 @@ const styles = StyleSheet.create({
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   userCard: {
     alignItems: 'center',
@@ -401,3 +398,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 });
+

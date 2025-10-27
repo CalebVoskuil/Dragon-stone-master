@@ -87,15 +87,8 @@ export const typography = {
   },
 };
 
-// Spacing
-export const spacing = {
-  xs: Sizes.xs,
-  sm: Sizes.sm,
-  md: Sizes.md,
-  lg: Sizes.lg,
-  xl: Sizes.xl,
-  xxl: Sizes.xxl,
-};
+// Note: Spacing is exported from '../constants/Sizes' to avoid duplication
+// Import spacing directly from Sizes: import { spacing } from '../constants/Sizes'
 
 // Border radius
 export const borderRadius = {

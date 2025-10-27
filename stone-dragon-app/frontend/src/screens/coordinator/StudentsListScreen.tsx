@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,25 +7,36 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
+  RefreshControl,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
-import { Search, User } from 'lucide-react-native';
+import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
-  SDCard,
   GlassmorphicCard,
 } from '../../components/ui';
+import StudentDetailModal from '../../components/admin/StudentDetailModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
+import { useAuth } from '../../store/AuthContext';
 
 interface Student {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  school: string;
+  school?: {
+    id: string;
+    name: string;
+  };
+  schoolId?: string;
   totalHours: number;
-  pendingHours: number;
-  approvedHours: number;
+  pendingLogs?: number;
+  approvedLogs?: number;
 }
 
 /**
@@ -33,54 +44,143 @@ interface Student {
  * View all students with their volunteer statistics
  */
 export default function StudentsListScreen() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [searchTerm, setSearchTerm] = useState('');
+  const [schoolFilter, setSchoolFilter] = useState<string>('');
+  const [schools, setSchools] = useState<any[]>([]);
+  const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock students data
-  const students: Student[] = [
-    { id: '1', name: 'Alex Smith', email: 'alex@example.com', school: 'Cape Town High School', totalHours: 45, pendingHours: 3, approvedHours: 42 },
-    { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com', school: 'Wynberg Girls High', totalHours: 38, pendingHours: 2.5, approvedHours: 35.5 },
-    { id: '3', name: 'Michael Chen', email: 'michael@example.com', school: 'University of Cape Town', totalHours: 62, pendingHours: 0, approvedHours: 62 },
-    { id: '4', name: 'Emma Wilson', email: 'emma@example.com', school: 'Cape Town High School', totalHours: 27, pendingHours: 5, approvedHours: 22 },
-    { id: '5', name: 'James Brown', email: 'james@example.com', school: 'Stellenbosch University', totalHours: 51, pendingHours: 4, approvedHours: 47 },
-  ];
+  useEffect(() => {
+    if (isAdmin) {
+      fetchSchools();
+    } else {
+      fetchStudents();
+    }
+  }, [isAdmin]);
 
-  const filteredStudents = students.filter((student) =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.school.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    if (schoolFilter) {
+      fetchStudents();
+    }
+  }, [schoolFilter]);
+
+  const fetchSchools = async () => {
+    try {
+      const response = await apiService.getSchools();
+      if (response.success && response.data) {
+        setSchools(response.data);
+        // Auto-select first school for admins
+        if (response.data.length > 0 && !schoolFilter) {
+          setSchoolFilter(response.data[0].id);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching schools:', err);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // For admins, don't fetch until a school is selected
+      if (isAdmin && !schoolFilter) {
+        setLoading(false);
+        return;
+      }
+
+      const params: any = { limit: 100 };
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+      if (isAdmin && schoolFilter) {
+        params.schoolId = schoolFilter;
+      }
+
+      const response = await apiService.getStudentsList(params);
+      
+      if (response.success && response.data) {
+        setStudents(response.data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching students:', err);
+      setError(err.message || 'Failed to load students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchStudents();
+    setRefreshing(false);
+  };
+
+  // Debounce search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm !== undefined) {
+        fetchStudents();
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  };
+
+  const handleStudentPress = (student: Student) => {
+    setSelectedStudent({
+      id: student.id,
+      name: `${student.firstName} ${student.lastName}`,
+      email: student.email,
+      school: student.school?.name || 'Unknown School',
+      totalHours: student.totalHours || 0,
+      pendingHours: student.pendingLogs || 0,
+      approvedHours: student.approvedLogs || 0,
+    });
+    setModalVisible(true);
+  };
 
   const renderStudent = ({ item }: { item: Student }) => (
-    <TouchableOpacity onPress={() => console.log('View student:', item.id)}>
-      <SDCard variant="elevated" padding="md" style={styles.studentCard}>
-        <View style={styles.studentHeader}>
-          <View style={styles.avatar}>
-            <User color={Colors.light} size={24} />
-          </View>
-          <View style={styles.studentInfo}>
-            <Text style={styles.studentName}>{item.name}</Text>
-            <Text style={styles.studentEmail}>{item.email}</Text>
-            <Text style={styles.studentSchool}>{item.school}</Text>
-          </View>
+    <TouchableOpacity 
+      onPress={() => handleStudentPress(item)}
+      activeOpacity={0.7}
+      style={styles.studentCard}
+    >
+      <View style={styles.studentContent}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {getInitials(item.firstName, item.lastName)}
+          </Text>
         </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.deepPurple }]}>{item.totalHours}</Text>
-            <Text style={styles.statLabel}>Total Hours</Text>
+        <View style={styles.studentInfo}>
+          <Text style={styles.studentName}>
+            {item.firstName} {item.lastName}
+          </Text>
+          <View style={styles.studentMeta}>
+            <SchoolIcon color={Colors.textSecondary} size={14} />
+            <Text style={styles.studentSchool}>
+              {item.school?.name || 'No School'}
+            </Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.orange }]}>{item.pendingHours}</Text>
-            <Text style={styles.statLabel}>Pending</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: Colors.green }]}>{item.approvedHours}</Text>
-            <Text style={styles.statLabel}>Approved</Text>
-          </View>
+          <Text style={styles.studentEmail}>{item.email}</Text>
         </View>
-      </SDCard>
+        <View style={styles.studentStats}>
+          <Text style={styles.hoursText}>{item.totalHours || 0}h</Text>
+          <Text style={styles.hoursLabel}>Total</Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -88,14 +188,30 @@ export default function StudentsListScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          <Text style={styles.title}>Students</Text>
+          <Text style={styles.title}>Students Directory</Text>
+
+          {/* Admin School Filter - REQUIRED, NO "ALL SCHOOLS" OPTION */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.schoolDropdown}
+              onPress={() => setSchoolDropdownVisible(true)}
+            >
+              <Text style={styles.schoolDropdownLabel}>Select School</Text>
+              <View style={styles.schoolDropdownValue}>
+                <Text style={styles.schoolDropdownText}>
+                  {schools.find(s => s.id === schoolFilter)?.name || 'Select School'}
+                </Text>
+                <ChevronDown color={Colors.textSecondary} size={20} />
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search color={Colors.textSecondary} size={20} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search students..."
+              placeholder="Search by name or email..."
               placeholderTextColor={Colors.textSecondary}
               value={searchTerm}
               onChangeText={setSearchTerm}
@@ -103,22 +219,78 @@ export default function StudentsListScreen() {
           </View>
 
           {/* Students List */}
-          <FlatList
-            data={filteredStudents}
-            renderItem={renderStudent}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <User color={Colors.textSecondary} size={48} />
-                <Text style={styles.emptyTitle}>No students found</Text>
-                <Text style={styles.emptyDescription}>
-                  {searchTerm ? 'Try adjusting your search' : 'No registered students yet'}
-                </Text>
-              </View>
-            }
-          />
+          {loading && !refreshing ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading students...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={students}
+              renderItem={renderStudent}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <User color={Colors.textSecondary} size={48} />
+                  <Text style={styles.emptyTitle}>No students found</Text>
+                  <Text style={styles.emptyDescription}>
+                    {searchTerm ? 'Try adjusting your search' : 
+                     isAdmin && !schoolFilter ? 'Please select a school' : 'No registered students yet'}
+                  </Text>
+                </View>
+              }
+            />
+          )}
         </GlassmorphicCard>
+
+        {/* Student Detail Modal */}
+        <StudentDetailModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          student={selectedStudent}
+        />
+
+        {/* School Dropdown Modal - Only shows the 2 schools */}
+        <Modal
+          visible={schoolDropdownVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSchoolDropdownVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setSchoolDropdownVisible(false)}
+          >
+            <View style={styles.schoolDropdownModal}>
+              <Text style={styles.schoolDropdownTitle}>Select School</Text>
+              <ScrollView style={styles.schoolList}>
+                {schools.map((school) => (
+                  <TouchableOpacity
+                    key={school.id}
+                    style={[styles.schoolOption, schoolFilter === school.id && styles.schoolOptionActive]}
+                    onPress={() => {
+                      setSchoolFilter(school.id);
+                      setSchoolDropdownVisible(false);
+                    }}
+                  >
+                    <Text style={[styles.schoolOptionText, schoolFilter === school.id && styles.schoolOptionTextActive]}>
+                      {school.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -137,6 +309,30 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: Colors.text,
     marginBottom: spacing.lg,
+  },
+  schoolDropdown: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  schoolDropdownLabel: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  schoolDropdownValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  schoolDropdownText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -161,22 +357,30 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   studentCard: {
-    marginBottom: spacing.md,
     backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  studentHeader: {
+  studentContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.mediumPurple,
+    backgroundColor: Colors.deepPurple,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
+  },
+  avatarText: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '700',
+    color: Colors.light,
   },
   studentInfo: {
     flex: 1,
@@ -185,56 +389,111 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontMd,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  studentEmail: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
+  studentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 2,
   },
   studentSchool: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    marginLeft: spacing.xs,
+  },
+  studentEmail: {
     fontSize: Sizes.fontXs,
     color: Colors.textSecondary,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+  studentStats: {
+    alignItems: 'flex-end',
   },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 20,
+  hoursText: {
+    fontSize: Sizes.fontLg,
     fontWeight: '700',
-    marginBottom: 4,
+    color: Colors.deepPurple,
   },
-  statLabel: {
+  hoursLabel: {
     fontSize: Sizes.fontXs,
     color: Colors.textSecondary,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: Colors.border,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: spacing.xxl,
-    gap: spacing.md,
   },
   emptyTitle: {
     fontSize: Sizes.fontLg,
     fontWeight: '600',
     color: Colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   emptyDescription: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 300,
+  },
+  errorText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  schoolDropdownModal: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusLg,
+    padding: spacing.lg,
+    width: '85%',
+    maxHeight: '70%',
+  },
+  schoolDropdownTitle: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: spacing.md,
+  },
+  schoolList: {
+    maxHeight: 400,
+  },
+  schoolOption: {
+    padding: spacing.md,
+    borderRadius: Sizes.radiusMd,
+    marginBottom: spacing.sm,
+    backgroundColor: Colors.background,
+  },
+  schoolOptionActive: {
+    backgroundColor: Colors.deepPurple,
+  },
+  schoolOptionText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  schoolOptionTextActive: {
+    color: Colors.light,
+  },
 });
-

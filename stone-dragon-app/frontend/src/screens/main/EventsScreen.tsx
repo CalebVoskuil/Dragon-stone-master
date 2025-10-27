@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react-native';
 import {
@@ -17,147 +18,221 @@ import {
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
+import { Event } from '../../types';
+import { useAuth } from '../../store/AuthContext';
 
-interface Event {
-  id: string;
-  title: string;
-  organization: string;
-  date: string;
-  time: string;
-  location: string;
-  spotsAvailable: number;
-  totalSpots: number;
-  description: string;
-  hoursAwarded: number;
-  isRegistered: boolean;
-}
-
-/**
- * EventsScreen - Browse and register for volunteer events
- * Shows upcoming volunteer opportunities
- */
 export default function EventsScreen() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'registered' | 'available'>('all');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock events data - replace with actual API call
-  const events: Event[] = [
-    {
-      id: '1',
-      title: 'Beach Cleanup Drive',
-      organization: 'Cape Town Environmental Group',
-      date: 'Nov 15, 2025',
-      time: '09:00 AM - 12:00 PM',
-      location: 'Camps Bay Beach',
-      spotsAvailable: 15,
-      totalSpots: 30,
-      description: 'Join us for a morning beach cleanup to keep our shores beautiful.',
-      hoursAwarded: 3,
-      isRegistered: true,
-    },
-    {
-      id: '2',
-      title: 'Food Bank Distribution',
-      organization: 'Community Outreach Foundation',
-      date: 'Nov 20, 2025',
-      time: '10:00 AM - 02:00 PM',
-      location: 'District Six Community Center',
-      spotsAvailable: 8,
-      totalSpots: 20,
-      description: 'Help distribute food parcels to families in need.',
-      hoursAwarded: 4,
-      isRegistered: false,
-    },
-    {
-      id: '3',
-      title: 'Youth Mentorship Program',
-      organization: 'Stone Dragon NPO',
-      date: 'Nov 25, 2025',
-      time: '03:00 PM - 05:00 PM',
-      location: 'Langa Youth Center',
-      spotsAvailable: 5,
-      totalSpots: 15,
-      description: 'Mentor young students with homework and life skills.',
-      hoursAwarded: 2,
-      isRegistered: false,
-    },
-    {
-      id: '4',
-      title: 'Animal Shelter Support',
-      organization: 'Cape Animal Welfare',
-      date: 'Dec 1, 2025',
-      time: '11:00 AM - 03:00 PM',
-      location: 'Animal Shelter, Plumstead',
-      spotsAvailable: 12,
-      totalSpots: 12,
-      description: 'Help care for rescued animals and maintain shelter facilities.',
-      hoursAwarded: 4,
-      isRegistered: false,
-    },
-  ];
+  // Load events from API
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
-  const filteredEvents = events.filter((event) => {
-    if (filter === 'registered') return event.isRegistered;
-    if (filter === 'available') return !event.isRegistered;
-    return true;
-  });
-
-  const handleRegister = (eventId: string) => {
-    // TODO: Implement actual registration API call
-    console.log('Register for event:', eventId);
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getEvents();
+      if (response.success && response.data) {
+        setEvents(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load events:', error);
+      Alert.alert('Error', 'Failed to load events');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderEvent = (event: Event) => (
-    <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>
-      <Text style={styles.eventTitle}>{event.title}</Text>
-      <Text style={styles.eventOrg}>{event.organization}</Text>
+  const filteredEvents = events.filter((event) => {
+    if (!user) return true;
+    
+    if (filter === 'registered') {
+      // Show only events the user is registered for
+      return event.eventRegistrations?.some(reg => reg.userId === user.id) || false;
+    }
+    
+    return true; // Show all events for 'all' and 'available' filters
+  });
 
-      <View style={styles.eventDetails}>
-        <View style={styles.eventDetail}>
-          <Calendar color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>
-            {event.date} • {event.time}
-          </Text>
+  const handleRegister = async (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    // Check if event is full (registered >= maxVolunteers)
+    const registered = event.eventRegistrations?.length || 0;
+    if (registered >= event.maxVolunteers) {
+      Alert.alert('Event Full', 'Sorry, this event is already full.');
+      return;
+    }
+
+    // Show confirmation dialog
+    Alert.alert(
+      'Confirm Registration',
+      `Are you sure you want to register for "${event.title}"?\n\nThis event awards ${event.duration || 0} volunteer hours.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Register',
+          onPress: async () => {
+            try {
+              const response = await apiService.registerForEvent(eventId);
+              if (response.success) {
+                // Refresh events
+                await loadEvents();
+
+                // Show success message
+                Alert.alert(
+                  'Registration Successful!',
+                  `You've been registered for "${event.title}". You'll receive ${event.duration || 0} volunteer hours upon completion.`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Registration Failed', response.message || 'Unable to register for this event.');
+              }
+            } catch (error: any) {
+              console.error('Registration error:', error);
+              const errorMessage = error.response?.data?.message || error.message || 'Failed to register for event';
+              console.error('Error details:', error.response?.data);
+              
+              // If already registered, refresh to update UI
+              if (error.response?.data?.message === 'Already registered for this event') {
+                await loadEvents();
+                Alert.alert('Already Registered', 'You are already registered for this event.');
+              } else {
+                Alert.alert('Error', errorMessage);
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUnregister = async (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    Alert.alert(
+      'Confirm Unregistration',
+      `Are you sure you want to unregister from "${event.title}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Unregister',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await apiService.unregisterFromEvent(eventId);
+              if (response.success) {
+                // Refresh events
+                await loadEvents();
+
+                // Show confirmation message
+                Alert.alert(
+                  'Unregistered Successfully',
+                  `You've been unregistered from "${event.title}".`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Unregistration Failed', 'Unable to unregister from this event.');
+              }
+            } catch (error) {
+              console.error('Unregistration error:', error);
+              Alert.alert('Error', 'Failed to unregister from event');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderEvent = (event: Event) => {
+    const registered = event.eventRegistrations?.length || 0;
+    const spotsAvailable = event.maxVolunteers - registered;
+    const eventDate = new Date(event.date).toLocaleDateString();
+    // Check if current user is registered
+    const isRegistered = user ? event.eventRegistrations?.some(reg => reg.userId === user.id) || false : false;
+    
+    console.log(`Event: ${event.title}, User: ${user?.id}, Registered: ${isRegistered}, Registrations:`, event.eventRegistrations);
+
+    return (
+      <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>
+        <Text style={styles.eventTitle}>{event.title}</Text>
+
+        <View style={styles.eventDetails}>
+          <View style={styles.eventDetail}>
+            <Calendar color={Colors.deepPurple} size={16} />
+            <Text style={styles.eventDetailText}>
+              {eventDate}{event.time ? ` • ${event.time}` : ''}
+            </Text>
+          </View>
+
+          {event.location && (
+            <View style={styles.eventDetail}>
+              <MapPin color={Colors.deepPurple} size={16} />
+              <Text style={styles.eventDetailText}>{event.location}</Text>
+            </View>
+          )}
+
+          {event.duration && (
+            <View style={styles.eventDetail}>
+              <Clock color={Colors.deepPurple} size={16} />
+              <Text style={styles.eventDetailText}>{event.duration} hours awarded</Text>
+            </View>
+          )}
+
+          <View style={styles.eventDetail}>
+            <Users color={Colors.deepPurple} size={16} />
+            <Text style={styles.eventDetailText}>
+              {spotsAvailable}/{event.maxVolunteers} spots available
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.eventDetail}>
-          <MapPin color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>{event.location}</Text>
-        </View>
+        <Text style={styles.eventDescription} numberOfLines={2}>
+          {event.description}
+        </Text>
 
-        <View style={styles.eventDetail}>
-          <Clock color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>{event.hoursAwarded} hours awarded</Text>
-        </View>
-
-        <View style={styles.eventDetail}>
-          <Users color={Colors.deepPurple} size={16} />
-          <Text style={styles.eventDetailText}>
-            {event.spotsAvailable}/{event.totalSpots} spots available
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.eventDescription} numberOfLines={2}>
-        {event.description}
-      </Text>
-
-      {event.isRegistered ? (
-        <View style={styles.registeredBadge}>
-          <Text style={styles.registeredText}>✓ Registered</Text>
-        </View>
-      ) : (
-        <SDButton
-          variant="primary-filled"
-          size="sm"
-          fullWidth
-          onPress={() => handleRegister(event.id)}
-          disabled={event.spotsAvailable === 0}
-        >
-          {event.spotsAvailable === 0 ? 'Full' : 'Register'}
-        </SDButton>
-      )}
-    </SDCard>
-  );
+        {isRegistered ? (
+          <View style={styles.registeredSection}>
+            <View style={styles.registeredBadge}>
+              <Text style={styles.registeredText}>✓ Registered</Text>
+            </View>
+            <SDButton
+              variant="ghost"
+              size="sm"
+              fullWidth
+              onPress={() => handleUnregister(event.id)}
+              style={styles.unregisterButton}
+            >
+              Unregister
+            </SDButton>
+          </View>
+        ) : (
+          <SDButton
+            variant="primary-filled"
+            size="sm"
+            fullWidth
+            onPress={() => handleRegister(event.id)}
+            disabled={spotsAvailable === 0}
+          >
+            {spotsAvailable === 0 ? 'Full' : 'Register'}
+          </SDButton>
+        )}
+      </SDCard>
+    );
+  };
 
   return (
     <GradientBackground>
@@ -323,6 +398,9 @@ const styles = StyleSheet.create({
     lineHeight: Sizes.fontSm * 1.5,
     marginBottom: spacing.md,
   },
+  registeredSection: {
+    gap: spacing.sm,
+  },
   registeredBadge: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -334,6 +412,9 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.golden,
     fontWeight: '600',
+  },
+  unregisterButton: {
+    borderColor: Colors.red,
   },
   emptyState: {
     alignItems: 'center',
