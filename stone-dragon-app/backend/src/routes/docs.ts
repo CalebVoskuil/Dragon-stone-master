@@ -69,7 +69,6 @@ router.get('/', (_req, res) => {
     },
     userRoles: {
       STUDENT: 'Can create and view their own volunteer logs',
-      VOLUNTEER: 'Can create and view their own volunteer logs',
       COORDINATOR: 'Can review and approve volunteer logs',
       ADMIN: 'Full system access including user and school management',
     },

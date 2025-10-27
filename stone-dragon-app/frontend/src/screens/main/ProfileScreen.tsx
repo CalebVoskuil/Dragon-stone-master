@@ -175,7 +175,7 @@ export default function ProfileScreen() {
                 {user?.firstName} {user?.lastName}
               </Text>
               <Text style={styles.userRole}>
-                {user?.role === 'STUDENT' ? 'Student' : 'Volunteer'}
+                {user?.role === 'STUDENT' ? 'Student' : user?.role === 'STUDENT_COORDINATOR' ? 'Student Coordinator' : user?.role}
               </Text>
 
               <View style={styles.userDetails}>
