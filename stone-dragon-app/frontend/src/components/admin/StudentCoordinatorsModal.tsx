@@ -29,6 +29,7 @@ interface StudentCoordinatorsModalProps {
   onClose: () => void;
   onConfirm: (selectedIds: string[]) => void;
   selectedIds?: string[];
+  students?: Student[];
 }
 
 export default function StudentCoordinatorsModal({
@@ -36,42 +37,23 @@ export default function StudentCoordinatorsModal({
   onClose,
   onConfirm,
   selectedIds = [],
+  students = [],
 }: StudentCoordinatorsModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'grade' | 'hours'>('name');
   const [selectedStudents, setSelectedStudents] = useState<string[]>(selectedIds);
   const [slideAnim] = useState(new Animated.Value(1000));
 
-  // Mock student data
-  const mockStudents: Student[] = [
-    {
-      id: '1',
-      name: 'Emma Wilson',
-      email: 'emma.w@example.com',
-      school: 'Cape Town High School',
-      grade: 'Grade 10',
-      hours: '18h',
-      role: 'student',
-    },
-    {
-      id: '2',
-      name: 'James Taylor',
-      email: 'james.t@example.com',
-      school: 'Cape Town High School',
-      grade: 'Grade 12',
-      hours: '36h',
-      role: 'student',
-    },
-    {
-      id: '3',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@example.com',
-      school: 'Cape Town High School',
-      grade: 'Grade 11',
-      hours: '24h',
-      role: 'student',
-    },
-  ];
+  // Map students to use 'name' field for display
+  const mappedStudents = students.length > 0 ? students.map((student: any) => ({
+    id: student.id,
+    name: student.firstName && student.lastName ? `${student.firstName} ${student.lastName}` : student.name || 'Unknown Student',
+    email: student.email || '',
+    school: typeof student.school === 'object' ? student.school.name : (student.school || student.schoolId || ''),
+    grade: student.grade || 'Grade 12',
+    hours: typeof student.totalHours === 'number' ? `${student.totalHours}h` : '0h',
+    role: student.role?.toLowerCase() || 'student',
+  })) : [];
 
   React.useEffect(() => {
     if (visible) {
@@ -115,7 +97,7 @@ export default function StudentCoordinatorsModal({
       .substring(0, 2);
   };
 
-  const filteredStudents = mockStudents.filter((student) =>
+  const filteredStudents = mappedStudents.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -171,7 +153,7 @@ export default function StudentCoordinatorsModal({
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.selectedStudents}>
                     {selectedStudents.map((studentId) => {
-                      const student = mockStudents.find(s => s.id === studentId);
+                      const student = mappedStudents.find(s => s.id === studentId);
                       if (!student) return null;
                       return (
                         <TouchableOpacity

@@ -9,7 +9,9 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, MapPin, Clock, Users, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -22,6 +24,7 @@ import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../store/AuthContext';
+import { Event } from '../../types';
 
 /**
  * EventsScreen - Events management
@@ -37,15 +40,18 @@ export default function EventsScreen() {
   const [location, setLocation] = useState('');
   const [duration, setDuration] = useState('');
   const [maxVolunteers, setMaxVolunteers] = useState('');
-  const [category, setCategory] = useState('');
   const [coordinatorModalVisible, setCoordinatorModalVisible] = useState(false);
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
   const [eventDetailsModalVisible, setEventDetailsModalVisible] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
 
   useEffect(() => {
     loadData();
@@ -65,11 +71,16 @@ export default function EventsScreen() {
       }
 
       if (usersResponse.success && usersResponse.data) {
+        console.log('Raw users data from API:', usersResponse.data);
+        console.log('Total users received:', usersResponse.data.length);
         // Filter for students and student coordinators
         const studentList = usersResponse.data.filter((u: any) => 
           u.role === 'STUDENT' || u.role === 'STUDENT_COORDINATOR'
         );
+        console.log('Filtered student list (STUDENT or STUDENT_COORDINATOR):', studentList);
         setStudents(studentList);
+      } else {
+        console.log('No user data from API, trying alternative endpoint');
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -96,15 +107,43 @@ export default function EventsScreen() {
 
     try {
       setSubmitting(true);
+      
+      // Validate and format date
+      let eventDate: Date;
+      try {
+        eventDate = new Date(date);
+        if (isNaN(eventDate.getTime())) {
+          throw new Error('Invalid date format');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Please enter a valid date');
+        setSubmitting(false);
+        return;
+      }
+      
+      // Validate maxVolunteers
+      const maxVolunteersNum = parseInt(maxVolunteers);
+      if (isNaN(maxVolunteersNum) || maxVolunteersNum < 1) {
+        Alert.alert('Error', 'Please enter a valid number of volunteers (at least 1)');
+        setSubmitting(false);
+        return;
+      }
+      
+      console.log('Creating event with data:', {
+        title: eventName,
+        date: eventDate.toISOString(),
+        maxVolunteers: maxVolunteersNum,
+      });
+      
       const response = await apiService.createEvent({
         title: eventName,
         description,
-        date: new Date(date).toISOString(),
-        time: startTime,
-        location,
+        date: eventDate.toISOString(),
+        time: startTime || undefined,
+        location: location || undefined,
         duration: duration ? parseFloat(duration) : undefined,
-        maxVolunteers: parseInt(maxVolunteers),
-        studentCoordinatorIds: selectedCoordinators,
+        maxVolunteers: maxVolunteersNum,
+        studentCoordinatorIds: selectedCoordinators.length > 0 ? selectedCoordinators : undefined,
       });
 
       if (response.success) {
@@ -113,11 +152,12 @@ export default function EventsScreen() {
         setEventName('');
         setDescription('');
         setDate('');
+        setSelectedDate(new Date());
         setStartTime('');
+        setSelectedTime(new Date());
         setLocation('');
         setDuration('');
         setMaxVolunteers('');
-        setCategory('');
         setSelectedCoordinators([]);
         // Reload events
         await loadData();
@@ -125,7 +165,9 @@ export default function EventsScreen() {
       }
     } catch (error: any) {
       console.error('Create event error:', error);
-      Alert.alert('Error', error.message || 'Failed to create event');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create event';
+      console.error('Error details:', error.response?.data);
+      Alert.alert('Error', errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -204,26 +246,70 @@ export default function EventsScreen() {
                     <Text style={styles.label}>
                       <Calendar color={Colors.text} size={14} /> Date
                     </Text>
-                    <TextInput
+                    <TouchableOpacity
                       style={styles.input}
-                      placeholder="dd/mm/yyyy"
-                      placeholderTextColor={Colors.textSecondary}
-                      value={date}
-                      onChangeText={setDate}
-                    />
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={date ? styles.inputText : styles.placeholder}>
+                        {date || 'Select date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDateValue) => {
+                          setShowDatePicker(false); // Close picker on any interaction
+                          if (event.type === 'set' && selectedDateValue) {
+                            setSelectedDate(selectedDateValue);
+                            setDate(selectedDateValue.toISOString().split('T')[0]);
+                          }
+                          // On Android, event.type is 'dismissed' when user cancels
+                          if (event.type === 'dismissed') {
+                            setShowDatePicker(false);
+                          }
+                        }}
+                        minimumDate={new Date()}
+                      />
+                    )}
                   </View>
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>
                       <Clock color={Colors.text} size={14} /> Start Time
                     </Text>
-                    <TextInput
+                    <TouchableOpacity
                       style={styles.input}
-                      placeholder="--:--"
-                      placeholderTextColor={Colors.textSecondary}
-                      value={startTime}
-                      onChangeText={setStartTime}
-                    />
+                      onPress={() => setShowTimePicker(true)}
+                    >
+                      <Text style={startTime ? styles.inputText : styles.placeholder}>
+                        {startTime || 'Select time'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showTimePicker && (
+                      <DateTimePicker
+                        value={selectedTime}
+                        mode="time"
+                        display="default"
+                        is24Hour={false}
+                        onChange={(event, selectedTimeValue) => {
+                          setShowTimePicker(false); // Close picker on any interaction
+                          if (event.type === 'set' && selectedTimeValue) {
+                            setSelectedTime(selectedTimeValue);
+                            // Format time as HH:MM
+                            const hours = selectedTimeValue.getHours();
+                            const minutes = selectedTimeValue.getMinutes();
+                            const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                            setStartTime(formattedTime);
+                          }
+                          // On Android, event.type is 'dismissed' when user cancels
+                          if (event.type === 'dismissed') {
+                            setShowTimePicker(false);
+                          }
+                        }}
+                      />
+                    )}
                   </View>
 
                   <View style={styles.inputGroup}>
@@ -264,16 +350,6 @@ export default function EventsScreen() {
                       keyboardType="numeric"
                     />
                   </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Category</Text>
-                    <TouchableOpacity style={styles.dropdown}>
-                      <Text style={styles.dropdownText}>
-                        {category || 'Select a category'}
-                      </Text>
-                      <ChevronDown color={Colors.textSecondary} size={20} />
-                    </TouchableOpacity>
-                  </View>
                 </View>
 
                 {/* Student Co-ordinators Section */}
@@ -282,7 +358,11 @@ export default function EventsScreen() {
                   <View style={styles.coordinatorsContainer}>
                     {selectedCoordinators.map((coordinatorId) => {
                       const student = students.find((s: any) => s.id === coordinatorId);
-                      if (!student) return null;
+                      if (!student) {
+                        console.log('Student not found for ID:', coordinatorId);
+                        return null;
+                      }
+                      const studentName = `${student.firstName} ${student.lastName}`;
                       return (
                         <TouchableOpacity
                           key={student.id}
@@ -291,9 +371,12 @@ export default function EventsScreen() {
                         >
                           <View style={styles.coordinatorCircle}>
                             <Text style={styles.coordinatorText}>
-                              {getInitials(student.name)}
+                              {getInitials(studentName)}
                             </Text>
                           </View>
+                          <Text style={styles.coordinatorName} numberOfLines={1}>
+                            {student.firstName}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -402,10 +485,13 @@ export default function EventsScreen() {
           visible={coordinatorModalVisible}
           onClose={() => setCoordinatorModalVisible(false)}
           onConfirm={(ids) => {
+            console.log('Received coordinator IDs:', ids);
+            console.log('Available students:', students);
             setSelectedCoordinators(ids);
-            console.log('Selected student coordinators:', ids);
+            console.log('Updated selected coordinators:', ids);
           }}
           selectedIds={selectedCoordinators}
+          students={students}
         />
 
         {/* Event Details Modal */}
@@ -518,6 +604,7 @@ const styles = StyleSheet.create({
   },
   coordinatorAvatar: {
     alignItems: 'center',
+    gap: 8,
   },
   coordinatorCircle: {
     width: 64,
@@ -531,6 +618,12 @@ const styles = StyleSheet.create({
     ...typography.subhead,
     color: Colors.light,
     fontWeight: '600',
+  },
+  coordinatorName: {
+    fontSize: 12,
+    color: Colors.text,
+    marginTop: 4,
+    textAlign: 'center',
   },
   addButton: {
     alignItems: 'center',
@@ -623,6 +716,14 @@ const styles = StyleSheet.create({
   },
   eventMetaText: {
     ...typography.caption,
+    color: Colors.textSecondary,
+  },
+  inputText: {
+    ...typography.body,
+    color: Colors.text,
+  },
+  placeholder: {
+    ...typography.body,
     color: Colors.textSecondary,
   },
 });
