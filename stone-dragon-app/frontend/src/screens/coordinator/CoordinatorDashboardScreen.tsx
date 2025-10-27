@@ -67,26 +67,14 @@ export default function CoordinatorDashboardScreen() {
       if (response.success && response.data) {
         const data = response.data;
         
-        // Calculate today's claims from recent logs
-        const todayClaims = (data.recentLogs || []).filter((log) => {
-          const logDate = new Date(log.createdAt);
-          const today = new Date();
-          return logDate.toDateString() === today.toDateString();
-        }).length;
-
-        // Get unique students count
-        const uniqueStudents = new Set(
-          (data.recentLogs || []).map(log => log.userId)
-        ).size;
-
-        // Map statistics to SDStatGrid format
+        // Map statistics to SDStatGrid format using real backend data
         setStats({
           pending: data.statistics.pendingLogs,
-          today: todayClaims,
+          today: data.statistics.todayLogs,
           approved: data.statistics.approvedLogs,
-          totalStudents: uniqueStudents,
+          totalStudents: data.statistics.activeStudents,
           totalHours: data.statistics.totalHours,
-          avgResponseTime: '2', // Placeholder - could be calculated from log review times
+          avgResponseTime: data.statistics.approvalRate + '%', // Use approval rate instead
         });
         
         setRecentLogs(data.recentLogs || []);
@@ -99,13 +87,8 @@ export default function CoordinatorDashboardScreen() {
     }
   };
 
-  // Filter logs from the last 24 hours
-  const recentClaims = recentLogs.filter((log) => {
-    const logDate = new Date(log.createdAt);
-    const now = new Date();
-    const hoursDiff = (now.getTime() - logDate.getTime()) / (1000 * 60 * 60);
-    return hoursDiff <= 24;
-  });
+  // Use pending logs from backend (already filtered)
+  const recentClaims = recentLogs;
 
   const pendingCount = stats.pending;
 
@@ -243,10 +226,10 @@ export default function CoordinatorDashboardScreen() {
               {/* Statistics Grid */}
               <SDStatGrid stats={stats} />
 
-            {/* Recent Claims List */}
+            {/* Pending Claims List */}
             <View style={styles.claimsList}>
               <Text style={styles.sectionTitle}>
-                Recent
+                Pending Review ({recentClaims.length})
               </Text>
               {recentClaims.length > 0 ? (
                 recentClaims.map((log) => (
@@ -254,9 +237,9 @@ export default function CoordinatorDashboardScreen() {
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No recent claims</Text>
+                  <Text style={styles.emptyTitle}>No pending claims</Text>
                   <Text style={styles.emptyDescription}>
-                    No claims have been submitted in the last 24 hours.
+                    All claims have been reviewed. Check back later for new submissions.
                   </Text>
                 </View>
               )}

@@ -70,7 +70,6 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.pending}
           icon={Clock}
           color={Colors.orange}
-          trend="+2"
           subtitle="requires attention"
         />
 
@@ -79,7 +78,6 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.today}
           icon={Calendar}
           color={Colors.golden}
-          trend="+5"
           subtitle="submitted today"
         />
 
@@ -88,8 +86,7 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
           value={stats.approved}
           icon={Check}
           color={Colors.green}
-          trend="+12"
-          subtitle="this week"
+          subtitle="total approved"
         />
 
         <StatCard
@@ -109,12 +106,7 @@ export default function SDStatGrid({ stats }: SDStatGridProps) {
         </View>
 
         <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>{stats.avgResponseTime}h</Text>
-          <Text style={styles.metricLabel}>Avg Response</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>98%</Text>
+          <Text style={styles.metricValue}>{stats.avgResponseTime}</Text>
           <Text style={styles.metricLabel}>Approval Rate</Text>
         </View>
       </View>

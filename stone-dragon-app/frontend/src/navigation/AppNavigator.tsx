@@ -17,7 +17,8 @@ import CoordinatorNavigator from './CoordinatorNavigator';
 import SchoolsScreen from '../screens/main/SchoolsScreen';
 import MyLogsScreen from '../screens/main/MyLogsScreen';
 import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
-import NotificationsScreen from '../screens/coordinator/NotificationsScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
+import CoordinatorNotificationsScreen from '../screens/coordinator/NotificationsScreen';
 import StudentCoordinatorClaimsScreen from '../screens/studentCoordinator/StudentCoordinatorClaimsScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -86,7 +87,7 @@ const MainStackNavigator: React.FC = () => {
       />
       <Stack.Screen 
         name="Notifications" 
-        component={NotificationsScreen}
+        component={isCoordinator ? CoordinatorNotificationsScreen : NotificationsScreen}
         options={{ 
           headerShown: true, 
           title: 'Notifications',

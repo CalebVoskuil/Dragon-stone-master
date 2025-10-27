@@ -13,22 +13,18 @@ import { validateRequest } from '../middleware/validateRequest';
 
 const router = Router();
 
-// All routes require coordinator authentication
-router.use(authenticateSession);
-router.use(requireCoordinator);
-
 // Validation rules
 const reviewValidation = [
   body('status').isIn(['approved', 'rejected']).withMessage('Status must be approved or rejected'),
   body('coordinatorComment').optional().trim().isLength({ max: 500 }).withMessage('Comment too long'),
 ];
 
-// Routes
-router.get('/dashboard', getCoordinatorDashboard);
-router.get('/pending-logs', getPendingLogs);
-router.get('/school-stats', getSchoolStats);
-router.get('/students', getStudentsList);
-router.get('/leaderboard', getLeaderboard);
-router.put('/review/:logId', reviewValidation, validateRequest, reviewVolunteerLog);
+// Routes - Note: authenticateSession and requireCoordinator moved to individual routes
+router.get('/dashboard', authenticateSession, requireCoordinator, getCoordinatorDashboard);
+router.get('/pending-logs', authenticateSession, requireCoordinator, getPendingLogs);
+router.get('/school-stats', authenticateSession, requireCoordinator, getSchoolStats);
+router.get('/students', authenticateSession, requireCoordinator, getStudentsList);
+router.get('/leaderboard', authenticateSession, requireCoordinator, getLeaderboard);
+router.put('/review/:logId', authenticateSession, requireCoordinator, reviewValidation, validateRequest, reviewVolunteerLog);
 
 export default router;

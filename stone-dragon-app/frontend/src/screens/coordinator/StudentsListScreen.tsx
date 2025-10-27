@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Search, User, School as SchoolIcon } from 'lucide-react-native';
 import {
@@ -18,16 +20,23 @@ import StudentDetailModal from '../../components/admin/StudentDetailModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { apiService } from '../../services/api';
 
 interface Student {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name?: string;
   email: string;
-  school: string;
+  role?: string;
+  school?: string;
+  schoolId?: string;
   grade?: string;
   age?: number;
   lastActive?: string;
   totalHours: number;
+  approvedLogs?: number;
+  pendingLogs?: number;
   dayStreak?: number;
   points?: number;
   pendingHours?: number;
@@ -43,93 +52,57 @@ export default function StudentsListScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock students data
-  const students: Student[] = [
-    { 
-      id: '1', 
-      name: 'Alex Smith', 
-      email: 'alex.smith@studentuct.ac.za', 
-      school: 'Cape Town High School',
-      grade: 'Grade 11',
-      age: 16,
-      lastActive: '2 days ago',
-      totalHours: 42,
-      dayStreak: 5,
-      points: 850,
-      pendingHours: 3, 
-      approvedHours: 39,
-      rejectedHours: 0
-    },
-    { 
-      id: '2', 
-      name: 'Sarah Johnson', 
-      email: 'sarah.johnson@example.com', 
-      school: 'Wynberg Girls High',
-      grade: 'Grade 12',
-      age: 17,
-      lastActive: '1 day ago',
-      totalHours: 38,
-      dayStreak: 12,
-      points: 920,
-      pendingHours: 2.5, 
-      approvedHours: 35.5,
-      rejectedHours: 0
-    },
-    { 
-      id: '3', 
-      name: 'Michael Chen', 
-      email: 'mchen@wynberg.edu', 
-      school: 'Wynberg High School',
-      grade: 'Grade 10',
-      age: 15,
-      lastActive: '5 hours ago',
-      totalHours: 62,
-      dayStreak: 8,
-      points: 1240,
-      pendingHours: 0, 
-      approvedHours: 60,
-      rejectedHours: 2
-    },
-    { 
-      id: '4', 
-      name: 'Emma Wilson', 
-      email: 'emma@example.com', 
-      school: 'Cape Town High School',
-      grade: 'Grade 11',
-      age: 16,
-      lastActive: '3 days ago',
-      totalHours: 27,
-      dayStreak: 3,
-      points: 540,
-      pendingHours: 5, 
-      approvedHours: 22,
-      rejectedHours: 0
-    },
-    { 
-      id: '5', 
-      name: 'James Brown', 
-      email: 'james@example.com', 
-      school: 'Stellenbosch High School',
-      grade: 'Grade 12',
-      age: 18,
-      lastActive: '1 week ago',
-      totalHours: 51,
-      dayStreak: 0,
-      points: 1020,
-      pendingHours: 4, 
-      approvedHours: 47,
-      rejectedHours: 0
-    },
-  ];
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getStudentsList();
+      if (response.success && response.data) {
+        // Filter to include only STUDENT and STUDENT_COORDINATOR roles
+        const filteredData = response.data.filter((user: any) => 
+          user.role === 'STUDENT' || user.role === 'STUDENT_COORDINATOR'
+        );
+        
+        // Map API data to our Student interface
+        const mappedStudents: Student[] = filteredData.map((student: any) => ({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          name: `${student.firstName} ${student.lastName}`,
+          email: student.email,
+          role: student.role,
+          school: typeof student.school === 'object' ? student.school.name : (student.school || student.schoolId || ''),
+          totalHours: student.totalHours || 0,
+          approvedLogs: student.approvedLogs || 0,
+          pendingLogs: student.pendingLogs || 0,
+        }));
+        setStudents(mappedStudents);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      Alert.alert('Error', 'Failed to load students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const filteredStudents = students.filter((student) =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.school.toLowerCase().includes(searchTerm.toLowerCase())
+    student.school?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.schoolId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getInitials = (name: string) => {
+    if (!name) return '??';
     return name
       .split(' ')
       .map((part) => part[0])
@@ -155,13 +128,22 @@ export default function StudentsListScreen() {
     >
       <View style={styles.studentContent}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
+          <Text style={styles.avatarText}>
+            {getInitials(item.name || `${item.firstName} ${item.lastName}`)}
+          </Text>
         </View>
         <View style={styles.studentInfo}>
-          <Text style={styles.studentName}>{item.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.studentName}>{item.name || `${item.firstName} ${item.lastName}`}</Text>
+            {item.role === 'STUDENT_COORDINATOR' && (
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>COORD</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.schoolRow}>
             <SchoolIcon color={Colors.textSecondary} size={14} />
-            <Text style={styles.studentSchool}>{item.school}</Text>
+            <Text style={styles.studentSchool}>{item.school || item.schoolId || 'No school'}</Text>
           </View>
         </View>
       </View>
@@ -186,7 +168,14 @@ export default function StudentsListScreen() {
             />
           </View>
 
-          {/* Students List */}
+          {/* Loading State */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.deepPurple} />
+              <Text style={styles.loadingText}>Loading students...</Text>
+            </View>
+          ) : (
+          /* Students List */
           <FlatList
             data={filteredStudents}
             renderItem={renderStudent}
@@ -201,7 +190,7 @@ export default function StudentsListScreen() {
                 </Text>
               </View>
             }
-          />
+          />)}
         </GlassmorphicCard>
 
         {/* Student Detail Modal */}
@@ -283,11 +272,27 @@ const styles = StyleSheet.create({
   studentInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   studentName: {
     fontSize: Sizes.fontLg,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: spacing.xs,
+  },
+  roleBadge: {
+    backgroundColor: Colors.deepPurple,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Sizes.radiusSm,
+  },
+  roleText: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '700',
+    color: Colors.light,
   },
   schoolRow: {
     flexDirection: 'row',
@@ -313,6 +318,17 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl * 2,
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
 });
 
