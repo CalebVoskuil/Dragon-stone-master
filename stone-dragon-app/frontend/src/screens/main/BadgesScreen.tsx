@@ -15,7 +15,9 @@ import {
   SDCard,
   GlassmorphicCard,
   SDButton,
+  GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -43,6 +45,8 @@ export default function BadgesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalHours, setTotalHours] = useState(0);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     fetchBadgesData();
@@ -160,11 +164,13 @@ export default function BadgesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Your Badges</Text>
+          <View style={styles.bannerSpacer} />
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -224,6 +230,27 @@ export default function BadgesScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Your Badges"
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -233,12 +260,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
     ...typography.h1,
@@ -249,6 +286,7 @@ const styles = StyleSheet.create({
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

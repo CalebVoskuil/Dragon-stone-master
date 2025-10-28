@@ -54,7 +54,11 @@ export default function WelcomeScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+        >
           {/* Icon */}
           <View style={styles.iconContainer}>
             <View style={styles.iconCircle}>

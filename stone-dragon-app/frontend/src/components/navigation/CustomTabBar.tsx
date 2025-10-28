@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet, Platform, Animated } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,14 +12,39 @@ import { Sizes, spacing } from '../../constants/Sizes';
  */
 export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const animatedValue = useRef(new Animated.Value(state.index)).current;
+  const totalTabs = state.routes.length;
+  const tabWidth = 100 / totalTabs;
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: state.index,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [state.index, animatedValue]);
 
   return (
     <BlurView
-      intensity={80}
-      tint="light"
+      intensity={40}
+      tint="default"
       style={[styles.container, { paddingBottom: insets.bottom }]}
     >
       <View style={styles.tabBar}>
+        {/* Animated indicator */}
+        <Animated.View
+          style={[
+            styles.indicator,
+            {
+              width: `${tabWidth}%`,
+              left: animatedValue.interpolate({
+                inputRange: state.routes.map((_, i) => i),
+                outputRange: state.routes.map((_, i) => `${i * tabWidth}%`),
+              }),
+            },
+          ]}
+        />
+        
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label =
@@ -65,9 +90,6 @@ export default function CustomTabBar({ state, descriptors, navigation }: BottomT
               style={styles.tab}
               activeOpacity={0.7}
             >
-              {/* Active background */}
-              {isFocused && <View style={styles.activeBackground} />}
-
               {/* Icon */}
               {IconComponent && (
                 <View style={styles.iconContainer}>
@@ -103,44 +125,44 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopWidth: 1,
-    borderTopColor: Colors.glassBorder,
-    backgroundColor: Colors.glassLight,
+    borderTopWidth: 0, // Removed border for seamless blur effect
+    backgroundColor: 'transparent', // Pure blur effect - transparent until content passes behind
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
         shadowRadius: 8,
       },
       android: {
-        elevation: 8,
+        elevation: 2,
       },
     }),
   },
   tabBar: {
     flexDirection: 'row',
     paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    position: 'relative',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
-    borderRadius: Sizes.radiusLg,
     minHeight: 56,
     justifyContent: 'center',
     position: 'relative',
+    zIndex: 2,
   },
-  activeBackground: {
+  indicator: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: spacing.sm,
     bottom: 0,
+    marginHorizontal: spacing.xs,
     backgroundColor: Colors.deepPurple,
     borderRadius: Sizes.radiusLg,
+    zIndex: 1,
   },
   iconContainer: {
     marginBottom: 2,

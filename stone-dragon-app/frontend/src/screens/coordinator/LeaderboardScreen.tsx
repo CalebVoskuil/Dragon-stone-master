@@ -140,6 +140,8 @@ export default function LeaderboardScreen() {
             renderItem={renderEntry}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
           />
         </GlassmorphicCard>
       </SafeAreaView>

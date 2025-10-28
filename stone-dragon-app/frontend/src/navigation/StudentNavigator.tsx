@@ -24,6 +24,8 @@ export default function StudentNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        lazy: true,
+        unmountOnBlur: false,
       }}
     >
       <Tab.Screen
@@ -51,7 +53,7 @@ export default function StudentNavigator() {
         }}
       />
       <Tab.Screen
-        name="Events"
+        name="StudentEvents"
         component={EventsScreen}
         options={{
           title: 'Events',
@@ -59,7 +61,7 @@ export default function StudentNavigator() {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="StudentProfile"
         component={ProfileScreen}
         options={{
           title: 'Profile',

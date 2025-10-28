@@ -8,4 +8,5 @@ export { default as SDFileUpload } from './SDFileUpload';
 // Base Components
 export { default as GradientBackground } from './GradientBackground';
 export { default as GlassmorphicCard } from './GlassmorphicCard';
+export { default as GlassmorphicBanner } from './GlassmorphicBanner';
 

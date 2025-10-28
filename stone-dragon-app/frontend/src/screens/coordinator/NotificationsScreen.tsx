@@ -159,6 +159,8 @@ export default function NotificationsScreen() {
             renderItem={renderNotification}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Bell color={Colors.textSecondary} size={48} />

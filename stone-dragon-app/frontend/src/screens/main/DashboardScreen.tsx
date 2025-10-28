@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SafeAreaView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import {
@@ -17,6 +18,7 @@ import {
   Eye,
   Bell,
   Trophy,
+  X,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -24,7 +26,9 @@ import {
   SDCard,
   SDStatusChip,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -51,6 +55,10 @@ export default function DashboardScreen() {
     rejectedLogs: 0,
   });
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [logDetailVisible, setLogDetailVisible] = useState(false);
 
   const nextBadgeProgress = 75;
   const canLogHours = true; // Update based on user consent status
@@ -123,39 +131,16 @@ export default function DashboardScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        {/* Fixed Header with Blur */}
-        <BlurView intensity={60} tint="light" style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Leaderboard' as never)}
-              style={styles.headerButton}
-            >
-              <Trophy color={Colors.deepPurple} size={20} />
-            </TouchableOpacity>
-
-            <View style={styles.headerCenter}>
-              <Text style={styles.greeting}>
-                {getGreeting()}, {firstName}
-              </Text>
-              <Text style={styles.headerSubtitle}>Ready to make a difference today?</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Notifications' as never)}
-              style={styles.headerButton}
-            >
-              <Bell color={Colors.deepPurple} size={20} />
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <View style={styles.bannerSpacer} />
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.deepPurple} />
@@ -242,55 +227,33 @@ export default function DashboardScreen() {
               </SDButton>
             </View>
 
-            {/* Period Selector */}
-            <View style={styles.periodSelector}>
-              {(['week', 'month', 'year'] as const).map((period) => (
-                <TouchableOpacity
-                  key={period}
-                  onPress={() => setSelectedPeriod(period)}
-                  style={[
-                    styles.periodButton,
-                    selectedPeriod === period && styles.periodButtonActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.periodButtonText,
-                      selectedPeriod === period && styles.periodButtonTextActive,
-                    ]}
-                  >
-                    This {period}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* Recent Activity */}
             <View>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Activity</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MyLogs' as never)}
-                  style={styles.viewAllButton}
-                >
-                  <Eye color={Colors.deepPurple} size={16} />
-                  <Text style={styles.viewAllText}>View All</Text>
-                </TouchableOpacity>
               </View>
 
               {recentLogs.length > 0 ? (
                 <View style={styles.logsList}>
                   {recentLogs.map((log) => (
-                    <SDCard key={log.id} variant="elevated" padding="md" style={styles.logCard}>
-                      <View style={styles.logHeader}>
-                        <Text style={styles.logHours}>{log.hours}h</Text>
-                        <SDStatusChip status={log.status} size="sm" />
-                      </View>
-                      <Text style={styles.logNotes} numberOfLines={2}>
-                        {log.description}
-                      </Text>
-                      <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
-                    </SDCard>
+                    <TouchableOpacity
+                      key={log.id}
+                      onPress={() => {
+                        setSelectedLog(log);
+                        setLogDetailVisible(true);
+                      }}
+                    >
+                      <SDCard variant="elevated" padding="md" style={styles.logCard}>
+                        <View style={styles.logHeader}>
+                          <Text style={styles.logHours}>{log.hours}h</Text>
+                          <SDStatusChip status={log.status} size="sm" />
+                        </View>
+                        <Text style={styles.logNotes} numberOfLines={2}>
+                          {log.description}
+                        </Text>
+                        <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
+                      </SDCard>
+                    </TouchableOpacity>
                   ))}
                 </View>
               ) : (
@@ -313,6 +276,130 @@ export default function DashboardScreen() {
           </GlassmorphicCard>
           )}
         </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage={`${getGreeting()}, ${firstName}`}
+            notificationCount={stats.pendingLogs}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
+
+        {/* Log Detail Modal */}
+        <Modal
+          visible={logDetailVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setLogDetailVisible(false)}
+          statusBarTranslucent
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView 
+              style={styles.outerScrollView}
+              contentContainerStyle={styles.outerScrollContent}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  {/* Header */}
+                  <View style={styles.header}>
+                    <View style={styles.headerLeft}>
+                      <View style={styles.headerIcon}>
+                        <Clock color={Colors.deepPurple} size={20} />
+                      </View>
+                      <Text style={styles.headerTitle}>Log Details</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setLogDetailVisible(false)} style={styles.closeButton}>
+                      <X color={Colors.textSecondary} size={24} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedLog && (
+                    <>
+                      {/* Hours */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Clock color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Hours Logged</Text>
+                            <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Status */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Award color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Status</Text>
+                            <SDStatusChip status={selectedLog.status} size="sm" />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Date Submitted */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Eye color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Submitted</Text>
+                            <Text style={styles.infoValue}>
+                              {new Date(selectedLog.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Description */}
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Description</Text>
+                        <View style={styles.descriptionBox}>
+                          <Text style={styles.descriptionText}>{selectedLog.description}</Text>
+                        </View>
+                      </View>
+
+                      {/* Coordinator Comment */}
+                      {selectedLog.coordinatorComment && (
+                        <View style={styles.section}>
+                          <Text style={styles.sectionTitle}>Coordinator Feedback</Text>
+                          <View style={styles.existingCommentBox}>
+                            <Text style={styles.existingCommentText}>{selectedLog.coordinatorComment}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -321,6 +408,16 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
   },
   header: {
     paddingTop: spacing.md,
@@ -358,11 +455,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   statsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -552,5 +650,126 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  outerScrollView: {
+    flex: 1,
+  },
+  outerScrollContent: {
+    paddingTop: 140,
+    paddingBottom: 100,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalContent: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusXl,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    ...typography.h2,
+    color: Colors.text,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  section: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: spacing.sm,
+  },
+  descriptionBox: {
+    backgroundColor: Colors.background,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  descriptionText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  existingCommentBox: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: `${Colors.deepPurple}0D`,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: `${Colors.deepPurple}33`,
+  },
+  existingCommentText: {
+    flex: 1,
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    lineHeight: 20,
   },
 });

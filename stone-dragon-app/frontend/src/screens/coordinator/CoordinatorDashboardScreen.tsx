@@ -15,6 +15,7 @@ import { Trophy, Bell } from 'lucide-react-native';
 import {
   GradientBackground,
   GlassmorphicCard,
+  GlassmorphicBanner,
   SDButton,
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
@@ -28,6 +29,7 @@ import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../../services/api';
+import { TrendingUpIcon } from '../../assets/svgs';
 
 /**
  * CoordinatorDashboardScreen - Main coordinator dashboard
@@ -174,41 +176,21 @@ export default function CoordinatorDashboardScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        {/* Fixed Header with Blur */}
-        <BlurView intensity={60} tint="light" style={styles.header}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity
-              onPress={() => setLeaderboardVisible(true)}
-              style={styles.headerButton}
-            >
-              <Trophy color={Colors.deepPurple} size={20} />
-            </TouchableOpacity>
-
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Claims</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => setNotificationVisible(true)}
-              style={styles.headerButton}
-            >
-              <Bell color={Colors.deepPurple} size={20} />
-              {pendingCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{pendingCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          {/* This Week Section */}
+          <View style={styles.thisWeekContainer}>
+            <TrendingUpIcon size={20} color={Colors.deepPurple} />
+            <Text style={styles.thisWeekText}>This Week</Text>
+          </View>
+
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.deepPurple} />
@@ -248,6 +230,18 @@ export default function CoordinatorDashboardScreen() {
           )}
         </ScrollView>
 
+        {/* Glassmorphic Banner - Fixed at top, content scrolls behind */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            welcomeMessage={`Welcome back, ${user?.firstName || 'Coordinator'}`}
+            notificationCount={pendingCount}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
         {/* Claim Detail Modal */}
         <ClaimDetailModal
           visible={modalVisible}
@@ -276,6 +270,14 @@ export default function CoordinatorDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerWrapper: {
+    // Fixed at top - content scrolls behind creating blur effect
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   header: {
     paddingTop: spacing.md,
@@ -324,7 +326,20 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingTop: 130, // Adjusted to bring content slightly higher
+    paddingBottom: 100, // Extra padding to ensure bottom content is visible above nav bar
+  },
+  thisWeekContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xs,
+  },
+  thisWeekText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.deepPurple,
   },
   mainCard: {
     padding: spacing.lg,
