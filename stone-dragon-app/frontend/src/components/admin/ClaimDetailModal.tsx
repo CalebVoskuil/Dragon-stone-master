@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye } from 'lucide-react-native';
+import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye, Tag, Building2, DollarSign, Package } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -50,6 +50,87 @@ export default function ClaimDetailModal({
 }: ClaimDetailModalProps) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Parse the description to extract structured information
+  // Must be called before any conditional returns (Rules of Hooks)
+  const parsedClaim = useMemo(() => {
+    const desc = claim?.description || '';
+    let activityType = 'Other';
+    let eventName = '';
+    let donationItem = '';
+    let donationAmount = '';
+    let volunteerTitle = '';
+    let volunteerOrg = '';
+    let otherTitle = '';
+    let actualDescription = desc;
+
+    // Parse Event
+    if (desc.startsWith('Event:')) {
+      activityType = 'Event';
+      const parts = desc.split('\n');
+      if (parts[0]) {
+        eventName = parts[0].replace('Event:', '').trim();
+      }
+      if (parts[1]) {
+        actualDescription = parts[1].replace('Description:', '').trim();
+      }
+    }
+    // Parse Donation
+    else if (desc.startsWith('Donation -')) {
+      activityType = 'Donation';
+      const parts = desc.split('\n');
+      if (parts[0]) {
+        const detailsPart = parts[0].replace('Donation -', '').trim();
+        const itemMatch = detailsPart.match(/Item:\s*([^,]+)/);
+        const amountMatch = detailsPart.match(/Amount:\s*([^,\n]+)/);
+        donationItem = itemMatch ? itemMatch[1].trim() : '';
+        donationAmount = amountMatch ? amountMatch[1].trim() : '';
+      }
+      if (parts[1]) {
+        actualDescription = parts[1].replace('Description:', '').trim();
+      } else {
+        actualDescription = ''; // Donation descriptions are optional
+      }
+    }
+    // Parse Volunteer Work
+    else if (desc.startsWith('Volunteer Work -')) {
+      activityType = 'Volunteer';
+      const parts = desc.split('\n');
+      if (parts[0]) {
+        const detailsPart = parts[0].replace('Volunteer Work -', '').trim();
+        const titleMatch = detailsPart.match(/Title:\s*([^,]+)/);
+        const orgMatch = detailsPart.match(/Organization:\s*([^,\n]+)/);
+        volunteerTitle = titleMatch ? titleMatch[1].trim() : '';
+        volunteerOrg = orgMatch ? orgMatch[1].trim() : '';
+      }
+      if (parts[1]) {
+        actualDescription = parts[1].replace('Description:', '').trim();
+      }
+    }
+    // Parse Other Activity
+    else if (desc.startsWith('Other Activity -')) {
+      activityType = 'Other';
+      const parts = desc.split('\n');
+      if (parts[0]) {
+        const titleMatch = parts[0].match(/Other Activity - Title:\s*([^\n]+)/);
+        otherTitle = titleMatch ? titleMatch[1].trim() : '';
+      }
+      if (parts[1]) {
+        actualDescription = parts[1].replace('Description:', '').trim();
+      }
+    }
+
+    return {
+      activityType,
+      eventName,
+      donationItem,
+      donationAmount,
+      volunteerTitle,
+      volunteerOrg,
+      otherTitle,
+      actualDescription,
+    };
+  }, [claim?.description]);
 
   if (!claim) return null;
 
@@ -183,20 +264,131 @@ export default function ClaimDetailModal({
                   </View>
                 </View>
 
-                {/* Hours */}
+                {/* Activity Type */}
                 <View style={styles.section}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoIcon}>
-                      <Clock color={Colors.deepPurple} size={18} />
+                      <Tag color={Colors.deepPurple} size={18} />
                     </View>
                     <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Hours Logged</Text>
-                      <Text style={styles.infoValue}>{claim.hours} hours</Text>
+                      <Text style={styles.infoLabel}>Activity Type</Text>
+                      <Text style={styles.infoValue}>{parsedClaim.activityType}</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Date */}
+                {/* Event Name (for Event type) - Always show for Event activities */}
+                {parsedClaim.activityType === 'Event' && (
+                  <View style={styles.section}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIcon}>
+                        <Calendar color={Colors.deepPurple} size={18} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Event Title</Text>
+                        <Text style={styles.infoValue}>
+                          {parsedClaim.eventName || 'Event Title Not Available'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Donation Details */}
+                {parsedClaim.activityType === 'Donation' && (
+                  <>
+                    {parsedClaim.donationItem && (
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Package color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Donated Item</Text>
+                            <Text style={styles.infoValue}>{parsedClaim.donationItem}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                    {parsedClaim.donationAmount && (
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <DollarSign color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Amount/Quantity</Text>
+                            <Text style={styles.infoValue}>{parsedClaim.donationAmount}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </>
+                )}
+
+                {/* Volunteer Work Details */}
+                {parsedClaim.activityType === 'Volunteer' && (
+                  <>
+                    {parsedClaim.volunteerTitle && (
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <FileText color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Activity Title</Text>
+                            <Text style={styles.infoValue}>{parsedClaim.volunteerTitle}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                    {parsedClaim.volunteerOrg && (
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Building2 color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Organization</Text>
+                            <Text style={styles.infoValue}>{parsedClaim.volunteerOrg}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </>
+                )}
+
+                {/* Other Activity Title */}
+                {parsedClaim.activityType === 'Other' && parsedClaim.otherTitle && (
+                  <View style={styles.section}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIcon}>
+                        <FileText color={Colors.deepPurple} size={18} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Activity Title</Text>
+                        <Text style={styles.infoValue}>{parsedClaim.otherTitle}</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Hours (not shown for donations) */}
+                {parsedClaim.activityType !== 'Donation' && (
+                  <View style={styles.section}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoIcon}>
+                        <Clock color={Colors.deepPurple} size={18} />
+                      </View>
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Hours Logged</Text>
+                        <Text style={styles.infoValue}>{claim.hours} hours</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* Activity Date */}
                 <View style={styles.section}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoIcon}>
@@ -224,13 +416,15 @@ export default function ClaimDetailModal({
                   </View>
                 </View>
 
-                {/* Description */}
+                {/* Description (only if there's an actual description) */}
+                {parsedClaim.actualDescription && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Description</Text>
                   <View style={styles.descriptionBox}>
-                    <Text style={styles.descriptionText}>{claim.description}</Text>
+                      <Text style={styles.descriptionText}>{parsedClaim.actualDescription}</Text>
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {/* Proof File */}
                 {claim.proofFileName && (

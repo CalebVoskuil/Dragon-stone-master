@@ -19,6 +19,7 @@ import {
   Bell,
   Trophy,
   X,
+  Calendar,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -329,20 +330,173 @@ export default function DashboardScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {selectedLog && (
+                  {selectedLog && (() => {
+                    // Parse description to extract structured info
+                    const desc = selectedLog.description || '';
+                    let activityType = 'Other';
+                    let eventName = '';
+                    let donationItem = '';
+                    let donationAmount = '';
+                    let volunteerTitle = '';
+                    let volunteerOrg = '';
+                    let otherTitle = '';
+                    let actualDescription = desc;
+
+                    if (desc.startsWith('Event:')) {
+                      activityType = 'Event';
+                      const parts = desc.split('\n');
+                      if (parts[0]) eventName = parts[0].replace('Event:', '').trim();
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    } else if (desc.startsWith('Donation -')) {
+                      activityType = 'Donation';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const detailsPart = parts[0].replace('Donation -', '').trim();
+                        const itemMatch = detailsPart.match(/Item:\s*([^,]+)/);
+                        const amountMatch = detailsPart.match(/Amount:\s*([^,\n]+)/);
+                        donationItem = itemMatch ? itemMatch[1].trim() : '';
+                        donationAmount = amountMatch ? amountMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                      else actualDescription = '';
+                    } else if (desc.startsWith('Volunteer Work -')) {
+                      activityType = 'Volunteer';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const detailsPart = parts[0].replace('Volunteer Work -', '').trim();
+                        const titleMatch = detailsPart.match(/Title:\s*([^,]+)/);
+                        const orgMatch = detailsPart.match(/Organization:\s*([^,\n]+)/);
+                        volunteerTitle = titleMatch ? titleMatch[1].trim() : '';
+                        volunteerOrg = orgMatch ? orgMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    } else if (desc.startsWith('Other Activity -')) {
+                      activityType = 'Other';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const titleMatch = parts[0].match(/Other Activity - Title:\s*([^\n]+)/);
+                        otherTitle = titleMatch ? titleMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    }
+
+                    return (
                     <>
-                      {/* Hours */}
+                      {/* Activity Type */}
                       <View style={styles.section}>
                         <View style={styles.infoRow}>
                           <View style={styles.infoIcon}>
-                            <Clock color={Colors.deepPurple} size={18} />
+                            <Eye color={Colors.deepPurple} size={18} />
                           </View>
                           <View style={styles.infoContent}>
-                            <Text style={styles.infoLabel}>Hours Logged</Text>
-                            <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
+                            <Text style={styles.infoLabel}>Activity Type</Text>
+                            <Text style={styles.infoValue}>{activityType}</Text>
                           </View>
                         </View>
                       </View>
+
+                      {/* Event Title */}
+                      {activityType === 'Event' && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Calendar color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Event Title</Text>
+                              <Text style={styles.infoValue}>{eventName || 'Event Title Not Available'}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Donation Details */}
+                      {activityType === 'Donation' && donationItem && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Award color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Donated Item</Text>
+                              <Text style={styles.infoValue}>{donationItem}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {activityType === 'Donation' && donationAmount && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Award color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Amount/Quantity</Text>
+                              <Text style={styles.infoValue}>{donationAmount}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Volunteer Work Details */}
+                      {activityType === 'Volunteer' && volunteerTitle && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Award color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Activity Title</Text>
+                              <Text style={styles.infoValue}>{volunteerTitle}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {activityType === 'Volunteer' && volunteerOrg && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Award color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Organization</Text>
+                              <Text style={styles.infoValue}>{volunteerOrg}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Other Activity Title */}
+                      {activityType === 'Other' && otherTitle && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Award color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Activity Title</Text>
+                              <Text style={styles.infoValue}>{otherTitle}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Hours */}
+                      {activityType !== 'Donation' && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Clock color={Colors.deepPurple} size={18} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Hours Logged</Text>
+                              <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
 
                       {/* Status */}
                       <View style={styles.section}>
@@ -376,13 +530,15 @@ export default function DashboardScreen() {
                         </View>
                       </View>
 
-                      {/* Description */}
-                      <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Description</Text>
-                        <View style={styles.descriptionBox}>
-                          <Text style={styles.descriptionText}>{selectedLog.description}</Text>
+                      {/* Description - only show if there's actual description */}
+                      {actualDescription && (
+                        <View style={styles.section}>
+                          <Text style={styles.sectionTitle}>Description</Text>
+                          <View style={styles.descriptionBox}>
+                            <Text style={styles.descriptionText}>{actualDescription}</Text>
+                          </View>
                         </View>
-                      </View>
+                      )}
 
                       {/* Coordinator Comment */}
                       {selectedLog.coordinatorComment && (
@@ -394,7 +550,8 @@ export default function DashboardScreen() {
                         </View>
                       )}
                     </>
-                  )}
+                    );
+                  })()}
                 </View>
               </View>
             </ScrollView>
