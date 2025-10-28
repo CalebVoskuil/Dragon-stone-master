@@ -863,7 +863,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   bannerSpacer: {
-    height: 130,
+    height: 150,
   },
   scrollView: {
     flex: 1,
