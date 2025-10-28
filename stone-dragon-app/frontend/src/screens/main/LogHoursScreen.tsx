@@ -1846,11 +1846,11 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   section: {
-    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
   },
   infoIcon: {
@@ -1864,18 +1864,24 @@ const styles = StyleSheet.create({
   infoContent: {
     flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
   infoLabel: {
     fontSize: Sizes.fontSm,
     fontWeight: '600',
     color: Colors.textSecondary,
+    minWidth: 90,
+    paddingTop: 10, // Align with icon center
   },
   infoValue: {
+    flex: 1,
     fontSize: Sizes.fontMd,
-    fontWeight: '600',
+    fontWeight: '500',
     color: Colors.text,
+    lineHeight: Sizes.fontMd * 1.4,
+    flexWrap: 'wrap',
+    paddingTop: 10, // Align with icon center
   },
   descriptionBox: {
     backgroundColor: Colors.background,

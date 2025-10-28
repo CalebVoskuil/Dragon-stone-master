@@ -485,17 +485,17 @@ export default function DashboardScreen() {
 
                       {/* Hours */}
                       {activityType !== 'Donation' && (
-                        <View style={styles.section}>
-                          <View style={styles.infoRow}>
-                            <View style={styles.infoIcon}>
-                              <Clock color={Colors.deepPurple} size={18} />
-                            </View>
-                            <View style={styles.infoContent}>
-                              <Text style={styles.infoLabel}>Hours Logged</Text>
-                              <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
-                            </View>
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Clock color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Hours Logged</Text>
+                            <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
                           </View>
                         </View>
+                      </View>
                       )}
 
                       {/* Status */}
@@ -532,12 +532,12 @@ export default function DashboardScreen() {
 
                       {/* Description - only show if there's actual description */}
                       {actualDescription && (
-                        <View style={styles.section}>
-                          <Text style={styles.sectionTitle}>Description</Text>
-                          <View style={styles.descriptionBox}>
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Description</Text>
+                        <View style={styles.descriptionBox}>
                             <Text style={styles.descriptionText}>{actualDescription}</Text>
-                          </View>
                         </View>
+                      </View>
                       )}
 
                       {/* Coordinator Comment */}
@@ -884,17 +884,25 @@ const styles = StyleSheet.create({
   },
   infoContent: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
   infoLabel: {
-    fontSize: Sizes.fontXs,
+    fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
-    marginBottom: 2,
-    fontWeight: '500',
+    fontWeight: '600',
+    minWidth: 90,
+    paddingTop: 10, // Align with icon center
   },
   infoValue: {
+    flex: 1,
     fontSize: Sizes.fontMd,
     color: Colors.text,
-    fontWeight: '600',
+    fontWeight: '500',
+    lineHeight: Sizes.fontMd * 1.4,
+    flexWrap: 'wrap',
+    paddingTop: 10, // Align with icon center
   },
   sectionTitle: {
     fontSize: Sizes.fontMd,

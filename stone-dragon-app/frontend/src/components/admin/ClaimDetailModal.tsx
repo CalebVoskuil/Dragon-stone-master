@@ -618,17 +618,25 @@ const styles = StyleSheet.create({
   },
   infoContent: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
   infoLabel: {
-    fontSize: Sizes.fontXs,
+    fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
-    marginBottom: 2,
-    fontWeight: '500',
+    fontWeight: '600',
+    minWidth: 90,
+    paddingTop: 10, // Align with icon center
   },
   infoValue: {
+    flex: 1,
     fontSize: Sizes.fontMd,
     color: Colors.text,
-    fontWeight: '600',
+    fontWeight: '500',
+    lineHeight: Sizes.fontMd * 1.4,
+    flexWrap: 'wrap',
+    paddingTop: 10, // Align with icon center
   },
   sectionTitle: {
     fontSize: Sizes.fontMd,
