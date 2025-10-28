@@ -148,12 +148,23 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
 
     // Admins can only see approved/rejected claims, and can filter by school
     if (userRole === 'ADMIN') {
-      // Admins can only see approved or rejected claims (not pending)
-      where.status = { in: ['approved', 'rejected'] };
-
       // Admins can optionally filter by school
       if (schoolId) {
         where.schoolId = schoolId as string;
+      }
+
+      // Admins can filter by status, but can only see approved/rejected (not pending)
+      if (status) {
+        // Only allow approved or rejected status
+        if (status === 'approved' || status === 'rejected') {
+          where.status = status;
+        } else {
+          // If 'all' or invalid status, show both approved and rejected
+          where.status = { in: ['approved', 'rejected'] };
+        }
+      } else {
+        // Default: show both approved and rejected
+        where.status = { in: ['approved', 'rejected'] };
       }
     }
 
