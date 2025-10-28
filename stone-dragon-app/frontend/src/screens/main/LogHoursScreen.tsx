@@ -289,6 +289,23 @@ export default function LogHoursScreen() {
     setPreview('');
   };
 
+  const resetForm = () => {
+    setFormData({
+      type: '',
+      event: '',
+      item: '',
+      amount: '',
+      title: '',
+      organization: '',
+      activityTitle: '',
+      hours: '',
+      description: '',
+    });
+    setSelectedFile(null);
+    setPreview('');
+    setErrors({});
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -433,10 +450,14 @@ export default function LogHoursScreen() {
       const response = await apiService.createVolunteerLog(logData);
 
       if (response.success) {
+        // Reset form
+        resetForm();
+        // Show success modal
         setShowSuccess(true);
+        // Auto-hide after 3 seconds
         setTimeout(() => {
-          navigation.goBack();
-        }, 2000);
+          setShowSuccess(false);
+        }, 3000);
       } else {
         throw new Error(response.message || 'Failed to submit log');
       }
@@ -737,29 +758,6 @@ export default function LogHoursScreen() {
     }
   };
 
-  if (showSuccess) {
-    return (
-      <GradientBackground>
-        <SafeAreaView style={styles.container}>
-          <View style={styles.successContainer}>
-            <GlassmorphicCard style={styles.successCard}>
-              <View style={styles.successIcon}>
-                <Check color={Colors.green} size={40} />
-              </View>
-              <Text style={styles.successTitle}>Submitted Successfully!</Text>
-              <Text style={styles.successMessage}>
-                Your volunteer hours have been submitted for verification.
-              </Text>
-              <Text style={styles.successHint}>
-                You'll receive a notification once they're reviewed.
-              </Text>
-            </GlassmorphicCard>
-          </View>
-        </SafeAreaView>
-      </GradientBackground>
-    );
-  }
-
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
@@ -866,6 +864,39 @@ export default function LogHoursScreen() {
           visible={notificationVisible}
           onClose={() => setNotificationVisible(false)}
         />
+
+        {/* Success Modal */}
+        <Modal
+          visible={showSuccess}
+          animationType="fade"
+          transparent
+          statusBarTranslucent
+          onRequestClose={() => setShowSuccess(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.successModalContainer}>
+              <GlassmorphicCard intensity={95} style={styles.successModalCard}>
+                <View style={styles.successIconLarge}>
+                  <Check color={Colors.green} size={48} strokeWidth={3} />
+                </View>
+                <Text style={styles.successTitle}>Submitted Successfully!</Text>
+                <Text style={styles.successMessage}>
+                  Your volunteer hours have been submitted for verification.
+                </Text>
+                <Text style={styles.successHint}>
+                  You'll receive a notification once they're reviewed.
+                </Text>
+                <SDButton
+                  variant="primary-filled"
+                  onPress={() => setShowSuccess(false)}
+                  style={styles.successButton}
+                >
+                  Continue
+                </SDButton>
+              </GlassmorphicCard>
+            </View>
+          </View>
+        </Modal>
 
         {/* Log Detail Modal */}
         <Modal
@@ -1429,19 +1460,23 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.lg,
   },
-  successContainer: {
+  successModalContainer: {
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
   },
-  successCard: {
+  successModalCard: {
     padding: spacing.xl,
     alignItems: 'center',
+    maxWidth: 400,
+    marginHorizontal: spacing.lg,
   },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  successIconLarge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: `${Colors.green}1A`,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1451,6 +1486,7 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: Colors.text,
     marginBottom: spacing.md,
+    textAlign: 'center',
   },
   successMessage: {
     fontSize: Sizes.fontMd,
@@ -1462,6 +1498,10 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  successButton: {
+    minWidth: 150,
   },
   errorText: {
     fontSize: Sizes.fontSm,
