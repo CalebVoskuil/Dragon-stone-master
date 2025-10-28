@@ -246,7 +246,9 @@ export default function ProfileScreen() {
               style={styles.logoutButton}
             >
               <LogOut color={Colors.light} size={20} />
-              <Text style={styles.logoutText}>Logout</Text>
+              <View style={styles.logoutTextContainer}>
+                <Text style={styles.logoutText}>Logout</Text>
+              </View>
             </SDButton>
 
             <Text style={styles.version}>Version 1.0.0</Text>
@@ -389,7 +391,12 @@ const styles = StyleSheet.create({
   logoutButton: {
     marginTop: spacing.md,
     flexDirection: 'row',
-    gap: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  logoutTextContainer: {
+    transform: [{ translateY: -2 }], // Raise text to align with icon
   },
   logoutText: {
     color: Colors.light,
