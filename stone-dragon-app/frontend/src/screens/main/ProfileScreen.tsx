@@ -180,16 +180,22 @@ export default function ProfileScreen() {
 
               <View style={styles.userDetails}>
                 <View style={styles.userDetail}>
-                  <Mail color={Colors.textSecondary} size={16} />
+                  <View style={styles.detailIcon}>
+                    <Mail color={Colors.textSecondary} size={16} />
+                  </View>
                   <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
                 </View>
 
-                {user?.school && (
-                  <View style={styles.userDetail}>
+                <View style={styles.userDetail}>
+                  <View style={styles.detailIcon}>
                     <School color={Colors.textSecondary} size={16} />
-                    <Text style={styles.userDetailText}>{user.school}</Text>
                   </View>
-                )}
+                  <Text style={styles.userDetailText}>
+                    {typeof user?.school === 'string' 
+                      ? user.school 
+                      : (user?.school as any)?.name || 'No school'}
+                  </Text>
+                </View>
               </View>
             </SDCard>
 
@@ -302,16 +308,22 @@ const styles = StyleSheet.create({
   userDetails: {
     width: '100%',
     gap: spacing.sm,
+    alignItems: 'flex-start',
   },
   userDetail: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  detailIcon: {
+    width: 20,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   userDetailText: {
     fontSize: Sizes.fontSm,
     color: Colors.text,
+    flex: 1,
   },
   statsGrid: {
     flexDirection: 'row',
