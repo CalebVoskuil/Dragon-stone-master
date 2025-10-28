@@ -8,6 +8,7 @@ import {
   RefreshControl,
   SafeAreaView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import {
@@ -17,6 +18,7 @@ import {
   Eye,
   Bell,
   Trophy,
+  X,
 } from 'lucide-react-native';
 import {
   GradientBackground,
@@ -55,6 +57,8 @@ export default function DashboardScreen() {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [logDetailVisible, setLogDetailVisible] = useState(false);
 
   const nextBadgeProgress = 75;
   const canLogHours = true; // Update based on user consent status
@@ -232,16 +236,24 @@ export default function DashboardScreen() {
               {recentLogs.length > 0 ? (
                 <View style={styles.logsList}>
                   {recentLogs.map((log) => (
-                    <SDCard key={log.id} variant="elevated" padding="md" style={styles.logCard}>
-                      <View style={styles.logHeader}>
-                        <Text style={styles.logHours}>{log.hours}h</Text>
-                        <SDStatusChip status={log.status} size="sm" />
-                      </View>
-                      <Text style={styles.logNotes} numberOfLines={2}>
-                        {log.description}
-                      </Text>
-                      <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
-                    </SDCard>
+                    <TouchableOpacity
+                      key={log.id}
+                      onPress={() => {
+                        setSelectedLog(log);
+                        setLogDetailVisible(true);
+                      }}
+                    >
+                      <SDCard variant="elevated" padding="md" style={styles.logCard}>
+                        <View style={styles.logHeader}>
+                          <Text style={styles.logHours}>{log.hours}h</Text>
+                          <SDStatusChip status={log.status} size="sm" />
+                        </View>
+                        <Text style={styles.logNotes} numberOfLines={2}>
+                          {log.description}
+                        </Text>
+                        <Text style={styles.logTime}>{formatDate(log.createdAt)}</Text>
+                      </SDCard>
+                    </TouchableOpacity>
                   ))}
                 </View>
               ) : (
@@ -286,6 +298,108 @@ export default function DashboardScreen() {
           visible={notificationVisible}
           onClose={() => setNotificationVisible(false)}
         />
+
+        {/* Log Detail Modal */}
+        <Modal
+          visible={logDetailVisible}
+          animationType="fade"
+          transparent
+          onRequestClose={() => setLogDetailVisible(false)}
+          statusBarTranslucent
+        >
+          <View style={styles.modalOverlay}>
+            <ScrollView 
+              style={styles.outerScrollView}
+              contentContainerStyle={styles.outerScrollContent}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  {/* Header */}
+                  <View style={styles.header}>
+                    <View style={styles.headerLeft}>
+                      <View style={styles.headerIcon}>
+                        <Clock color={Colors.deepPurple} size={20} />
+                      </View>
+                      <Text style={styles.headerTitle}>Log Details</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setLogDetailVisible(false)} style={styles.closeButton}>
+                      <X color={Colors.textSecondary} size={24} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedLog && (
+                    <>
+                      {/* Hours */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Clock color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Hours Logged</Text>
+                            <Text style={styles.infoValue}>{selectedLog.hours} hours</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Status */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Award color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Status</Text>
+                            <SDStatusChip status={selectedLog.status} size="sm" />
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Date Submitted */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Eye color={Colors.deepPurple} size={18} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Submitted</Text>
+                            <Text style={styles.infoValue}>
+                              {new Date(selectedLog.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Description */}
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Description</Text>
+                        <View style={styles.descriptionBox}>
+                          <Text style={styles.descriptionText}>{selectedLog.description}</Text>
+                        </View>
+                      </View>
+
+                      {/* Coordinator Comment */}
+                      {selectedLog.coordinatorComment && (
+                        <View style={styles.section}>
+                          <Text style={styles.sectionTitle}>Coordinator Feedback</Text>
+                          <View style={styles.existingCommentBox}>
+                            <Text style={styles.existingCommentText}>{selectedLog.coordinatorComment}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -536,5 +650,126 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  outerScrollView: {
+    flex: 1,
+  },
+  outerScrollContent: {
+    paddingTop: 140,
+    paddingBottom: 100,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalContent: {
+    backgroundColor: Colors.card,
+    borderRadius: Sizes.radiusXl,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    ...typography.h2,
+    color: Colors.text,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  section: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: spacing.sm,
+  },
+  descriptionBox: {
+    backgroundColor: Colors.background,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  descriptionText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  existingCommentBox: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: `${Colors.deepPurple}0D`,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: `${Colors.deepPurple}33`,
+  },
+  existingCommentText: {
+    flex: 1,
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    lineHeight: 20,
   },
 });
