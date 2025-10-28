@@ -222,14 +222,21 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
         },
         select: { userId: true },
       }).then(result => result.length),
-      // Get ALL pending logs - coordinators review all non-event claims and event claims without student coordinators
+      // Get recent logs based on user role
+      // Admins see recently reviewed logs (approved/rejected)
+      // Coordinators see pending logs
       prisma.volunteerLog.findMany({
         where: {
           ...whereClause,
-          status: 'pending',
+          ...(userRole === 'ADMIN' 
+            ? { status: { in: ['approved', 'rejected'] } }  // Admins see reviewed claims
+            : { status: 'pending' }                          // Coordinators see pending claims
+          ),
         },
         take: 5,
-        orderBy: { createdAt: 'desc' },
+        orderBy: userRole === 'ADMIN' 
+          ? { updatedAt: 'desc' }  // Sort by review time for admins
+          : { createdAt: 'desc' }, // Sort by submission time for coordinators
         include: {
           user: {
             select: {
@@ -266,6 +273,7 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
         approvalRate,
       },
       recentLogs,
+      userRole, // Include user role so frontend can adjust UI
     };
 
     res.json({

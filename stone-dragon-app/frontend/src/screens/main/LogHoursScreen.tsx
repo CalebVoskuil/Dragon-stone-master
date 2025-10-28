@@ -342,19 +342,8 @@ export default function LogHoursScreen() {
       }
     }
 
-    // Description validation - optional for donations since we include item/amount
-    if (formData.type !== 'Donation') {
-      if (!formData.description.trim()) {
-        newErrors.description = 'Description is required';
-      } else if (formData.description.trim().length < 10) {
-        newErrors.description = 'Description must be at least 10 characters';
-      }
-    } else {
-      // For donations, if description is provided, it should be at least 10 characters
-      if (formData.description.trim() && formData.description.trim().length < 10) {
-        newErrors.description = 'Description must be at least 10 characters';
-      }
-    }
+    // Description validation - optional for all types
+    // No validation needed since description is optional
 
     if (!user?.schoolId) {
       newErrors.school = 'School ID is missing. Please update your profile.';
@@ -1240,10 +1229,6 @@ export default function LogHoursScreen() {
                                 // Validate
                                 if (!editFormData.hours || parseFloat(editFormData.hours) <= 0) {
                                   Alert.alert('Error', 'Please enter valid hours');
-                                  return;
-                                }
-                                if (!editFormData.description || editFormData.description.trim().length < 10) {
-                                  Alert.alert('Error', 'Description must be at least 10 characters');
                                   return;
                                 }
                                 if (editFormData.type === 'Volunteer' && !editFile) {

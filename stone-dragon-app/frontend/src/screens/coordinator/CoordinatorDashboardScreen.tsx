@@ -32,8 +32,9 @@ import { apiService } from '../../services/api';
 import { TrendingUpIcon } from '../../assets/svgs';
 
 /**
- * CoordinatorDashboardScreen - Main coordinator dashboard
- * Shows pending claims, statistics, and quick actions
+ * CoordinatorDashboardScreen - Main coordinator/admin dashboard
+ * Coordinators: Shows pending claims, statistics, and quick actions
+ * Admins: Shows recently reviewed claims (approved/rejected)
  */
 export default function CoordinatorDashboardScreen() {
   const navigation = useNavigation();
@@ -45,6 +46,7 @@ export default function CoordinatorDashboardScreen() {
     pending: 0,
     today: 0,
     approved: 0,
+    rejected: 0,
     totalStudents: 0,
     totalHours: 0,
     avgResponseTime: '0',
@@ -54,6 +56,7 @@ export default function CoordinatorDashboardScreen() {
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
+  const [dashboardUserRole, setDashboardUserRole] = useState<string>('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -69,11 +72,15 @@ export default function CoordinatorDashboardScreen() {
       if (response.success && response.data) {
         const data = response.data;
         
+        // Store user role from backend
+        setDashboardUserRole(data.userRole || '');
+        
         // Map statistics to SDStatGrid format using real backend data
         setStats({
           pending: data.statistics.pendingLogs,
           today: data.statistics.todayLogs,
           approved: data.statistics.approvedLogs,
+          rejected: data.statistics.rejectedLogs || 0,
           totalStudents: data.statistics.activeStudents,
           totalHours: data.statistics.totalHours,
           avgResponseTime: data.statistics.approvalRate + '%', // Use approval rate instead
@@ -89,10 +96,14 @@ export default function CoordinatorDashboardScreen() {
     }
   };
 
-  // Use pending logs from backend (already filtered)
+  // Use pending logs from backend (already filtered by role)
   const recentClaims = recentLogs;
 
-  const pendingCount = stats.pending;
+  // Check if user is admin
+  const isAdmin = dashboardUserRole === 'ADMIN' || user?.role === 'ADMIN';
+
+  // Admins don't have pending count in notifications (they only see reviewed claims)
+  const pendingCount = isAdmin ? 0 : stats.pending;
 
   const handleApprove = async (id: string, message: string = '') => {
     try {
@@ -206,12 +217,15 @@ export default function CoordinatorDashboardScreen() {
           ) : (
             <GlassmorphicCard intensity={100} style={styles.mainCard}>
               {/* Statistics Grid */}
-              <SDStatGrid stats={stats} />
+              <SDStatGrid stats={stats} isAdmin={isAdmin} />
 
-            {/* Pending Claims List */}
+            {/* Claims List - Pending for Coordinators, Recent for Admins */}
             <View style={styles.claimsList}>
               <Text style={styles.sectionTitle}>
-                Pending Review ({recentClaims.length})
+                {isAdmin 
+                  ? `Recent (${recentClaims.length})` 
+                  : `Pending Review (${recentClaims.length})`
+                }
               </Text>
               {recentClaims.length > 0 ? (
                 recentClaims.map((log) => (
@@ -219,9 +233,14 @@ export default function CoordinatorDashboardScreen() {
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No pending claims</Text>
+                  <Text style={styles.emptyTitle}>
+                    {isAdmin ? 'No recent claims' : 'No pending claims'}
+                  </Text>
                   <Text style={styles.emptyDescription}>
-                    All claims have been reviewed. Check back later for new submissions.
+                    {isAdmin 
+                      ? 'No claims have been reviewed recently. Check back later for updates.'
+                      : 'All claims have been reviewed. Check back later for new submissions.'
+                    }
                   </Text>
                 </View>
               )}
