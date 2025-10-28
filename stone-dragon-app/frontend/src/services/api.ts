@@ -24,7 +24,7 @@ class ApiService {
       // - For Android Emulator: use 'http://10.0.2.2:3001/api'
       // - For Physical Device: use your computer's IP (e.g., 'http://192.168.1.100:3001/api')
       // - For Production: update to your production API URL
-      baseURL: 'http://192.168.0.208:3001/api', 
+      baseURL: 'http://192.168.0.115:3001/api', 
       timeout: 10000,
       withCredentials: true, // Important for session-based auth (cookies)
       headers: {

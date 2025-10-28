@@ -17,9 +17,12 @@ import {
   GradientBackground,
   SDButton,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
+import LeaderboardModal from '../../components/admin/LeaderboardModal';
+import NotificationCenterModal from '../../components/admin/NotificationCenterModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -47,6 +50,8 @@ export default function ClaimsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -229,11 +234,20 @@ export default function ClaimsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          {/* Header */}
-          <Text style={styles.title}>Claims Management</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Spacer for banner */}
+          <View style={styles.bannerSpacer} />
 
-          {/* Search Bar */}
+          <GlassmorphicCard intensity={80} style={styles.mainCard}>
+            {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search color={Colors.textSecondary} size={20} style={styles.searchIcon} />
             <TextInput
@@ -307,26 +321,22 @@ export default function ClaimsScreen() {
                 Retry
               </SDButton>
             </View>
+          ) : filteredClaims.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No claims found</Text>
+              <Text style={styles.emptyDescription}>
+                {searchTerm ? 'Try adjusting your search' : 'No claims match the selected filter'}
+              </Text>
+            </View>
           ) : (
-            <FlatList
-              data={filteredClaims}
-              renderItem={renderClaim}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>No claims found</Text>
-                  <Text style={styles.emptyDescription}>
-                    {searchTerm ? 'Try adjusting your search' : 'No claims match the selected filter'}
-                  </Text>
-                </View>
-              }
-            />
+            <View style={styles.listContent}>
+              {filteredClaims.map((item) => (
+                <View key={item.id}>{renderClaim({ item })}</View>
+              ))}
+            </View>
           )}
         </GlassmorphicCard>
+        </ScrollView>
 
         {/* Claim Detail Modal */}
         <ClaimDetailModal
@@ -335,6 +345,18 @@ export default function ClaimsScreen() {
           claim={selectedClaim}
           onApprove={handleApprove}
           onReject={handleReject}
+        />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
         />
 
         {/* School Dropdown Modal */}
@@ -381,6 +403,18 @@ export default function ClaimsScreen() {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Glassmorphic Banner - Fixed at top, content scrolls behind */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            welcomeMessage="Claims Management"
+            notificationCount={filteredClaims.filter(c => c.status === 'pending').length}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -390,15 +424,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mainCard: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra padding for nav bar
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
+  mainCard: {
     margin: spacing.lg,
     padding: spacing.lg,
-  },
-  title: {
-    ...typography.h1,
-    color: Colors.text,
-    marginBottom: spacing.lg,
+    minHeight: 'auto', // Allow card to grow with content
   },
   searchContainer: {
     flexDirection: 'row',
@@ -460,6 +505,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   listContent: {
+    gap: spacing.md,
     paddingBottom: spacing.lg,
   },
   emptyState: {
@@ -478,7 +524,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
@@ -490,7 +535,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   errorContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { X, User, School, Award, Clock, TrendingUp, Mail } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -68,20 +67,21 @@ export default function StudentDetailModal({
       animationType="fade"
       transparent
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <BlurView intensity={60} tint="dark" style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {/* Close Button */}
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X color={Colors.textSecondary} size={24} />
-            </TouchableOpacity>
-
-            <ScrollView 
-              style={styles.scrollView} 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
+      <View style={styles.modalOverlay}>
+        <ScrollView 
+          style={styles.scrollView} 
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              {/* Close Button */}
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <X color={Colors.textSecondary} size={24} />
+              </TouchableOpacity>
               {/* Header with Avatar */}
               <View style={styles.header}>
                 <View style={styles.avatarLarge}>
@@ -201,10 +201,10 @@ export default function StudentDetailModal({
                   )}
                 </View>
               </View>
-            </ScrollView>
+            </View>
           </View>
-        </View>
-      </BlurView>
+        </ScrollView>
+      </View>
     </Modal>
   );
 }
@@ -212,14 +212,20 @@ export default function StudentDetailModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: 'transparent', // No overlay effect above white panel
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 140, // Space for banner
+    paddingBottom: 100, // Space for nav bar
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    padding: spacing.lg,
   },
   modalContainer: {
     width: '100%',
     maxWidth: 400,
-    maxHeight: '90%',
   },
   modalContent: {
     backgroundColor: Colors.card,
@@ -229,7 +235,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 5, // Lower elevation to stay behind banner and nav
   },
   closeButton: {
     position: 'absolute',
@@ -239,12 +245,6 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     backgroundColor: Colors.background,
     borderRadius: Sizes.radiusFull,
-  },
-  scrollView: {
-    maxHeight: 600,
-  },
-  scrollContent: {
-    paddingBottom: spacing.lg,
   },
   header: {
     alignItems: 'center',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.light,
+    color: Colors.deepPurple,
   },
   studentName: {
     ...typography.h2,
@@ -315,11 +315,15 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     fontWeight: '500',
+    marginRight: spacing.sm,
   },
   infoValue: {
     fontSize: Sizes.fontSm,
     color: Colors.text,
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+    flexWrap: 'wrap',
   },
   statsGrid: {
     flexDirection: 'row',

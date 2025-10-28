@@ -79,7 +79,12 @@ export default function SettingsScreen() {
           </View>
         </BlurView>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+        >
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
             {/* User Info */}
             <SDCard variant="elevated" padding="lg" style={styles.userCard}>

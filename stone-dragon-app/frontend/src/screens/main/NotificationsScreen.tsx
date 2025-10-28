@@ -13,7 +13,9 @@ import {
   GradientBackground,
   SDCard,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -38,6 +40,8 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -199,6 +203,7 @@ export default function NotificationsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <View style={styles.bannerSpacer} />
         <GlassmorphicCard intensity={80} style={styles.mainCard}>
           <View style={styles.header}>
             <Text style={styles.title}>Notifications</Text>
@@ -235,6 +240,8 @@ export default function NotificationsScreen() {
             renderItem={renderNotification}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Bell color={Colors.textSecondary} size={48} />
@@ -246,6 +253,27 @@ export default function NotificationsScreen() {
             }
           />
         </GlassmorphicCard>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Notifications"
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationModalVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationModalVisible}
+          onClose={() => setNotificationModalVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -254,6 +282,16 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
   },
   loadingContainer: {
     flex: 1,
@@ -270,6 +308,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: spacing.lg,
     padding: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   header: {
     flexDirection: 'row',

@@ -269,6 +269,8 @@ export default function StudentCoordinatorClaimsScreen() {
               renderItem={renderClaim}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.listContent}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={true}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
               }

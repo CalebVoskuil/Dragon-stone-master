@@ -150,12 +150,12 @@ export default function ProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Profile</Text>
-
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.light} />
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 100, // Space for nav bar
   },
   pageTitle: {
     ...typography.h1,
@@ -272,6 +272,7 @@ const styles = StyleSheet.create({
   mainCard: {
     padding: spacing.lg,
     gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   userCard: {
     alignItems: 'center',

@@ -9,7 +9,6 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { X, Calendar, MapPin, Clock, Users, CheckCircle, User } from 'lucide-react-native';
-import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -79,8 +78,15 @@ export default function EventDetailsModal({
       animationType="fade"
       transparent
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <BlurView intensity={60} tint="dark" style={styles.modalOverlay}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        indicatorStyle="white"
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             {/* Close Button */}
@@ -88,11 +94,6 @@ export default function EventDetailsModal({
               <X color={Colors.textSecondary} size={24} />
             </TouchableOpacity>
 
-            <ScrollView 
-              style={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>{event.title}</Text>
@@ -197,25 +198,31 @@ export default function EventDetailsModal({
                 </View>
               </View>
             )}
-            </ScrollView>
+            </View>
           </View>
         </View>
-      </BlurView>
+      </ScrollView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  scrollContent: {
+    paddingTop: 140, // Space for banner
+    paddingBottom: 100, // Space for nav bar
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
-    padding: spacing.lg,
+  },
+  modalOverlay: {
+    width: '100%',
+    alignItems: 'center',
   },
   modalContainer: {
     width: '100%',
     maxWidth: 500,
-    maxHeight: '90%',
   },
   modalContent: {
     backgroundColor: Colors.card,
@@ -225,7 +232,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 5, // Lower elevation to stay behind banner and nav
   },
   closeButton: {
     position: 'absolute',
@@ -235,12 +242,6 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     backgroundColor: Colors.background,
     borderRadius: Sizes.radiusFull,
-  },
-  scrollView: {
-    maxHeight: 600,
-  },
-  scrollContent: {
-    paddingBottom: spacing.lg,
   },
   header: {
     alignItems: 'center',

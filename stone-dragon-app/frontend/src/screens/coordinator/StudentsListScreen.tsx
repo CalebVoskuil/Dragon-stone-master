@@ -12,12 +12,15 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { Search, User, School as SchoolIcon, ChevronDown } from 'lucide-react-native';
+import { Search, User, ChevronDown } from 'lucide-react-native';
 import {
   GradientBackground,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import StudentDetailModal from '../../components/admin/StudentDetailModal';
+import LeaderboardModal from '../../components/admin/LeaderboardModal';
+import NotificationCenterModal from '../../components/admin/NotificationCenterModal';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -53,6 +56,8 @@ export default function StudentsListScreen() {
   const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -168,12 +173,6 @@ export default function StudentsListScreen() {
           <Text style={styles.studentName}>
             {item.firstName} {item.lastName}
           </Text>
-          <View style={styles.studentMeta}>
-            <SchoolIcon color={Colors.textSecondary} size={14} />
-            <Text style={styles.studentSchool}>
-              {item.school?.name || 'No School'}
-            </Text>
-          </View>
           <Text style={styles.studentEmail}>{item.email}</Text>
         </View>
         <View style={styles.studentStats}>
@@ -187,8 +186,18 @@ export default function StudentsListScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          <Text style={styles.title}>Students Directory</Text>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.bannerSpacer} />
+          
+          <GlassmorphicCard intensity={80} style={styles.mainCard}>
 
           {/* Admin School Filter - REQUIRED, NO "ALL SCHOOLS" OPTION */}
           {isAdmin && (
@@ -229,15 +238,13 @@ export default function StudentsListScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : (
-            <FlatList
-              data={students}
-              renderItem={renderStudent}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              ListEmptyComponent={
+            <View style={styles.listContent}>
+              {students.map((student) => (
+                <React.Fragment key={student.id}>
+                  {renderStudent({ item: student })}
+                </React.Fragment>
+              ))}
+              {students.length === 0 && (
                 <View style={styles.emptyState}>
                   <User color={Colors.textSecondary} size={48} />
                   <Text style={styles.emptyTitle}>No students found</Text>
@@ -246,16 +253,41 @@ export default function StudentsListScreen() {
                      isAdmin && !schoolFilter ? 'Please select a school' : 'No registered students yet'}
                   </Text>
                 </View>
-              }
-            />
+              )}
+            </View>
           )}
         </GlassmorphicCard>
+        </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            welcomeMessage="Students Directory"
+            notificationCount={0}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
 
         {/* Student Detail Modal */}
         <StudentDetailModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
           student={selectedStudent}
+        />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
         />
 
         {/* School Dropdown Modal - Only shows the 2 schools */}
@@ -300,10 +332,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mainCard: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100, // Space for nav bar
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
+  mainCard: {
     margin: spacing.lg,
     padding: spacing.lg,
+    minHeight: 'auto',
   },
   title: {
     ...typography.h1,
@@ -372,7 +420,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 200, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
@@ -380,7 +428,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: Sizes.fontLg,
     fontWeight: '700',
-    color: Colors.light,
+    color: Colors.deepPurple,
   },
   studentInfo: {
     flex: 1,
@@ -390,16 +438,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.text,
     marginBottom: 4,
-  },
-  studentMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  studentSchool: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
-    marginLeft: spacing.xs,
   },
   studentEmail: {
     fontSize: Sizes.fontXs,

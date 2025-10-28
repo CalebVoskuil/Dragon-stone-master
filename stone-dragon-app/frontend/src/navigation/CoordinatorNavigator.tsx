@@ -24,6 +24,8 @@ export default function CoordinatorNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        lazy: true,
+        unmountOnBlur: false,
       }}
     >
       <Tab.Screen
@@ -51,7 +53,7 @@ export default function CoordinatorNavigator() {
         }}
       />
       <Tab.Screen
-        name="Events"
+        name="CoordinatorEvents"
         component={EventsScreen}
         options={{
           title: 'Events',
@@ -59,7 +61,7 @@ export default function CoordinatorNavigator() {
         }}
       />
       <Tab.Screen
-        name="Profile"
+        name="CoordinatorProfile"
         component={ProfileScreen}
         options={{
           title: 'Profile',

@@ -148,12 +148,12 @@ export default function ProfileScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.pageTitle}>Profile</Text>
-
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={Colors.light} />
@@ -165,7 +165,11 @@ export default function ProfileScreen() {
               <SDCard variant="elevated" padding="lg" style={styles.userCard}>
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
-                    <User color={Colors.light} size={40} />
+                    <Text style={styles.avatarText}>
+                      {user?.firstName && user?.lastName 
+                        ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                        : 'C'}
+                    </Text>
                   </View>
                 </View>
 
@@ -176,16 +180,20 @@ export default function ProfileScreen() {
 
                 <View style={styles.userDetails}>
                   <View style={styles.userDetail}>
-                    <Mail color={Colors.textSecondary} size={16} />
+                    <View style={styles.userDetailIcon}>
+                      <Mail color={Colors.textSecondary} size={16} />
+                    </View>
                     <Text style={styles.userDetailText}>{user?.email || 'No email'}</Text>
                   </View>
 
-                  {user?.school && (
-                    <View style={styles.userDetail}>
+                  <View style={styles.userDetail}>
+                    <View style={styles.userDetailIcon}>
                       <Briefcase color={Colors.textSecondary} size={16} />
-                      <Text style={styles.userDetailText}>{user.school}</Text>
                     </View>
-                  )}
+                    <Text style={styles.userDetailText}>
+                      {typeof user?.school === 'string' ? user.school : user?.school?.name || 'No school'}
+                    </Text>
+                  </View>
                 </View>
               </SDCard>
 
@@ -281,9 +289,14 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Colors.deepPurple,
   },
   userName: {
     ...typography.h1,
@@ -298,16 +311,22 @@ const styles = StyleSheet.create({
   userDetails: {
     width: '100%',
     gap: spacing.sm,
+    alignItems: 'center',
   },
   userDetail: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+  },
+  userDetailIcon: {
+    width: 20,
+    alignItems: 'center',
     justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   userDetailText: {
     fontSize: Sizes.fontSm,
     color: Colors.text,
+    flex: 1,
   },
   statsGrid: {
     flexDirection: 'row',

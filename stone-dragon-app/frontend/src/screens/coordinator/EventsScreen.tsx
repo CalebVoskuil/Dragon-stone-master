@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, MapPin, Clock, Users, ChevronDown } from 'lucide-react-native';
@@ -17,8 +18,9 @@ import {
   GradientBackground,
   GlassmorphicCard,
   SDButton,
+  GlassmorphicBanner,
 } from '../../components/ui';
-import { StudentCoordinatorsModal, EventDetailsModal } from '../../components/admin';
+import { StudentCoordinatorsModal, EventDetailsModal, LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -33,6 +35,7 @@ import { Event } from '../../types';
 export default function EventsScreen() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'create' | 'events'>('create');
+  const slideAnimation = useState(new Animated.Value(0))[0];
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
@@ -44,6 +47,8 @@ export default function EventsScreen() {
   const [selectedCoordinators, setSelectedCoordinators] = useState<string[]>([]);
   const [eventDetailsModalVisible, setEventDetailsModalVisible] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +182,15 @@ export default function EventsScreen() {
     setSelectedCoordinators((prev) => prev.filter((id) => id !== coordinatorId));
   };
 
+  const handleTabChange = (tab: 'create' | 'events') => {
+    setActiveTab(tab);
+    Animated.timing(slideAnimation, {
+      toValue: tab === 'create' ? 0 : 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
   const handleEventPress = (event: any) => {
     setSelectedEvent(event);
     setEventDetailsModalVisible(true);
@@ -185,25 +199,46 @@ export default function EventsScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <GlassmorphicCard intensity={80} style={styles.mainCard}>
-          {/* Header */}
-          <Text style={styles.title}>Events</Text>
+        <ScrollView 
+          style={styles.outerScrollView}
+          contentContainerStyle={styles.outerScrollContent}
+          indicatorStyle="white"
+          showsVerticalScrollIndicator={true}
+        >
+          <View style={styles.bannerSpacer} />
+          
+          <GlassmorphicCard intensity={80} style={styles.mainCard}>
 
-          {/* Tab Switcher */}
-          <View style={styles.tabContainer}>
+          {/* Segmented Control */}
+          <View style={styles.segmentedControl}>
+            <Animated.View
+              style={[
+                styles.slidingBackground,
+                {
+                  transform: [
+                    {
+                      translateX: slideAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'], // Slide from left to right
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'create' && styles.tabActive]}
-              onPress={() => setActiveTab('create')}
+              style={styles.segment}
+              onPress={() => handleTabChange('create')}
             >
-              <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
+              <Text style={[styles.segmentText, activeTab === 'create' && styles.activeSegmentText]}>
                 Create
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-              onPress={() => setActiveTab('events')}
+              style={styles.segment}
+              onPress={() => handleTabChange('events')}
             >
-              <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>
+              <Text style={[styles.segmentText, activeTab === 'events' && styles.activeSegmentText]}>
                 Events
               </Text>
             </TouchableOpacity>
@@ -211,7 +246,7 @@ export default function EventsScreen() {
 
           {/* Content */}
           {activeTab === 'create' ? (
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.contentView}>
               <View style={styles.formContainer}>
                 {/* Event Details Card */}
                 <View style={styles.section}>
@@ -403,9 +438,9 @@ export default function EventsScreen() {
                   Create Event
                 </SDButton>
               </View>
-            </ScrollView>
+            </View>
           ) : (
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.contentView}>
               <View style={styles.eventsContainer}>
                 {loading ? (
                   <View style={styles.loadingContainer}>
@@ -476,9 +511,22 @@ export default function EventsScreen() {
                   })
                 )}
               </View>
-            </ScrollView>
+            </View>
           )}
         </GlassmorphicCard>
+        </ScrollView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={(user?.school as any)?.name || (typeof user?.school === 'string' ? user.school : 'School')}
+            welcomeMessage="Events Management"
+            notificationCount={0}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
 
         {/* Student Coordinators Modal */}
         <StudentCoordinatorsModal
@@ -500,6 +548,18 @@ export default function EventsScreen() {
           onClose={() => setEventDetailsModalVisible(false)}
           event={selectedEvent}
         />
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -509,16 +569,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mainCard: {
+  outerScrollView: {
     flex: 1,
-    margin: spacing.md,
+  },
+  outerScrollContent: {
+    paddingBottom: 100, // Space for nav bar
+  },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  bannerSpacer: {
+    height: 130, // Space for the banner
+  },
+  mainCard: {
+    margin: spacing.lg,
     padding: spacing.lg,
+    minHeight: 'auto',
   },
   title: {
     ...typography.h2,
     color: Colors.text,
     marginBottom: spacing.lg,
     textAlign: 'center',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: Sizes.radiusFull,
+    padding: 4,
+    marginBottom: spacing.lg,
+    position: 'relative',
+  },
+  slidingBackground: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    backgroundColor: Colors.deepPurple,
+    borderRadius: Sizes.radiusFull,
+    width: '50%',
+    zIndex: 0,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  segmentText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.deepPurple,
+  },
+  activeSegmentText: {
+    color: Colors.light,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -543,7 +652,7 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: Colors.light,
   },
-  scrollView: {
+  contentView: {
     flex: 1,
   },
   formContainer: {
@@ -610,13 +719,13 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.deepPurple,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   coordinatorText: {
     ...typography.subhead,
-    color: Colors.light,
+    color: Colors.deepPurple,
     fontWeight: '600',
   },
   coordinatorName: {
@@ -627,26 +736,31 @@ const styles = StyleSheet.create({
   },
   addButton: {
     alignItems: 'center',
+    gap: 8,
   },
   addCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: Colors.deepPurple,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },
   addText: {
-    fontSize: 32,
+    fontSize: 36,
     color: Colors.deepPurple,
     fontWeight: '300',
+    lineHeight: 36,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   addLabel: {
-    ...typography.body,
+    fontSize: 12,
     color: Colors.text,
+    textAlign: 'center',
   },
   createButton: {
     marginTop: spacing.lg,

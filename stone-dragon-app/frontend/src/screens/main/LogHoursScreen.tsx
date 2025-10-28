@@ -11,15 +11,18 @@ import {
   TextInput,
   Alert,
   Animated,
+  Modal,
 } from 'react-native';
-import { ArrowLeft, Check, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Check, ChevronDown, X, Clock, FileText, AlertCircle, Calendar, Tag } from 'lucide-react-native';
 import {
   GradientBackground,
   SDButton,
   SDCard,
   GlassmorphicCard,
   SDFileUpload,
+  GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -51,7 +54,7 @@ interface FormData {
 /**
  * HistoryView - Shows past submitted volunteer logs
  */
-const HistoryView = () => {
+const HistoryView = ({ onLogPress }: { onLogPress: (log: any) => void }) => {
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -105,37 +108,67 @@ const HistoryView = () => {
 
   if (historyLogs.length === 0) {
     return (
-      <GlassmorphicCard intensity={80} style={styles.emptyHistoryCard}>
+      <SDCard variant="elevated" padding="lg" style={styles.emptyHistoryCard}>
         <Text style={styles.emptyHistoryTitle}>No History Yet</Text>
         <Text style={styles.emptyHistoryText}>
           Your submitted volunteer logs will appear here once you start logging hours.
         </Text>
-      </GlassmorphicCard>
+      </SDCard>
     );
   }
 
   return (
     <View style={styles.historyContainer}>
       {historyLogs.map((log) => (
-        <GlassmorphicCard key={log.id} intensity={80} style={styles.historyCard}>
-          <View style={styles.historyHeader}>
-            <Text style={styles.historyTitle}>{log.description}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(log.status)}1A` }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(log.status) }]}>
-                {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-              </Text>
+        <TouchableOpacity key={log.id} onPress={() => onLogPress(log)} activeOpacity={0.7}>
+          <SDCard variant="elevated" padding="sm" style={styles.historyCard}>
+            <View style={styles.historyCardContent}>
+              {/* Avatar */}
+              <View style={styles.historyAvatar}>
+                <Text style={styles.historyAvatarText}>
+                  {log.hours}h
+                </Text>
+              </View>
+
+              {/* Content */}
+              <View style={styles.historyContent}>
+                <View style={styles.historyCardHeader}>
+                  <Text style={styles.historyTitle} numberOfLines={1}>
+                    {log.description}
+                  </Text>
+                  <View style={styles.historyHeaderRight}>
+                    {log.status === 'approved' && (
+                      <View style={[styles.statusBadge, styles.statusApproved]}>
+                        <Text style={styles.statusText}>Approved</Text>
+                      </View>
+                    )}
+                    {log.status === 'rejected' && (
+                      <View style={[styles.statusBadge, styles.statusRejected]}>
+                        <Text style={styles.statusText}>Rejected</Text>
+                      </View>
+                    )}
+                    {log.status === 'pending' && (
+                      <View style={[styles.statusBadge, styles.statusPending]}>
+                        <Text style={styles.statusText}>Pending</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.historyMetaRow}>
+                  <Text style={styles.historyDate}>{formatDate(log.createdAt)}</Text>
+                </View>
+
+                {log.coordinatorComment && (
+                  <View style={styles.commentContainer}>
+                    <Text style={styles.commentLabel}>Feedback:</Text>
+                    <Text style={styles.commentText}>{log.coordinatorComment}</Text>
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
-          <View style={styles.historyDetails}>
-            <Text style={styles.historyHours}>{log.hours}h</Text>
-            <Text style={styles.historyDate}>{formatDate(log.createdAt)}</Text>
-          </View>
-          {log.coordinatorComment && (
-            <Text style={styles.coordinatorComment}>
-              Coordinator: {log.coordinatorComment}
-            </Text>
-          )}
-        </GlassmorphicCard>
+          </SDCard>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -154,6 +187,8 @@ export default function LogHoursScreen() {
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const slideAnimation = useState(new Animated.Value(0))[0];
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     type: '',
     event: '',
@@ -170,6 +205,22 @@ export default function LogHoursScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [logDetailVisible, setLogDetailVisible] = useState(false);
+  const [isEditingLog, setIsEditingLog] = useState(false);
+  const [editFormData, setEditFormData] = useState<FormData>({
+    type: '',
+    event: '',
+    item: '',
+    amount: '',
+    title: '',
+    organization: '',
+    activityTitle: '',
+    hours: '',
+    description: '',
+  });
+  const [editFile, setEditFile] = useState<any>(null);
+  const [editPreview, setEditPreview] = useState<string>('');
 
   const activityTypes: ActivityType[] = ['Event', 'Donation', 'Volunteer', 'Other'];
 
@@ -716,82 +767,535 @@ export default function LogHoursScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <ArrowLeft color={Colors.light} size={24} />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Log Hours</Text>
-              <Text style={styles.headerSubtitle}>Record your community impact</Text>
-            </View>
-            <View style={styles.headerSpacer} />
-          </View>
+          <ScrollView 
+            style={styles.scrollView} 
+            contentContainerStyle={styles.scrollContent}
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
+          >
+            <View style={styles.bannerSpacer} />
 
-          {/* Segmented Control */}
-          <View style={styles.segmentedControl}>
-            <Animated.View
-              style={[
-                styles.slidingBackground,
-                {
-                  transform: [
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Segmented Control */}
+              <View style={styles.segmentedControl}>
+                <Animated.View
+                  style={[
+                    styles.slidingBackground,
                     {
-                      translateX: slideAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 150], // Half the width of the control
-                      }),
+                      transform: [
+                        {
+                          translateX: slideAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ],
                     },
-                  ],
-                },
-              ]}
-            />
-            <TouchableOpacity
-              style={styles.segment}
-              onPress={() => handleTabChange('log')}
-            >
-              <Text style={[styles.segmentText, activeTab === 'log' && styles.activeSegmentText]}>
-                Log
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.segment}
-              onPress={() => handleTabChange('history')}
-            >
-              <Text style={[styles.segmentText, activeTab === 'history' && styles.activeSegmentText]}>
-                History
-              </Text>
-            </TouchableOpacity>
-          </View>
+                  ]}
+                />
+                <TouchableOpacity
+                  style={styles.segment}
+                  onPress={() => handleTabChange('log')}
+                >
+                  <Text style={[styles.segmentText, activeTab === 'log' && styles.activeSegmentText]}>
+                    Log
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.segment}
+                  onPress={() => handleTabChange('history')}
+                >
+                  <Text style={[styles.segmentText, activeTab === 'history' && styles.activeSegmentText]}>
+                    History
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-            {activeTab === 'log' ? (
-              <>
-                {errors.general && (
-                  <GlassmorphicCard intensity={80} style={styles.errorCard}>
-                    <Text style={styles.errorText}>{errors.general}</Text>
-                  </GlassmorphicCard>
-                )}
-                {renderTypeSelection()}
-                {formData.type && renderForm()}
+              {/* Content */}
+              {activeTab === 'log' ? (
+                <>
+                  {errors.general && (
+                    <View style={styles.errorCard}>
+                      <Text style={styles.errorText}>{errors.general}</Text>
+                    </View>
+                  )}
+                  {renderTypeSelection()}
+                  {formData.type && renderForm()}
 
-                {formData.type && (
-                  <SDButton
-                    variant="primary-filled"
-                    size="lg"
-                    fullWidth
-                    onPress={handleSubmit}
-                    loading={submitting}
-                    style={styles.submitButton}
-                  >
-                    Submit for Verification
-                  </SDButton>
-                )}
-              </>
-            ) : (
-              <HistoryView />
-            )}
+                  {formData.type && (
+                    <SDButton
+                      variant="primary-filled"
+                      size="lg"
+                      fullWidth
+                      onPress={handleSubmit}
+                      loading={submitting}
+                      style={styles.submitButton}
+                    >
+                      Submit for Verification
+                    </SDButton>
+                  )}
+                </>
+              ) : (
+                <HistoryView onLogPress={(log) => {
+                  setSelectedLog(log);
+                  setIsEditingLog(false);
+                  setLogDetailVisible(true);
+                }} />
+              )}
+            </GlassmorphicCard>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Log Hours"
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
+
+        {/* Log Detail Modal */}
+        <Modal
+          visible={logDetailVisible}
+          animationType="fade"
+          transparent
+          statusBarTranslucent
+          onRequestClose={() => {
+            setLogDetailVisible(false);
+            setIsEditingLog(false);
+            setEditFile(null);
+            setEditPreview('');
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => {
+                setLogDetailVisible(false);
+                setIsEditingLog(false);
+                setEditFile(null);
+                setEditPreview('');
+              }}
+            />
+            <ScrollView
+              style={styles.outerScrollView}
+              contentContainerStyle={styles.outerScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.modalContainer}>
+                <GlassmorphicCard intensity={95} style={styles.modalContent}>
+                  {/* Header */}
+                  <View style={styles.header}>
+                    <View style={styles.headerLeft}>
+                      <View style={styles.headerIcon}>
+                        <FileText color={Colors.deepPurple} size={24} />
+                      </View>
+                      <Text style={styles.headerTitle}>Log Details</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setLogDetailVisible(false);
+                        setIsEditingLog(false);
+                        setEditFile(null);
+                        setEditPreview('');
+                      }}
+                      style={styles.closeButton}
+                    >
+                      <X color={Colors.textSecondary} size={24} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedLog && (
+                    <>
+                      {/* Activity Type */}
+                      {(() => {
+                        const desc = selectedLog.description || '';
+                        let activityType = 'Other';
+                        if (desc.startsWith('Event:')) activityType = 'Event';
+                        else if (desc.startsWith('Donation -')) activityType = 'Donation';
+                        else if (desc.startsWith('Volunteer Work -')) activityType = 'Volunteer';
+                        else if (desc.startsWith('Other Activity -')) activityType = 'Other';
+                        
+                        return (
+                          <View style={styles.section}>
+                            <View style={styles.infoRow}>
+                              <View style={styles.infoIcon}>
+                                <Tag color={Colors.deepPurple} size={20} />
+                              </View>
+                              <View style={styles.infoContent}>
+                                <Text style={styles.infoLabel}>Type:</Text>
+                                <Text style={styles.infoValue}>{activityType}</Text>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })()}
+
+                      {/* Hours */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Clock color={Colors.deepPurple} size={20} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Hours:</Text>
+                            <Text style={styles.infoValue}>{selectedLog.hours}h</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Status */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <AlertCircle 
+                              color={
+                                selectedLog.status === 'approved' ? Colors.green :
+                                selectedLog.status === 'rejected' ? Colors.red :
+                                Colors.golden
+                              } 
+                              size={20} 
+                            />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Status:</Text>
+                            <Text style={[
+                              styles.infoValue,
+                              { 
+                                color: selectedLog.status === 'approved' ? Colors.green :
+                                       selectedLog.status === 'rejected' ? Colors.red :
+                                       Colors.golden,
+                                textTransform: 'capitalize'
+                              }
+                            ]}>
+                              {selectedLog.status}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Activity Date */}
+                      {selectedLog.date && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Calendar color={Colors.deepPurple} size={20} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Activity Date:</Text>
+                              <Text style={styles.infoValue}>
+                                {new Date(selectedLog.date).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Date Submitted */}
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Calendar color={Colors.deepPurple} size={20} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Submitted:</Text>
+                            <Text style={styles.infoValue}>
+                              {new Date(selectedLog.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Donation Items (if applicable) */}
+                      {selectedLog.donationItems && selectedLog.donationItems > 0 && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Tag color={Colors.deepPurple} size={20} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Donation Value:</Text>
+                              <Text style={styles.infoValue}>{selectedLog.donationItems}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Description */}
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Description</Text>
+                        <View style={styles.descriptionBox}>
+                          <Text style={styles.descriptionText}>
+                            {selectedLog.description || 'No description provided'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Coordinator Comment */}
+                      {selectedLog.coordinatorComment && (
+                        <View style={styles.section}>
+                          <Text style={styles.sectionTitle}>Coordinator Feedback</Text>
+                          <View style={styles.existingCommentBox}>
+                            <Text style={styles.existingCommentText}>
+                              {selectedLog.coordinatorComment}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Edit/Resubmit Button for Rejected Logs */}
+                      {selectedLog.status === 'rejected' && !isEditingLog && (
+                        <View style={styles.section}>
+                          <SDButton
+                            variant="primary-filled"
+                            size="lg"
+                            fullWidth
+                            onPress={() => {
+                              // Parse the original log description to extract all data
+                              const desc = selectedLog.description || '';
+                              
+                              let parsedData: FormData = {
+                                type: '',
+                                event: '',
+                                item: '',
+                                amount: '',
+                                title: '',
+                                organization: '',
+                                activityTitle: '',
+                                hours: selectedLog.hours?.toString() || '',
+                                description: '',
+                              };
+
+                              // Detect activity type and parse accordingly
+                              if (desc.startsWith('Event:')) {
+                                parsedData.type = 'Event';
+                                const eventMatch = desc.match(/Event:\s*(.+?)(?:\n|$)/);
+                                const descMatch = desc.match(/Description:\s*(.+?)$/s);
+                                parsedData.event = eventMatch ? eventMatch[1].trim() : '';
+                                parsedData.eventId = selectedLog.eventId || '';
+                                parsedData.description = descMatch ? descMatch[1].trim() : '';
+                              } else if (desc.startsWith('Donation -')) {
+                                parsedData.type = 'Donation';
+                                const itemMatch = desc.match(/Item:\s*(.+?),/);
+                                const amountMatch = desc.match(/Amount:\s*(.+?)(?:\n|$)/);
+                                const descMatch = desc.match(/Description:\s*(.+?)$/s);
+                                parsedData.item = itemMatch ? itemMatch[1].trim() : '';
+                                parsedData.amount = amountMatch ? amountMatch[1].trim() : '';
+                                parsedData.description = descMatch ? descMatch[1].trim() : '';
+                              } else if (desc.startsWith('Volunteer Work -')) {
+                                parsedData.type = 'Volunteer';
+                                const titleMatch = desc.match(/Title:\s*(.+?),/);
+                                const orgMatch = desc.match(/Organization:\s*(.+?)(?:\n|$)/);
+                                const descMatch = desc.match(/Description:\s*(.+?)$/s);
+                                parsedData.title = titleMatch ? titleMatch[1].trim() : '';
+                                parsedData.organization = orgMatch ? orgMatch[1].trim() : '';
+                                parsedData.description = descMatch ? descMatch[1].trim() : '';
+                              } else if (desc.startsWith('Other Activity -')) {
+                                parsedData.type = 'Other';
+                                const titleMatch = desc.match(/Title:\s*(.+?)(?:\n|$)/);
+                                const descMatch = desc.match(/Description:\s*(.+?)$/s);
+                                parsedData.activityTitle = titleMatch ? titleMatch[1].trim() : '';
+                                parsedData.description = descMatch ? descMatch[1].trim() : '';
+                              } else {
+                                // Fallback: couldn't parse, just use description as-is
+                                parsedData.description = desc;
+                              }
+                              
+                              setEditFormData(parsedData);
+                              setEditFile(null);
+                              setEditPreview('');
+                              setIsEditingLog(true);
+                            }}
+                          >
+                            Edit & Resubmit
+                          </SDButton>
+                        </View>
+                      )}
+
+                      {/* Edit Form for Rejected Logs */}
+                      {isEditingLog && selectedLog.status === 'rejected' && (
+                        <View style={styles.editSection}>
+                          <Text style={styles.editSectionTitle}>Edit Log Information</Text>
+                          
+                          {/* Hours Input */}
+                          <View style={styles.editInputGroup}>
+                            <Text style={styles.editLabel}>Hours *</Text>
+                            <TextInput
+                              style={styles.editInput}
+                              value={editFormData.hours}
+                              onChangeText={(value) => setEditFormData(prev => ({ ...prev, hours: value }))}
+                              keyboardType="decimal-pad"
+                              placeholder="e.g. 2.5"
+                            />
+                          </View>
+
+                          {/* Description Input */}
+                          <View style={styles.editInputGroup}>
+                            <Text style={styles.editLabel}>Description *</Text>
+                            <TextInput
+                              style={[styles.editInput, styles.editTextArea]}
+                              value={editFormData.description}
+                              onChangeText={(value) => setEditFormData(prev => ({ ...prev, description: value }))}
+                              multiline
+                              numberOfLines={4}
+                              placeholder="Describe your activity..."
+                            />
+                          </View>
+
+                          {/* Photo Proof Upload */}
+                          <View style={styles.editInputGroup}>
+                            <Text style={styles.editLabel}>
+                              Photo Proof {editFormData.type === 'Volunteer' ? '*' : '(Optional)'}
+                            </Text>
+                            <Text style={styles.editHint}>
+                              {editFormData.type === 'Volunteer' 
+                                ? 'Photo proof is required for volunteer activities.'
+                                : 'Upload a photo for verification (optional).'}
+                            </Text>
+                            <SDFileUpload
+                              onFileSelect={(file) => {
+                                setEditFile(file);
+                                setEditPreview(file.uri);
+                              }}
+                              onFileRemove={() => {
+                                setEditFile(null);
+                                setEditPreview('');
+                              }}
+                              acceptedTypes={['image/*']}
+                              maxSizeMB={10}
+                              preview={editPreview}
+                              label="Upload Photo Proof"
+                              description="Take a photo or upload from gallery"
+                            />
+                          </View>
+
+                          {/* Action Buttons */}
+                          <View style={styles.editButtonGroup}>
+                            <TouchableOpacity
+                              style={styles.editCancelButton}
+                              onPress={() => {
+                                setIsEditingLog(false);
+                                setEditFile(null);
+                                setEditPreview('');
+                              }}
+                            >
+                              <Text style={styles.editCancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.editSaveButton}
+                              onPress={async () => {
+                                // Validate
+                                if (!editFormData.hours || parseFloat(editFormData.hours) <= 0) {
+                                  Alert.alert('Error', 'Please enter valid hours');
+                                  return;
+                                }
+                                if (!editFormData.description || editFormData.description.trim().length < 10) {
+                                  Alert.alert('Error', 'Description must be at least 10 characters');
+                                  return;
+                                }
+                                if (editFormData.type === 'Volunteer' && !editFile) {
+                                  Alert.alert('Error', 'Photo proof is required for volunteer activities');
+                                  return;
+                                }
+
+                                try {
+                                  setSubmitting(true);
+                                  
+                                  // Build description based on type
+                                  let fullDescription = editFormData.description;
+                                  if (editFormData.type === 'Event') {
+                                    fullDescription = `Event: ${editFormData.event}\nDescription: ${editFormData.description}`;
+                                  } else if (editFormData.type === 'Donation') {
+                                    fullDescription = `Donation - Item: ${editFormData.item}, Amount: ${editFormData.amount}`;
+                                    if (editFormData.description.trim()) {
+                                      fullDescription += `\nDescription: ${editFormData.description}`;
+                                    }
+                                  } else if (editFormData.type === 'Volunteer') {
+                                    fullDescription = `Volunteer Work - Title: ${editFormData.title}, Organization: ${editFormData.organization}\nDescription: ${editFormData.description}`;
+                                  } else if (editFormData.type === 'Other') {
+                                    fullDescription = `Other Activity - Title: ${editFormData.activityTitle}\nDescription: ${editFormData.description}`;
+                                  }
+
+                                  const claimTypeMap: Record<ActivityType, ClaimType> = {
+                                    'Event': 'event',
+                                    'Donation': 'donation',
+                                    'Volunteer': 'volunteer',
+                                    'Other': 'other',
+                                  };
+
+                                  const logData: any = {
+                                    hours: editFormData.type === 'Donation' ? parseFloat(editFormData.amount) : parseFloat(editFormData.hours),
+                                    description: fullDescription,
+                                    date: new Date().toISOString(),
+                                    schoolId: user?.schoolId,
+                                    claimType: claimTypeMap[editFormData.type as ActivityType],
+                                    proofFile: editFile || undefined,
+                                  };
+
+                                  if (editFormData.type === 'Event' && editFormData.eventId) {
+                                    logData.eventId = editFormData.eventId;
+                                  }
+
+                                  if (editFormData.type === 'Donation') {
+                                    logData.donationItems = parseFloat(editFormData.amount);
+                                  }
+
+                                  const response = await apiService.createVolunteerLog(logData);
+
+                                  if (response.success) {
+                                    setLogDetailVisible(false);
+                                    setIsEditingLog(false);
+                                    setEditFile(null);
+                                    setEditPreview('');
+                                    Alert.alert('Success', 'Your log has been resubmitted successfully!');
+                                    // Refresh history if on history tab
+                                    if (activeTab === 'history') {
+                                      handleTabChange('history');
+                                    }
+                                  } else {
+                                    throw new Error(response.message || 'Failed to resubmit log');
+                                  }
+                                } catch (error: any) {
+                                  Alert.alert('Error', error.message || 'Failed to resubmit log');
+                                } finally {
+                                  setSubmitting(false);
+                                }
+                              }}
+                            >
+                              <Text style={styles.editSaveButtonText}>Save & Resubmit</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </GlassmorphicCard>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
@@ -804,39 +1308,27 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: Colors.light,
-  },
-  headerSubtitle: {
-    fontSize: Sizes.fontSm,
-    color: Colors.light,
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  headerSpacer: {
-    width: 40,
+  bannerSpacer: {
+    height: 150,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100,
+  },
+  mainCard: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   formCard: {
     padding: spacing.lg,
@@ -985,51 +1477,70 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: Sizes.radiusFull,
     padding: 4,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+    marginBottom: spacing.lg,
     position: 'relative',
+    overflow: 'hidden',
   },
   slidingBackground: {
     position: 'absolute',
     top: 4,
     left: 4,
-    right: 4,
     bottom: 4,
     backgroundColor: Colors.deepPurple,
     borderRadius: Sizes.radiusFull,
     width: '50%',
+    zIndex: 0,
   },
   segment: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   segmentText: {
     fontSize: Sizes.fontMd,
     fontWeight: '600',
-    color: Colors.light,
-    opacity: 0.7,
+    color: Colors.deepPurple,
   },
   activeSegmentText: {
     color: Colors.light,
-    opacity: 1,
   },
   historyContainer: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   historyCard: {
-    padding: spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: Colors.card,
+    marginBottom: spacing.sm,
   },
-  historyHeader: {
+  historyCardContent: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  historyAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyAvatarText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+  },
+  historyContent: {
+    flex: 1,
+  },
+  historyCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   historyTitle: {
     fontSize: Sizes.fontMd,
@@ -1038,41 +1549,57 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.sm,
   },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: Sizes.radiusFull,
-  },
-  statusText: {
-    fontSize: Sizes.fontXs,
-    fontWeight: '600',
-  },
-  historyDetails: {
+  historyHeaderRight: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing.xs,
     alignItems: 'center',
   },
-  historyHours: {
-    fontSize: Sizes.fontLg,
-    fontWeight: '700',
-    color: Colors.deepPurple,
+  historyMetaRow: {
+    flexDirection: 'row',
   },
   historyDate: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
   },
-  coordinatorComment: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: Sizes.radiusFull,
+  },
+  statusApproved: {
+    backgroundColor: Colors.green,
+  },
+  statusRejected: {
+    backgroundColor: Colors.red,
+  },
+  statusPending: {
+    backgroundColor: Colors.golden,
+  },
+  statusText: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '700',
+    color: Colors.light,
+  },
+  commentContainer: {
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
+  commentLabel: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  commentText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    fontStyle: 'italic',
+  },
   emptyHistoryCard: {
-    padding: spacing.xl,
     alignItems: 'center',
+    backgroundColor: Colors.card,
   },
   emptyHistoryTitle: {
     fontSize: Sizes.fontLg,
@@ -1094,5 +1621,202 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: Sizes.fontMd,
     color: Colors.textSecondary,
+  },
+  // Log Detail Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  outerScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  outerScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalContent: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: Sizes.fontXl,
+    fontWeight: '700',
+    color: Colors.text,
+    flex: 1,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  section: {
+    gap: spacing.sm,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: Sizes.fontSm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  infoValue: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  descriptionBox: {
+    backgroundColor: Colors.background,
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  descriptionText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  existingCommentBox: {
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    borderRadius: Sizes.radiusMd,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  existingCommentText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  // Edit Form Styles
+  editSection: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    borderRadius: Sizes.radiusMd,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    gap: spacing.md,
+  },
+  editSectionTitle: {
+    fontSize: Sizes.fontLg,
+    fontWeight: '600',
+    color: Colors.deepPurple,
+    marginBottom: spacing.sm,
+  },
+  editInputGroup: {
+    gap: spacing.xs,
+  },
+  editLabel: {
+    fontSize: Sizes.fontSm,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  editHint: {
+    fontSize: Sizes.fontXs,
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  editInput: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Sizes.radiusMd,
+    backgroundColor: Colors.background,
+    fontSize: Sizes.fontMd,
+    color: Colors.text,
+  },
+  editTextArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: spacing.md,
+  },
+  editButtonGroup: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  editCancelButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: Sizes.radiusMd,
+    borderWidth: 1,
+    borderColor: Colors.deepPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editCancelButtonText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.deepPurple,
+  },
+  editSaveButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: Sizes.radiusMd,
+    backgroundColor: Colors.deepPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editSaveButtonText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '600',
+    color: Colors.light,
   },
 });
