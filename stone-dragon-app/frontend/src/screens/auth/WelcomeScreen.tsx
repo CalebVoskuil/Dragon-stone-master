@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, FlatList, Dimensions } from 'react-native';
 import { ChevronRight, Shield, Clock, Award, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { GradientBackground, SDButton, SDCard, GlassmorphicCard } from '../../components/ui';
@@ -11,10 +11,13 @@ import { typography } from '../../theme/theme';
  * WelcomeScreen - Onboarding carousel for new users
  * Shows key features and benefits of the Stone Dragon app
  */
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 export default function WelcomeScreen() {
   const navigation = useNavigation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [privacyPolicyVisible, setPrivacyPolicyVisible] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
 
   const handleGetStarted = () => {
     navigation.navigate('Register' as never);
@@ -24,8 +27,19 @@ export default function WelcomeScreen() {
     setPrivacyPolicyVisible(true);
   };
 
+  const handleScroll = (event: any) => {
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    setCurrentSlide(slideIndex);
+  };
+
+  const scrollToSlide = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+    setCurrentSlide(index);
+  };
+
   const slides = [
     {
+      id: '1',
       icon: Award,
       title: 'Welcome to Stone Dragon NPO',
       subtitle: 'Making a difference, one hour at a time',
@@ -33,6 +47,7 @@ export default function WelcomeScreen() {
         'Track your volunteer hours, earn badges, and contribute to positive change in our Cape Town community.',
     },
     {
+      id: '2',
       icon: Clock,
       title: 'Log Your Impact',
       subtitle: 'Every hour counts',
@@ -40,6 +55,7 @@ export default function WelcomeScreen() {
         'Easily log volunteer hours with photo proof. Our coordinators verify your contributions and award points for your dedication.',
     },
     {
+      id: '3',
       icon: Shield,
       title: 'Your Privacy Matters',
       subtitle: 'Safe and secure',
@@ -48,37 +64,52 @@ export default function WelcomeScreen() {
     },
   ];
 
-  const currentSlideData = slides[currentSlide];
-  const Icon = currentSlideData.icon;
+  const renderSlide = ({ item }: { item: typeof slides[0] }) => {
+    const Icon = item.icon;
+    return (
+      <View style={styles.slideContainer}>
+        {/* Icon */}
+        <View style={styles.iconContainer}>
+          <View style={styles.iconCircle}>
+            <Icon color={Colors.deepPurple} size={48} />
+          </View>
+        </View>
+
+        {/* Content Card */}
+        <SDCard variant="elevated" padding="lg" style={styles.contentCard}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.subtitle}>{item.subtitle}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </SDCard>
+      </View>
+    );
+  };
 
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          indicatorStyle="white"
-          showsVerticalScrollIndicator={true}
-        >
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Icon color={Colors.deepPurple} size={48} />
-            </View>
-          </View>
-
-          {/* Content Card */}
-          <SDCard variant="elevated" padding="lg" style={styles.contentCard}>
-            <Text style={styles.title}>{currentSlideData.title}</Text>
-            <Text style={styles.subtitle}>{currentSlideData.subtitle}</Text>
-            <Text style={styles.description}>{currentSlideData.description}</Text>
-          </SDCard>
+        <View style={styles.content}>
+          {/* Swipeable Carousel */}
+          <FlatList
+            ref={flatListRef}
+            data={slides}
+            renderItem={renderSlide}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            bounces={false}
+            style={styles.carousel}
+          />
 
           {/* Slide Indicators */}
           <View style={styles.indicators}>
             {slides.map((_, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => setCurrentSlide(index)}
+                onPress={() => scrollToSlide(index)}
                 style={[styles.indicator, index === currentSlide && styles.indicatorActive]}
                 accessibilityLabel={`Go to slide ${index + 1}`}
               />
@@ -92,7 +123,7 @@ export default function WelcomeScreen() {
                 variant="primary-filled"
                 size="lg"
                 fullWidth
-                onPress={() => setCurrentSlide(currentSlide + 1)}
+                onPress={() => scrollToSlide(currentSlide + 1)}
               >
                 Next
               </SDButton>
@@ -111,7 +142,7 @@ export default function WelcomeScreen() {
               <Text style={styles.privacyText}>Privacy Policy & Consent Information</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
 
         {/* Skip Button */}
         {currentSlide < slides.length - 1 && (
@@ -238,9 +269,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: spacing.lg,
+  content: {
+    flex: 1,
+  },
+  carousel: {
+    flexGrow: 0,
+  },
+  slideContainer: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
     justifyContent: 'center',
   },
   iconContainer: {
@@ -281,7 +319,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.xl,
+    marginVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   indicator: {
     width: 8,
@@ -295,6 +334,8 @@ const styles = StyleSheet.create({
   },
   navigation: {
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   privacyButton: {
     paddingVertical: spacing.sm,
