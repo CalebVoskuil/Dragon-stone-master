@@ -26,7 +26,6 @@ import { useAuth } from '../../store/AuthContext';
 
 export default function EventsScreen() {
   const { user } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'registered' | 'available'>('all');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
@@ -52,16 +51,8 @@ export default function EventsScreen() {
     }
   };
 
-  const filteredEvents = events.filter((event) => {
-    if (!user) return true;
-    
-    if (filter === 'registered') {
-      // Show only events the user is registered for
-      return event.eventRegistrations?.some(reg => reg.userId === user.id) || false;
-    }
-    
-    return true; // Show all events for 'all' and 'available' filters
-  });
+  // Show all events
+  const filteredEvents = events;
 
   const handleRegister = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
@@ -250,57 +241,6 @@ export default function EventsScreen() {
           <View style={styles.bannerSpacer} />
 
           <GlassmorphicCard intensity={80} style={styles.mainCard}>
-            {/* Filter Tabs */}
-            <View style={styles.filterTabs}>
-              <TouchableOpacity
-                onPress={() => setFilter('all')}
-                style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
-              >
-                <Text
-                  style={[
-                    styles.filterTabText,
-                    filter === 'all' && styles.filterTabTextActive,
-                  ]}
-                >
-                  All Events
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setFilter('registered')}
-                style={[
-                  styles.filterTab,
-                  filter === 'registered' && styles.filterTabActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterTabText,
-                    filter === 'registered' && styles.filterTabTextActive,
-                  ]}
-                >
-                  My Events
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setFilter('available')}
-                style={[
-                  styles.filterTab,
-                  filter === 'available' && styles.filterTabActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterTabText,
-                    filter === 'available' && styles.filterTabTextActive,
-                  ]}
-                >
-                  Available
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Events List */}
             <View style={styles.eventsList}>
               {filteredEvents.length > 0 ? (
@@ -310,9 +250,7 @@ export default function EventsScreen() {
                   <Calendar color={Colors.textSecondary} size={48} />
                   <Text style={styles.emptyTitle}>No events found</Text>
                   <Text style={styles.emptyDescription}>
-                    {filter === 'registered'
-                      ? "You haven't registered for any events yet."
-                      : 'Check back later for new opportunities.'}
+                    Check back later for new opportunities.
                   </Text>
                 </SDCard>
               )}
@@ -376,29 +314,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
-  },
-  filterTabs: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: Sizes.radiusMd,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-  },
-  filterTabActive: {
-    backgroundColor: Colors.deepPurple,
-  },
-  filterTabText: {
-    fontSize: Sizes.fontSm,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  filterTabTextActive: {
-    color: Colors.light,
   },
   eventsList: {
     gap: spacing.md,
