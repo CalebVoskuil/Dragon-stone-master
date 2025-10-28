@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, FlatList, Dimensions } from 'react-native';
-import { ChevronRight, Shield, Clock, Award, X } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, FlatList, Dimensions, Image } from 'react-native';
+import { ChevronRight, X, Shield } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { GradientBackground, SDButton, SDCard, GlassmorphicCard } from '../../components/ui';
 import { Colors } from '../../constants/Colors';
@@ -40,7 +40,6 @@ export default function WelcomeScreen() {
   const slides = [
     {
       id: '1',
-      icon: Award,
       title: 'Welcome to Stone Dragon NPO',
       subtitle: 'Making a difference, one hour at a time',
       description:
@@ -48,7 +47,6 @@ export default function WelcomeScreen() {
     },
     {
       id: '2',
-      icon: Clock,
       title: 'Log Your Impact',
       subtitle: 'Every hour counts',
       description:
@@ -56,7 +54,6 @@ export default function WelcomeScreen() {
     },
     {
       id: '3',
-      icon: Shield,
       title: 'Your Privacy Matters',
       subtitle: 'Safe and secure',
       description:
@@ -65,16 +62,8 @@ export default function WelcomeScreen() {
   ];
 
   const renderSlide = ({ item }: { item: typeof slides[0] }) => {
-    const Icon = item.icon;
     return (
       <View style={styles.slideContainer}>
-        {/* Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Icon color={Colors.deepPurple} size={48} />
-          </View>
-        </View>
-
         {/* Content Card */}
         <SDCard variant="elevated" padding="lg" style={styles.contentCard}>
           <Text style={styles.title}>{item.title}</Text>
@@ -89,6 +78,11 @@ export default function WelcomeScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
+          {/* Logo at the top */}
+          <View style={styles.logoContainer}>
+            <Image source={require('../../assets/Mobile_Logo-removebg-preview.png')} style={styles.logo} resizeMode="contain" />
+          </View>
+
           {/* Swipeable Carousel */}
           <FlatList
             ref={flatListRef}
@@ -351,8 +345,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skipText: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
+    fontSize: Sizes.fontMd,
+    color: Colors.deepPurple,
+    fontWeight: '700',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    width: 200,
+    height: 80,
   },
   modalOverlay: {
     flex: 1,

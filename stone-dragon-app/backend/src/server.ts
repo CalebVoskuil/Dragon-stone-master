@@ -124,10 +124,10 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env['NODE_ENV']}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API docs: http://localhost:${PORT}/api`);
+  console.log(` Server running on port ${PORT}`);
+  console.log(` Environment: ${process.env['NODE_ENV']}`);
+  console.log(` Health check: http://localhost:${PORT}/health`);
+  console.log(` API docs: http://localhost:${PORT}/api`);
 });
 
 export default app;
