@@ -21,6 +21,7 @@ import {
   SDFileUpload,
   GlassmorphicBanner,
 } from '../../components/ui';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -106,37 +107,65 @@ const HistoryView = () => {
 
   if (historyLogs.length === 0) {
     return (
-      <GlassmorphicCard intensity={80} style={styles.emptyHistoryCard}>
+      <SDCard variant="elevated" padding="lg" style={styles.emptyHistoryCard}>
         <Text style={styles.emptyHistoryTitle}>No History Yet</Text>
         <Text style={styles.emptyHistoryText}>
           Your submitted volunteer logs will appear here once you start logging hours.
         </Text>
-      </GlassmorphicCard>
+      </SDCard>
     );
   }
 
   return (
     <View style={styles.historyContainer}>
       {historyLogs.map((log) => (
-        <GlassmorphicCard key={log.id} intensity={80} style={styles.historyCard}>
-          <View style={styles.historyHeader}>
-            <Text style={styles.historyTitle}>{log.description}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(log.status)}1A` }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(log.status) }]}>
-                {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+        <SDCard key={log.id} variant="elevated" padding="sm" style={styles.historyCard}>
+          <View style={styles.historyCardContent}>
+            {/* Avatar */}
+            <View style={styles.historyAvatar}>
+              <Text style={styles.historyAvatarText}>
+                {log.hours}h
               </Text>
             </View>
+
+            {/* Content */}
+            <View style={styles.historyContent}>
+              <View style={styles.historyCardHeader}>
+                <Text style={styles.historyTitle} numberOfLines={1}>
+                  {log.description}
+                </Text>
+                <View style={styles.historyHeaderRight}>
+                  {log.status === 'approved' && (
+                    <View style={[styles.statusBadge, styles.statusApproved]}>
+                      <Text style={styles.statusText}>Approved</Text>
+                    </View>
+                  )}
+                  {log.status === 'rejected' && (
+                    <View style={[styles.statusBadge, styles.statusRejected]}>
+                      <Text style={styles.statusText}>Rejected</Text>
+                    </View>
+                  )}
+                  {log.status === 'pending' && (
+                    <View style={[styles.statusBadge, styles.statusPending]}>
+                      <Text style={styles.statusText}>Pending</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.historyMetaRow}>
+                <Text style={styles.historyDate}>{formatDate(log.createdAt)}</Text>
+              </View>
+
+              {log.coordinatorComment && (
+                <View style={styles.commentContainer}>
+                  <Text style={styles.commentLabel}>Feedback:</Text>
+                  <Text style={styles.commentText}>{log.coordinatorComment}</Text>
+                </View>
+              )}
+            </View>
           </View>
-          <View style={styles.historyDetails}>
-            <Text style={styles.historyHours}>{log.hours}h</Text>
-            <Text style={styles.historyDate}>{formatDate(log.createdAt)}</Text>
-          </View>
-          {log.coordinatorComment && (
-            <Text style={styles.coordinatorComment}>
-              Coordinator: {log.coordinatorComment}
-            </Text>
-          )}
-        </GlassmorphicCard>
+        </SDCard>
       ))}
     </View>
   );
@@ -155,6 +184,8 @@ export default function LogHoursScreen() {
   const [registeredEvents, setRegisteredEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const slideAnimation = useState(new Animated.Value(0))[0];
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     type: '',
     event: '',
@@ -717,87 +748,101 @@ export default function LogHoursScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <ArrowLeft color={Colors.light} size={24} />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Log Hours</Text>
-              <Text style={styles.headerSubtitle}>Record your community impact</Text>
-            </View>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          {/* Segmented Control */}
-          <View style={styles.segmentedControl}>
-            <Animated.View
-              style={[
-                styles.slidingBackground,
-                {
-                  transform: [
-                    {
-                      translateX: slideAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, 150], // Half the width of the control
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            />
-            <TouchableOpacity
-              style={styles.segment}
-              onPress={() => handleTabChange('log')}
-            >
-              <Text style={[styles.segmentText, activeTab === 'log' && styles.activeSegmentText]}>
-                Log
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.segment}
-              onPress={() => handleTabChange('history')}
-            >
-              <Text style={[styles.segmentText, activeTab === 'history' && styles.activeSegmentText]}>
-                History
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           <ScrollView 
             style={styles.scrollView} 
             contentContainerStyle={styles.scrollContent}
             indicatorStyle="white"
             showsVerticalScrollIndicator={true}
           >
-            {activeTab === 'log' ? (
-              <>
-                {errors.general && (
-                  <GlassmorphicCard intensity={80} style={styles.errorCard}>
-                    <Text style={styles.errorText}>{errors.general}</Text>
-                  </GlassmorphicCard>
-                )}
-                {renderTypeSelection()}
-                {formData.type && renderForm()}
+            <View style={styles.bannerSpacer} />
 
-                {formData.type && (
-                  <SDButton
-                    variant="primary-filled"
-                    size="lg"
-                    fullWidth
-                    onPress={handleSubmit}
-                    loading={submitting}
-                    style={styles.submitButton}
-                  >
-                    Submit for Verification
-                  </SDButton>
-                )}
-              </>
-            ) : (
-              <HistoryView />
-            )}
+            <GlassmorphicCard intensity={80} style={styles.mainCard}>
+              {/* Segmented Control */}
+              <View style={styles.segmentedControl}>
+                <Animated.View
+                  style={[
+                    styles.slidingBackground,
+                    {
+                      transform: [
+                        {
+                          translateX: slideAnimation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                />
+                <TouchableOpacity
+                  style={styles.segment}
+                  onPress={() => handleTabChange('log')}
+                >
+                  <Text style={[styles.segmentText, activeTab === 'log' && styles.activeSegmentText]}>
+                    Log
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.segment}
+                  onPress={() => handleTabChange('history')}
+                >
+                  <Text style={[styles.segmentText, activeTab === 'history' && styles.activeSegmentText]}>
+                    History
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Content */}
+              {activeTab === 'log' ? (
+                <>
+                  {errors.general && (
+                    <View style={styles.errorCard}>
+                      <Text style={styles.errorText}>{errors.general}</Text>
+                    </View>
+                  )}
+                  {renderTypeSelection()}
+                  {formData.type && renderForm()}
+
+                  {formData.type && (
+                    <SDButton
+                      variant="primary-filled"
+                      size="lg"
+                      fullWidth
+                      onPress={handleSubmit}
+                      loading={submitting}
+                      style={styles.submitButton}
+                    >
+                      Submit for Verification
+                    </SDButton>
+                  )}
+                </>
+              ) : (
+                <HistoryView />
+              )}
+            </GlassmorphicCard>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'Stone Dragon NPO'}
+            welcomeMessage="Log Hours"
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Modals */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -810,39 +855,27 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: Colors.light,
-  },
-  headerSubtitle: {
-    fontSize: Sizes.fontSm,
-    color: Colors.light,
-    opacity: 0.8,
-    marginTop: 2,
-  },
-  headerSpacer: {
-    width: 40,
+  bannerSpacer: {
+    height: 130,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100,
+  },
+  mainCard: {
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
   },
   formCard: {
     padding: spacing.lg,
@@ -991,51 +1024,70 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     borderRadius: Sizes.radiusFull,
     padding: 4,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+    marginBottom: spacing.lg,
     position: 'relative',
+    overflow: 'hidden',
   },
   slidingBackground: {
     position: 'absolute',
     top: 4,
     left: 4,
-    right: 4,
     bottom: 4,
     backgroundColor: Colors.deepPurple,
     borderRadius: Sizes.radiusFull,
     width: '50%',
+    zIndex: 0,
   },
   segment: {
     flex: 1,
     paddingVertical: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   segmentText: {
     fontSize: Sizes.fontMd,
     fontWeight: '600',
-    color: Colors.light,
-    opacity: 0.7,
+    color: Colors.deepPurple,
   },
   activeSegmentText: {
     color: Colors.light,
-    opacity: 1,
   },
   historyContainer: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   historyCard: {
-    padding: spacing.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: Colors.card,
+    marginBottom: spacing.sm,
   },
-  historyHeader: {
+  historyCardContent: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  historyAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(200, 200, 220, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyAvatarText: {
+    fontSize: Sizes.fontMd,
+    fontWeight: '700',
+    color: Colors.deepPurple,
+  },
+  historyContent: {
+    flex: 1,
+  },
+  historyCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   historyTitle: {
     fontSize: Sizes.fontMd,
@@ -1044,41 +1096,57 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.sm,
   },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: Sizes.radiusFull,
-  },
-  statusText: {
-    fontSize: Sizes.fontXs,
-    fontWeight: '600',
-  },
-  historyDetails: {
+  historyHeaderRight: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing.xs,
     alignItems: 'center',
   },
-  historyHours: {
-    fontSize: Sizes.fontLg,
-    fontWeight: '700',
-    color: Colors.deepPurple,
+  historyMetaRow: {
+    flexDirection: 'row',
   },
   historyDate: {
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
   },
-  coordinatorComment: {
-    fontSize: Sizes.fontSm,
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: Sizes.radiusFull,
+  },
+  statusApproved: {
+    backgroundColor: Colors.green,
+  },
+  statusRejected: {
+    backgroundColor: Colors.red,
+  },
+  statusPending: {
+    backgroundColor: Colors.golden,
+  },
+  statusText: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '700',
+    color: Colors.light,
+  },
+  commentContainer: {
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
+  commentLabel: {
+    fontSize: Sizes.fontXs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  commentText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    fontStyle: 'italic',
+  },
   emptyHistoryCard: {
-    padding: spacing.xl,
     alignItems: 'center',
+    backgroundColor: Colors.card,
   },
   emptyHistoryTitle: {
     fontSize: Sizes.fontLg,
