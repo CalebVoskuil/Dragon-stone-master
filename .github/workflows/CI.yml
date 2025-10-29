@@ -22,8 +22,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: stone-dragon-app/backend/package-lock.json
+    
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: stone-dragon-app/backend/node_modules
+        key: ${{ runner.os }}-backend-node-${{ hashFiles('stone-dragon-app/backend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-backend-node-
     
     - name: Install dependencies
       run: npm ci
@@ -57,8 +63,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: stone-dragon-app/frontend/package-lock.json
+    
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: stone-dragon-app/frontend/node_modules
+        key: ${{ runner.os }}-frontend-node-${{ hashFiles('stone-dragon-app/frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-frontend-node-
     
     - name: Install dependencies
       run: npm ci
