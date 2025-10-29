@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator events management screen.
+ * Allows coordinators to create, view, and manage volunteer events.
+ * 
+ * @module screens/coordinator/EventsScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -841,4 +848,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
+
+/* End of file screens/coordinator/EventsScreen.tsx */
 

@@ -1,3 +1,15 @@
+/**
+ * @fileoverview File and image upload component.
+ * Supports document picking, gallery selection, and camera capture.
+ * 
+ * @module components/ui/SDFileUpload
+ * @requires react
+ * @requires react-native
+ * @requires expo-document-picker
+ * @requires expo-image-picker
+ * @requires lucide-react-native
+ */
+
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,6 +19,20 @@ import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 import SDButton from './SDButton';
 
+/**
+ * Props for SDFileUpload component.
+ * 
+ * @interface SDFileUploadProps
+ * @property {function} onFileSelect - Callback when file is selected
+ * @property {function} [onFileRemove] - Callback when file is removed
+ * @property {string[]} [acceptedTypes] - Allowed MIME types
+ * @property {number} [maxSizeMB=10] - Maximum file size in MB
+ * @property {string} [preview] - Preview image/file URI
+ * @property {string} [error] - Error message to display
+ * @property {boolean} [loading=false] - Loading state
+ * @property {string} [label='Upload File'] - Upload button label
+ * @property {string} [description='Click to select a file'] - Help text
+ */
 interface SDFileUploadProps {
   onFileSelect: (file: DocumentPicker.DocumentPickerAsset | ImagePicker.ImagePickerAsset) => void;
   onFileRemove?: () => void;
@@ -20,8 +46,19 @@ interface SDFileUploadProps {
 }
 
 /**
- * SDFileUpload - File and image upload component
- * Supports both document picker and camera/gallery image selection
+ * File and image upload component.
+ * Supports document picker, gallery selection, and camera capture with file validation.
+ * 
+ * @component
+ * @param {SDFileUploadProps} props - Component properties
+ * @returns {JSX.Element} File upload component
+ * 
+ * @example
+ * <SDFileUpload
+ *   onFileSelect={handleFileSelect}
+ *   acceptedTypes={['image/*', 'application/pdf']}
+ *   maxSizeMB={5}
+ * />
  */
 export default function SDFileUpload({
   onFileSelect,
@@ -308,3 +345,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/SDFileUpload.tsx */

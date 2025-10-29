@@ -1,9 +1,31 @@
+/**
+ * @fileoverview Stone Dragon text input component with validation.
+ * Supports labels, error messages, hints, and required field indication.
+ * 
+ * @module components/ui/SDInput
+ * @requires react
+ * @requires react-native
+ * @requires lucide-react-native
+ */
+
 import React from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
 import { AlertCircle } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 
+/**
+ * Props for SDInput component.
+ * 
+ * @interface SDInputProps
+ * @extends {TextInputProps}
+ * @property {string} [label] - Input field label
+ * @property {string} [error] - Error message to display
+ * @property {string} [hint] - Hint text to display
+ * @property {boolean} [required=false] - Show required asterisk
+ * @property {boolean} [fullWidth=true] - Take full width of container
+ * @property {ViewStyle} [containerStyle] - Container view styles
+ */
 interface SDInputProps extends TextInputProps {
   label?: string;
   error?: string;
@@ -14,8 +36,21 @@ interface SDInputProps extends TextInputProps {
 }
 
 /**
- * SDInput - Styled text input component
- * Supports labels, errors, hints, and validation
+ * Styled text input component with validation.
+ * Supports labels, error messages, hints, and required field indication.
+ * 
+ * @component
+ * @param {SDInputProps} props - Component properties
+ * @returns {JSX.Element} Styled input component
+ * 
+ * @example
+ * <SDInput
+ *   label="Email"
+ *   required
+ *   error={errors.email}
+ *   value={email}
+ *   onChangeText={setEmail}
+ * />
  */
 export default function SDInput({
   label,
@@ -113,3 +148,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/SDInput.tsx */
