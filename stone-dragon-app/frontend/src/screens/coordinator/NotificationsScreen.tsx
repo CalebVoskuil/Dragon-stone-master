@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator notifications screen.
+ * Displays notifications and alerts for coordinators.
+ * 
+ * @module screens/coordinator/NotificationsScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -404,4 +411,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+/* End of file screens/coordinator/NotificationsScreen.tsx */
 

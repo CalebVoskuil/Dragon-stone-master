@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Coordinator-specific bottom tab navigator.
+ * Provides navigation for coordinator and admin users.
+ * 
+ * @module navigation/CoordinatorNavigator
+ * @requires react
+ * @requires @react-navigation/bottom-tabs
+ * @requires lucide-react-native
+ */
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, ClipboardList, Users, Calendar, User } from 'lucide-react-native';
@@ -15,8 +25,19 @@ import CustomTabBar from '../components/navigation/CustomTabBar';
 const Tab = createBottomTabNavigator();
 
 /**
- * CoordinatorNavigator - Coordinator-specific bottom tab navigation
- * Includes Dashboard, Claims, Students, Leaderboard, Settings
+ * Coordinator-specific bottom tab navigation component.
+ * Provides navigation for coordinator and admin users.
+ * 
+ * @component
+ * @returns {JSX.Element} Bottom tab navigator with coordinator screens
+ * 
+ * @description
+ * Tab structure:
+ * - Home (CoordinatorDashboard): Dashboard with statistics and overview
+ * - Claims: Manage student volunteer log claims
+ * - Students: View and manage student list
+ * - Events: Manage volunteer events
+ * - Profile: Coordinator profile settings
  */
 export default function CoordinatorNavigator() {
   return (
@@ -72,3 +93,4 @@ export default function CoordinatorNavigator() {
   );
 }
 
+/* End of file navigation/CoordinatorNavigator.tsx */

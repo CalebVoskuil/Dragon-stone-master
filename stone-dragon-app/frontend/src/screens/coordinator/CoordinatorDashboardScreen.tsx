@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator dashboard screen.
+ * Displays statistics, pending claims, and overview for coordinators.
+ * 
+ * @module screens/coordinator/CoordinatorDashboardScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -415,3 +422,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+/* End of file screens/coordinator/CoordinatorDashboardScreen.tsx */

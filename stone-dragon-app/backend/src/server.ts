@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Main server file for Stone Dragon Volunteer Hours API.
+ * Configures Express application with middleware, security, and routes.
+ * 
+ * @module server
+ * @requires express
+ * @requires cors
+ * @requires helmet
+ * @requires compression
+ * @requires morgan
+ * @requires express-rate-limit
+ * @requires express-session
+ * @requires dotenv
+ */
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -21,17 +36,35 @@ import docsRoutes from './routes/docs';
 import eventRoutes from './routes/events';
 import studentCoordinatorRoutes from './routes/studentCoordinator';
 
-// Load environment variables
+/**
+ * Load environment variables from .env file
+ */
 dotenv.config();
 
+/**
+ * Express application instance
+ */
 const app = express();
+
+/**
+ * Server port from environment variable or default 3001
+ * @constant
+ * @type {number}
+ */
 const PORT = process.env['PORT'] || 3001;
 
-// Security middleware
+/**
+ * Security middleware
+ * - Helmet: Sets various HTTP headers for security
+ * - Compression: Compresses response bodies
+ */
 app.use(helmet());
 app.use(compression());
 
-// CORS configuration
+/**
+ * CORS (Cross-Origin Resource Sharing) configuration
+ * Allows frontend to communicate with the API from different origins
+ */
 app.use(cors({
   origin: true, // Allow all origins for development
   credentials: true,
@@ -39,7 +72,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting
+/**
+ * Rate limiting configuration
+ * Prevents abuse by limiting requests per IP address
+ * 
+ * @constant
+ * @type {RateLimitRequestHandler}
+ */
 const limiter = rateLimit({
   windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
   max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'),
@@ -47,15 +86,28 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Logging
+/**
+ * HTTP request logging with Morgan
+ * Uses 'dev' format in development, 'combined' in production
+ */
 if (process.env['NODE_ENV'] === 'development') {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
 }
 
-// Session configuration
+/**
+ * Session store using in-memory storage
+ * @constant
+ * @type {MemoryStore}
+ * @note In production, use a persistent store like Redis
+ */
 const sessionStore = new MemoryStore();
+
+/**
+ * Session configuration for user authentication
+ * Uses cookies to maintain user sessions
+ */
 app.use(session({
   store: sessionStore,
   secret: process.env['SESSION_SECRET'] || 'your-secret-key',
@@ -69,14 +121,26 @@ app.use(session({
   },
 }));
 
-// Body parsing middleware
+/**
+ * Body parsing middleware
+ * Parses JSON and URL-encoded request bodies
+ */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static file serving for uploads
+/**
+ * Static file serving for uploaded proof documents
+ * Makes files in the uploads directory publicly accessible
+ */
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check endpoint
+/**
+ * Health check endpoint
+ * Returns server status, uptime, and environment information
+ * 
+ * @route GET /health
+ * @returns {Object} Health status information
+ */
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -87,7 +151,10 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// API routes
+/**
+ * API route registration
+ * All application routes are mounted under /api
+ */
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/volunteer-logs', volunteerLogRoutes);
@@ -98,7 +165,13 @@ app.use('/api/docs', docsRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/student-coordinator', studentCoordinatorRoutes);
 
-// API documentation endpoint
+/**
+ * API documentation endpoint
+ * Returns list of available API endpoints
+ * 
+ * @route GET /api
+ * @returns {Object} API information and endpoint list
+ */
 app.get('/api', (_req, res) => {
   res.json({
     message: 'Stone Dragon Volunteer Hours API',
@@ -118,11 +191,19 @@ app.get('/api', (_req, res) => {
   });
 });
 
-// Error handling middleware (must be last)
+/**
+ * Error handling middleware
+ * Must be registered last to catch all errors
+ * - notFoundHandler: Handles 404 errors for undefined routes
+ * - errorHandler: Global error handler for all other errors
+ */
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Start server
+/**
+ * Start the Express server
+ * Listens on the configured PORT and logs startup information
+ */
 app.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
   console.log(` Environment: ${process.env['NODE_ENV']}`);
@@ -130,4 +211,9 @@ app.listen(PORT, () => {
   console.log(` API docs: http://localhost:${PORT}/api`);
 });
 
+/**
+ * Export the Express app for testing purposes
+ */
 export default app;
+
+/* End of file server.ts */
