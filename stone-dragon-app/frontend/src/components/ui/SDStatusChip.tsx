@@ -1,11 +1,34 @@
+/**
+ * @fileoverview Status and statistic chip components.
+ * Displays status indicators and key metrics with icons.
+ * 
+ * @module components/ui/SDStatusChip
+ * @requires react
+ * @requires react-native
+ * @requires lucide-react-native
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { CheckCircle, Clock, XCircle, Upload } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 
+/**
+ * Status type definition.
+ * @typedef {string} Status
+ */
 type Status = 'pending' | 'approved' | 'rejected' | 'uploading';
 
+/**
+ * Props for SDStatusChip component.
+ * 
+ * @interface SDStatusChipProps
+ * @property {Status} status - Current status to display
+ * @property {'sm' | 'md'} [size='md'] - Chip size
+ * @property {boolean} [showIcon=true] - Show status icon
+ * @property {ViewStyle} [style] - Additional styles
+ */
 interface SDStatusChipProps {
   status: Status;
   size?: 'sm' | 'md';
@@ -14,8 +37,12 @@ interface SDStatusChipProps {
 }
 
 /**
- * SDStatusChip - Status indicator chip with icon
- * Used for displaying status of volunteer logs and other items
+ * Status indicator chip with icon.
+ * Displays volunteer log status and other item states with appropriate colors and icons.
+ * 
+ * @component
+ * @param {SDStatusChipProps} props - Component properties
+ * @returns {JSX.Element} Status chip component
  */
 export default function SDStatusChip({
   status,
@@ -107,6 +134,16 @@ export default function SDStatusChip({
   );
 }
 
+/**
+ * Props for SDStatChip component.
+ * 
+ * @interface SDStatChipProps
+ * @property {string} label - Statistic label
+ * @property {string | number} value - Statistic value
+ * @property {React.ComponentType} [icon] - Optional icon component
+ * @property {'default' | 'primary' | 'accent'} [variant='default'] - Visual variant
+ * @property {ViewStyle} [style] - Additional styles
+ */
 interface SDStatChipProps {
   label: string;
   value: string | number;
@@ -116,8 +153,12 @@ interface SDStatChipProps {
 }
 
 /**
- * SDStatChip - Statistic display chip
- * Used for showing key metrics on dashboards
+ * Statistic display chip component.
+ * Displays key metrics and statistics on dashboards with optional icons.
+ * 
+ * @component
+ * @param {SDStatChipProps} props - Component properties
+ * @returns {JSX.Element} Statistic chip component
  */
 export function SDStatChip({
   label,
@@ -203,3 +244,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/SDStatusChip.tsx */

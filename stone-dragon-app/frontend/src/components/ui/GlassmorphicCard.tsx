@@ -1,9 +1,29 @@
+/**
+ * @fileoverview Glassmorphic card component with blur effect.
+ * Creates frosted glass appearance using BlurView.
+ * 
+ * @module components/ui/GlassmorphicCard
+ * @requires react
+ * @requires react-native
+ * @requires expo-blur
+ */
+
 import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 
+/**
+ * Props for GlassmorphicCard component.
+ * 
+ * @interface GlassmorphicCardProps
+ * @property {React.ReactNode} children - Card content
+ * @property {number} [intensity=80] - Blur intensity
+ * @property {'light' | 'dark' | 'default'} [tint='light'] - Blur tint
+ * @property {ViewStyle} [style] - Additional styles
+ * @property {'none' | 'sm' | 'md' | 'lg'} [padding='md'] - Internal padding
+ */
 interface GlassmorphicCardProps {
   children: React.ReactNode;
   intensity?: number;
@@ -13,8 +33,12 @@ interface GlassmorphicCardProps {
 }
 
 /**
- * GlassmorphicCard - Card component with blur effect
- * Creates the signature glassmorphic/frosted glass appearance
+ * Card component with glassmorphic blur effect.
+ * Creates signature frosted glass appearance for modern UI design.
+ * 
+ * @component
+ * @param {GlassmorphicCardProps} props - Component properties
+ * @returns {JSX.Element} Glassmorphic card component
  */
 export default function GlassmorphicCard({
   children,
@@ -60,3 +84,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/GlassmorphicCard.tsx */

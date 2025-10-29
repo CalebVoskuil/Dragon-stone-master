@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator claims management screen.
+ * Allows coordinators to review and approve/reject student volunteer log submissions.
+ * 
+ * @module screens/coordinator/ClaimsScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,

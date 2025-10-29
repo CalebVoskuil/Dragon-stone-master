@@ -1,3 +1,10 @@
+/**
+ * @fileoverview UI components barrel export.
+ * Centralized exports for all reusable UI components.
+ * 
+ * @module components/ui
+ */
+
 // Core UI Components
 export { default as SDButton } from './SDButton';
 export { default as SDCard } from './SDCard';
@@ -10,3 +17,4 @@ export { default as GradientBackground } from './GradientBackground';
 export { default as GlassmorphicCard } from './GlassmorphicCard';
 export { default as GlassmorphicBanner } from './GlassmorphicBanner';
 
+/* End of file components/ui/index.ts */

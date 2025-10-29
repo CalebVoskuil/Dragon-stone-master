@@ -1,9 +1,28 @@
+/**
+ * @fileoverview Stone Dragon card component for content containers.
+ * Supports different variants and padding options.
+ * 
+ * @module components/ui/SDCard
+ * @requires react
+ * @requires react-native
+ */
+
 import React from 'react';
 import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 import { shadows } from '../../theme/theme';
 
+/**
+ * Props for SDCard component.
+ * 
+ * @interface SDCardProps
+ * @property {React.ReactNode} children - Card content
+ * @property {'default' | 'elevated' | 'outlined'} [variant='default'] - Visual variant
+ * @property {'none' | 'sm' | 'md' | 'lg'} [padding='md'] - Internal padding size
+ * @property {ViewStyle} [style] - Additional styles
+ * @property {function} [onPress] - Optional press handler (makes card touchable)
+ */
 interface SDCardProps {
   children: React.ReactNode;
   variant?: 'default' | 'elevated' | 'outlined';
@@ -13,8 +32,17 @@ interface SDCardProps {
 }
 
 /**
- * SDCard - Standard card component
- * Supports different variants and padding options
+ * Standard card component for content containers.
+ * Supports different visual variants, padding options, and optional press interaction.
+ * 
+ * @component
+ * @param {SDCardProps} props - Component properties
+ * @returns {JSX.Element} Styled card component
+ * 
+ * @example
+ * <SDCard variant="elevated" padding="md">
+ *   <Text>Card content</Text>
+ * </SDCard>
  */
 export default function SDCard({
   children,
@@ -76,3 +104,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/SDCard.tsx */
