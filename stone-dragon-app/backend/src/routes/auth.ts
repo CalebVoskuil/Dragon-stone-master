@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { register, login, logout, getProfile } from '../controllers/authController';
@@ -28,3 +35,4 @@ router.post('/logout', authenticateSession, logout);
 router.get('/profile', authenticateSession, getProfile);
 
 export default router;
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

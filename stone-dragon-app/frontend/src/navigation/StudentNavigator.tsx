@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Student-specific bottom tab navigator.
+ * Provides navigation for student users.
+ * 
+ * @module navigation/StudentNavigator
+ * @requires react
+ * @requires @react-navigation/bottom-tabs
+ * @requires lucide-react-native
+ */
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Clock, Award, Calendar, User } from 'lucide-react-native';
@@ -15,8 +25,19 @@ import CustomTabBar from '../components/navigation/CustomTabBar';
 const Tab = createBottomTabNavigator();
 
 /**
- * StudentNavigator - Student-specific bottom tab navigation
- * Includes Dashboard, LogHours, Badges, Events, Profile
+ * Student-specific bottom tab navigation component.
+ * Provides navigation for student users.
+ * 
+ * @component
+ * @returns {JSX.Element} Bottom tab navigator with student screens
+ * 
+ * @description
+ * Tab structure:
+ * - Home (Dashboard): Overview of hours, badges, and activity
+ * - Log: Log volunteer hours with proof upload
+ * - Badges: View earned and available badges
+ * - Events: Browse and join volunteer events
+ * - Profile: User profile and settings
  */
 export default function StudentNavigator() {
   return (
@@ -72,3 +93,4 @@ export default function StudentNavigator() {
   );
 }
 
+/* End of file navigation/StudentNavigator.tsx */

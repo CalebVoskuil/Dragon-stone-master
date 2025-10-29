@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator claims management screen.
+ * Allows coordinators to review and approve/reject student volunteer log submissions.
+ * 
+ * @module screens/coordinator/ClaimsScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -40,11 +47,11 @@ export default function ClaimsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>(isAdmin ? 'approved' : 'pending');
   const [schoolFilter, setSchoolFilter] = useState<string>('all');
-  const [schools, setSchools] = useState<any[]>([]);
+  const [schools, setSchools] = useState<Array<{ id: string; name: string }>>([]);
   const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [allClaims, setAllClaims] = useState<any[]>([]);
+  const [allClaims, setAllClaims] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);

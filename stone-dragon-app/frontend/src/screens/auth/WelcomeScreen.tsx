@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, FlatList, Dimensions, Image } from 'react-native';
 import { ChevronRight, X, Shield } from 'lucide-react-native';

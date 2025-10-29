@@ -1,15 +1,36 @@
+/**
+ * @fileoverview File upload middleware using Multer.
+ * Handles file uploads for volunteer log proof documents.
+ * 
+ * @module middleware/upload
+ * @requires multer
+ * @requires path
+ */
+
 import multer from 'multer';
 import path from 'path';
 import { FileUploadConfig } from '../types';
 
-// File upload configuration
+/**
+ * File upload configuration object.
+ * Defines allowed file types, size limits, and upload destination.
+ * 
+ * @constant
+ * @type {FileUploadConfig}
+ */
 const uploadConfig: FileUploadConfig = {
   maxSize: parseInt(process.env['MAX_FILE_SIZE'] || '5242880'), // 5MB default
   allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
   uploadPath: process.env['UPLOAD_PATH'] || './uploads',
 };
 
-// Storage configuration
+/**
+ * Multer disk storage configuration.
+ * Defines where and how uploaded files should be stored.
+ * 
+ * @constant
+ * @type {multer.StorageEngine}
+ */
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadConfig.uploadPath);
@@ -22,7 +43,15 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter
+/**
+ * File filter function to validate uploaded file types.
+ * Checks if the file's MIME type is in the allowed list.
+ * 
+ * @param {any} _req - Express request object (unused)
+ * @param {Express.Multer.File} file - The uploaded file object
+ * @param {multer.FileFilterCallback} cb - Callback function to accept or reject the file
+ * @returns {void}
+ */
 const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   if (uploadConfig.allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -31,7 +60,21 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
   }
 };
 
-// Multer configuration
+/**
+ * Configured Multer instance for file uploads.
+ * Use this middleware to handle single or multiple file uploads.
+ * 
+ * @constant
+ * @type {multer.Multer}
+ * 
+ * @example
+ * // Single file upload
+ * router.post('/upload', upload.single('proof'), controller);
+ * 
+ * @example
+ * // Multiple files
+ * router.post('/upload', upload.array('files', 5), controller);
+ */
 export const upload = multer({
   storage,
   fileFilter,
@@ -40,7 +83,19 @@ export const upload = multer({
   },
 });
 
-// Error handler for multer
+/**
+ * Error handler middleware specifically for Multer upload errors.
+ * Handles file size limits, file count limits, and file type errors.
+ * 
+ * @param {any} error - The error object from Multer
+ * @param {any} _req - Express request object (unused)
+ * @param {any} res - Express response object
+ * @param {any} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * router.post('/upload', upload.single('file'), handleUploadError, controller);
+ */
 export const handleUploadError = (error: any, _req: any, res: any, next: any) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -66,3 +121,5 @@ export const handleUploadError = (error: any, _req: any, res: any, next: any) =>
   
   next(error);
 };
+
+/* End of file middleware/upload.ts */

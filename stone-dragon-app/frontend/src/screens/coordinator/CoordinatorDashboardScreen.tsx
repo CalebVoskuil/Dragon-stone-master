@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator dashboard screen.
+ * Displays statistics, pending claims, and overview for coordinators.
+ * 
+ * @module screens/coordinator/CoordinatorDashboardScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -51,7 +58,7 @@ export default function CoordinatorDashboardScreen() {
     totalHours: 0,
     avgResponseTime: '0',
   });
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<Array<any>>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
@@ -415,3 +422,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+/* End of file screens/coordinator/CoordinatorDashboardScreen.tsx */
