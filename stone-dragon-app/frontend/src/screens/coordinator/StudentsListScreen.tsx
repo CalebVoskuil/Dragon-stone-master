@@ -59,7 +59,7 @@ export default function StudentsListScreen() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [schoolFilter, setSchoolFilter] = useState<string>('');
-  const [schools, setSchools] = useState<any[]>([]);
+  const [schools, setSchools] = useState<Array<{ id: string; name: string }>>([]);
   const [schoolDropdownVisible, setSchoolDropdownVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);

@@ -186,6 +186,7 @@ export interface AuthState {
 // Navigation types
 export type RootStackParamList = {
   Auth: undefined;
+  Welcome: undefined;
   Main: undefined;
   Login: undefined;
   Register: undefined;
