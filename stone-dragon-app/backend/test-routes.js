@@ -10,7 +10,7 @@ async function testRoutes() {
     console.log('1. Testing health endpoint...');
     const healthResponse = await fetch(`${BASE_URL}/health`);
     const healthData = await healthResponse.json();
-    console.log('✅ Health check:', healthData.status);
+    console.log(' Health check:', healthData.status);
     console.log(`   Environment: ${healthData.environment}`);
     console.log(`   Uptime: ${Math.round(healthData.uptime)} seconds\n`);
 
@@ -18,7 +18,7 @@ async function testRoutes() {
     console.log('2. Testing API overview...');
     const apiResponse = await fetch(`${BASE_URL}/api`);
     const apiData = await apiResponse.json();
-    console.log('✅ API overview:', apiData.message);
+    console.log(' API overview:', apiData.message);
     console.log(`   Available endpoints: ${Object.keys(apiData.endpoints).join(', ')}`);
     console.log(`   Version: ${apiData.version}\n`);
 
@@ -26,7 +26,7 @@ async function testRoutes() {
     console.log('3. Testing API documentation...');
     const docsResponse = await fetch(`${BASE_URL}/api/docs`);
     const docsData = await docsResponse.json();
-    console.log('✅ API documentation:', docsData.title);
+    console.log(' API documentation:', docsData.title);
     console.log(`   Authentication: ${docsData.authentication}`);
     console.log(`   Endpoints available: ${Object.keys(docsData.endpoints).length} categories\n`);
 
@@ -34,7 +34,7 @@ async function testRoutes() {
     console.log('4. Testing schools endpoint...');
     const schoolsResponse = await fetch(`${BASE_URL}/api/schools`);
     const schoolsData = await schoolsResponse.json();
-    console.log('✅ Schools endpoint:', schoolsData.message);
+    console.log(' Schools endpoint:', schoolsData.message);
     console.log(`   Schools found: ${schoolsData.data?.length || 0}\n`);
 
     // Test 5: Authentication endpoints (without auth)
@@ -47,18 +47,18 @@ async function testRoutes() {
       body: JSON.stringify({ email: 'test@example.com', password: 'wrongpassword' })
     });
     const loginData = await loginResponse.json();
-    console.log('✅ Login validation:', loginData.message);
+    console.log(' Login validation:', loginData.message);
     console.log(`   Status: ${loginResponse.status}\n`);
 
     // Test 6: Protected endpoints (should fail without auth)
     console.log('6. Testing protected endpoints...');
     const profileResponse = await fetch(`${BASE_URL}/api/auth/profile`);
     const profileData = await profileResponse.json();
-    console.log('✅ Profile protection:', profileData.message);
+    console.log(' Profile protection:', profileData.message);
     console.log(`   Status: ${profileResponse.status}\n`);
 
-    console.log('🎉 All route tests completed successfully!');
-    console.log('\n📋 Available API Endpoints:');
+    console.log(' All route tests completed successfully!');
+    console.log('\n Available API Endpoints:');
     console.log('   • Authentication: /api/auth/*');
     console.log('   • Users: /api/users/*');
     console.log('   • Volunteer Logs: /api/volunteer-logs/*');
@@ -68,7 +68,7 @@ async function testRoutes() {
     console.log('   • Documentation: /api/docs');
 
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
+    console.error(' Test failed:', error.message);
   }
 }
 
