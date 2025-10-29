@@ -15,11 +15,12 @@
 [![Express Validator](https://img.shields.io/badge/Express_Validator-000000?logo=express&logoColor=white)](https://express-validator.github.io/)
 [![Helmet](https://img.shields.io/badge/Helmet-00599C?logo=helmet&logoColor=white)](https://helmetjs.github.io/)
 [![CORS](https://img.shields.io/badge/CORS-E34F26?logo=html5&logoColor=white)](https://github.com/expressjs/cors)
+
 <div align ="center">
 <img width="320" height="157" alt="images" src="https://github.com/user-attachments/assets/02aa689a-9f9b-40cd-bbe9-76b2be0ba761" />
-</div>
 
-A comprehensive mobile application for tracking and managing volunteer hours. Built with React Native (Expo) for the frontend and Node.js/Express for the backend.
+A comprehensive mobile application for tracking and managing volunteer hours.
+</div>
 
 ## Overview
 
@@ -42,22 +43,40 @@ Stone Dragon is a volunteer hours tracking platform designed for schools to get 
 ## Tech Stack
 
 ### Frontend
-- **React Native** with Expo
-- **TypeScript** for type safety
-- **React Navigation** for routing
-- **React Native Paper** for UI components
-- **Axios** for API communication
-- **Context API** for state management
-- **NativeWind** for styling
+[![React Native](https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
+
+[![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+[![React Navigation](https://img.shields.io/badge/React_Navigation-6B3FA0?style=for-the-badge&logo=react&logoColor=white)](https://reactnavigation.org/)
+
+[![React Native Paper](https://img.shields.io/badge/React_Native_Paper-6200EE?style=for-the-badge&logo=material-design&logoColor=white)](https://reactnativepaper.com/)
+
+[![Axios](https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white)](https://axios-http.com/)
+
+[![Context API](https://img.shields.io/badge/Context_API-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+
+[![NativeWind](https://img.shields.io/badge/NativeWind-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://www.nativewind.dev/)
 
 ### Backend
-- **Node.js** with Express.js
-- **TypeScript**
-- **Prisma ORM** with SQLite database
-- **Session-based Authentication**
-- **Multer** for file uploads
-- **Express Validator** for input validation
-- **Security**: Helmet, CORS, Rate Limiting
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+
+[![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+
+[![Multer](https://img.shields.io/badge/Multer-FF6600?style=for-the-badge&logo=files&logoColor=white)](https://github.com/expressjs/multer)
+
+[![Express Validator](https://img.shields.io/badge/Express_Validator-000000?style=for-the-badge&logo=express&logoColor=white)](https://express-validator.github.io/)
+
+[![Helmet](https://img.shields.io/badge/Helmet-00599C?style=for-the-badge&logo=helmet&logoColor=white)](https://helmetjs.github.io/)
+
+[![CORS](https://img.shields.io/badge/CORS-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://github.com/expressjs/cors)
 
 ## roject Structure
 
