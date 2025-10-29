@@ -157,7 +157,7 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
   try {
     const { upcoming } = req.query;
 
-    let whereClause: any = {};
+    const whereClause: any = {};
 
     // Filter for upcoming events if requested
     if (upcoming === 'true') {

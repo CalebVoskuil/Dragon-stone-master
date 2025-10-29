@@ -179,7 +179,7 @@ export default function NotificationsScreen() {
       <SDCard
         variant="elevated"
         padding="md"
-        style={[styles.notificationCard, !item.isRead && styles.unreadCard]}
+        style={[styles.notificationCard, !item.isRead ? styles.unreadCard : undefined]}
       >
         <View style={styles.notificationContent}>
           <View style={styles.iconContainer}>{getIcon(item.type)}</View>
