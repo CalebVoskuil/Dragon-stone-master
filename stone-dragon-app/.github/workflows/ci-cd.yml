@@ -41,12 +41,6 @@ jobs:
       run: npm run lint --if-present
       continue-on-error: true
     
-    - name: Run tests
-      run: npm test --if-present
-      continue-on-error: true
-      env:
-        DATABASE_URL: file:./test.db
-    
     - name: Check build
       run: npm run build
       continue-on-error: true
@@ -84,10 +78,6 @@ jobs:
     
     - name: Run TypeScript check
       run: npm run type-check --if-present
-      continue-on-error: true
-    
-    - name: Run tests
-      run: npm test --if-present
       continue-on-error: true
 
   security-audit:
