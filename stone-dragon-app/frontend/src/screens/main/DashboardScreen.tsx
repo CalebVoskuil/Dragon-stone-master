@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 5,
   },
-  header: {
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -900,7 +900,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     minWidth: 90,
-    paddingTop: 10, // Align with icon center
   },
   infoValue: {
     flex: 1,
@@ -909,7 +908,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: Sizes.fontMd * 1.4,
     flexWrap: 'wrap',
-    paddingTop: 10, // Align with icon center
   },
   sectionTitle: {
     fontSize: Sizes.fontMd,
