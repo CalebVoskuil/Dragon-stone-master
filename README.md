@@ -22,6 +22,8 @@
 A comprehensive mobile application for tracking and managing volunteer hours.
 </div>
 
+---
+
 ## Overview
 
 Stone Dragon is a volunteer hours tracking platform designed for schools to get involved in volunteerism. The app features:
@@ -33,12 +35,16 @@ Stone Dragon is a volunteer hours tracking platform designed for schools to get 
 - **School Management** - Multi-school support with statistics tracking
 - **Cross-Platform** - Works on iOS and Android
 
+---
+
 ## User Roles
 
 - **Students** - Log volunteer hours, upload proof, earn badges
 - **Student Coordinators** - Log volunteer hours, upload proof, earn badges, review submissions, approve/reject logd
 - **Coordinators** - Review submissions, approve/reject logs, view school statistics
 - **Admins** - Full system access and user management
+
+---
 
 ## Tech Stack
 
@@ -78,7 +84,9 @@ Stone Dragon is a volunteer hours tracking platform designed for schools to get 
 
 [![CORS](https://img.shields.io/badge/CORS-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://github.com/expressjs/cors)
 
-## roject Structure
+---
+
+## Project Structure
 
 ```
 stone-dragon-app/
@@ -104,129 +112,78 @@ stone-dragon-app/
 └── README.md             # This file
 ```
 
-## Quick Start
+---
+
+## Setup
 
 ### Prerequisites
 
-- **Node.js** 18+ and npm
 - **Git**
-- **Expo CLI** (install globally: `npm install -g @expo/cli`)
-- **iOS Simulator** (macOS only, for iOS development)
-- **Android Studio** (for Android development)
+- **Expo Go on android or iPhone device**
+
+   **Or**
+- **Android Studio** (for Emulator)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository and setup**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/CalebVoskuil/Dragon-stone-master.git
    cd stone-dragon-app
    ```
+   ```bash
+   npm install
+   ```
+   ```bash
+   ipconfig
+   ```
+   #### Copy the IPv4 Address
+   IPv4 Address. . . . . . . . . . . : {Address here}
 
-2. **Set up the Backend**
+   #### Paste here
+   frontend -> src -> components -> admin -> ClaimDetailsModal.tsx
+   const proofUrl = `http://{Paste here}:3001/uploads/${claim.proofFileName}`;
+
+   frontend -> src -> services -> api.ts: baseURl
+   baseURL: 'http://{Paste here}:3001/api'
+
+3. **Set up the Backend**
    ```bash
    cd backend
    npm install
+   ```
    
-   # Copy environment file
-   cp env.example .env
+   ```bash
+   node setup.js
+   ```
    
-   # Edit .env with your configuration
-   
-   # Generate Prisma client
-   npm run db:generate
-   
-   # Run database migrations
-   npm run db:migrate
-   
-   # Seed database with sample data (optional)
-   npm run db:seed
-   
-   # Start backend server
+   ```bash
    npm run dev
    ```
    
    Backend will run on `http://localhost:3001`
 
-3. **Set up the Frontend**
+4. **Set up the Frontend**
    ```bash
    cd ../frontend
    npm install
+   ```
    
-   # Start Expo development server
-   npm start
+   ```bash
+   npx expo start
    ```
 
-4. **Run the App**
+5. **Run the App**
    - Press `i` for iOS simulator
    - Press `a` for Android emulator
    - Press `w` for web browser
+   
+      **Or**
    - Scan QR code with Expo Go app on your phone
+   
+---
 
-## 🔧 Environment Configuration
-
-### Backend (.env)
-
-Create a `.env` file in the `backend/` directory:
-
-```env
-# Database
-DATABASE_URL="file:./dev.db"
-
-# JWT (not currently used, session-based auth)
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
-
-# Server
-PORT=3001
-NODE_ENV="development"
-
-# File Upload
-MAX_FILE_SIZE=5242880
-UPLOAD_PATH="./uploads"
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-
-# CORS
-CORS_ORIGIN="http://localhost:19006"
-```
-
-### Frontend
-
-Update API base URL in `frontend/src/services/api.ts` if needed (default: `http://localhost:3001/api`)
-
-## 📚 API Documentation
-
-### Key Endpoints
-
-**Authentication**
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/profile` - Get current user profile
-
-**Volunteer Logs**
-- `POST /api/volunteer-logs` - Create volunteer log
-- `GET /api/volunteer-logs` - Get volunteer logs (paginated)
-- `GET /api/volunteer-logs/:id` - Get specific log
-- `PUT /api/volunteer-logs/:id` - Update volunteer log
-- `DELETE /api/volunteer-logs/:id` - Delete volunteer log
-
-**Coordinator**
-- `GET /api/coordinator/dashboard` - Dashboard statistics
-- `GET /api/coordinator/pending-logs` - Logs pending review
-- `GET /api/coordinator/school-stats` - School statistics
-- `PUT /api/coordinator/review/:logId` - Review a log
-
-**Badges**
-- `GET /api/badges` - Get all badges
-- `GET /api/badges/user/:userId` - Get user's earned badges
-- `GET /api/badges/progress/:userId` - Get badge progress
-
-For complete API documentation, see `backend/README.md`
-
-## 🧪 Testing
+## Testing
 
 ### Backend Tests
 ```bash
@@ -242,6 +199,8 @@ cd frontend
 npm test                  # Run all tests
 npm run test:watch        # Watch mode
 ```
+
+---
 
 ## Building for Production
 
@@ -265,6 +224,7 @@ npm run build:android
 cd frontend
 npm run build:ios
 ```
+---
 
 ## Security Features
 
@@ -278,9 +238,11 @@ npm run build:ios
 - File upload restrictions
 - SQL injection prevention (Prisma ORM)
 
-## 🎮 Gamification
+---
 
-The app includes a badge system to encourage volunteer participation:
+## Gamification
+
+The app includes a badge and leaderboard system to encourage volunteer participation:
 
 - **Starter** - First volunteer log
 - **Bronze** - 10+ hours
@@ -290,6 +252,8 @@ The app includes a badge system to encourage volunteer participation:
 - **Consistent Volunteer** - Log hours regularly
 
 Badges are automatically awarded as users reach hour milestones.
+
+---
 
 ## Troubleshooting
 
@@ -326,55 +290,23 @@ npx expo start --clear    # Clear cache and restart
 - Check CORS settings in backend `.env`
 - For physical device testing, update API URL to your computer's local IP
 
-## Development Scripts
+---
 
-### Backend
-```bash
-npm run dev              # Start dev server with hot reload
-npm run build            # Build for production
-npm start                # Start production server
-npm test                 # Run tests
-npm run lint             # Run ESLint
-npm run format           # Format with Prettier
-npm run db:generate      # Generate Prisma client
-npm run db:migrate       # Run migrations
-npm run db:seed          # Seed database
-npm run db:studio        # Open Prisma Studio (database GUI)
-```
+## Contribution
 
-### Frontend
-```bash
-npm start                # Start Expo dev server
-npm run ios              # Run on iOS simulator
-npm run android          # Run on Android emulator
-npm run web              # Run in web browser
-npm test                 # Run tests
-npm run lint             # Run ESLint
-npm run format           # Format with Prettier
-npm run type-check       # Run TypeScript type checking
-```
+<a href="https://github.com/CalebVoskuil/Dragon-stone-master/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=CalebVoskuil/Dragon-stone-master" />
+</a>
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
 
 ## License
 
 This project is part of the Stone Dragon Student Work Integrated Learning program.
 
-## Support
+---
 
-For issues, questions, or contributions:
-- Check existing documentation in `frontend/README.md` and `backend/README.md`
-- Review the API documentation
-- Check troubleshooting section above
-- Create an issue in the repository
-
-## Learning Resources
+## References
 
 - [React Native Documentation](https://reactnative.dev/)
 - [Expo Documentation](https://docs.expo.dev/)
