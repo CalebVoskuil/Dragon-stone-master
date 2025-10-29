@@ -16,7 +16,7 @@ import {
   GlassmorphicCard,
   GlassmorphicBanner,
 } from '../../components/ui';
-import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
+import { LeaderboardModal, NotificationCenterModal, EventDetailsModal } from '../../components/admin';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -30,6 +30,8 @@ export default function EventsScreen() {
   const [loading, setLoading] = useState(false);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
+  const [eventDetailsVisible, setEventDetailsVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Load events from API
   useEffect(() => {
@@ -111,6 +113,11 @@ export default function EventsScreen() {
     );
   };
 
+  const handleEventPress = (event: Event) => {
+    setSelectedEvent(event);
+    setEventDetailsVisible(true);
+  };
+
   const handleUnregister = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
@@ -162,8 +169,13 @@ export default function EventsScreen() {
     console.log(`Event: ${event.title}, User: ${user?.id}, Registered: ${isRegistered}, Registrations:`, event.eventRegistrations);
 
     return (
-      <SDCard key={event.id} variant="elevated" padding="md" style={styles.eventCard}>
-        <Text style={styles.eventTitle}>{event.title}</Text>
+      <TouchableOpacity
+        key={event.id}
+        onPress={() => handleEventPress(event)}
+        activeOpacity={0.7}
+      >
+        <SDCard variant="elevated" padding="md" style={styles.eventCard}>
+          <Text style={styles.eventTitle}>{event.title}</Text>
 
         <View style={styles.eventDetails}>
           <View style={styles.eventDetail}>
@@ -225,7 +237,8 @@ export default function EventsScreen() {
             {spotsAvailable === 0 ? 'Full' : 'Register'}
           </SDButton>
         )}
-      </SDCard>
+        </SDCard>
+      </TouchableOpacity>
     );
   };
 
@@ -277,6 +290,14 @@ export default function EventsScreen() {
         <NotificationCenterModal
           visible={notificationVisible}
           onClose={() => setNotificationVisible(false)}
+        />
+        <EventDetailsModal
+          visible={eventDetailsVisible}
+          onClose={() => setEventDetailsVisible(false)}
+          event={selectedEvent}
+          currentUserId={user?.id}
+          onRegister={handleRegister}
+          onUnregister={handleUnregister}
         />
       </SafeAreaView>
     </GradientBackground>

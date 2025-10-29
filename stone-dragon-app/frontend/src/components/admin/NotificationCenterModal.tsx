@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,18 @@ import {
   Modal,
   FlatList,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { X, Bell, Check, Clock, Award } from 'lucide-react-native';
+import { X, Bell, Check, Clock, Award, Calendar } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
+import { useAuth } from '../../store/AuthContext';
+import { apiService } from '../../services/api';
 
 interface Notification {
   id: string;
-  type: 'claim_submitted' | 'claim_approved' | 'claim_rejected' | 'badge_earned' | 'system';
+  type: 'claim_submitted' | 'claim_approved' | 'claim_rejected' | 'badge_earned' | 'system' | 'event_registered';
   title: string;
   message: string;
   timestamp: string;
@@ -29,49 +31,153 @@ interface NotificationCenterModalProps {
 
 /**
  * NotificationCenterModal - Modal displaying notifications
- * Shows all system and volunteer-related notifications
+ * Shows all system and volunteer-related notifications based on user role
  */
 export default function NotificationCenterModal({
   visible,
   onClose,
 }: NotificationCenterModalProps) {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock notifications data
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'claim_submitted',
-      title: 'New Claim Submitted',
-      message: 'Alex Smith submitted 3 hours for verification',
-      timestamp: '5 minutes ago',
-      isRead: false,
-    },
-    {
-      id: '2',
-      type: 'claim_submitted',
-      title: 'New Claim Submitted',
-      message: 'Sarah Johnson submitted 2.5 hours for verification',
-      timestamp: '1 hour ago',
-      isRead: false,
-    },
-    {
-      id: '3',
-      type: 'badge_earned',
-      title: 'Badge Milestone',
-      message: 'Michael Chen earned the "Community Champion" badge',
-      timestamp: '2 hours ago',
-      isRead: true,
-    },
-    {
-      id: '4',
-      type: 'system',
-      title: 'Weekly Report Ready',
-      message: 'Your weekly volunteer hours report is ready to view',
-      timestamp: '1 day ago',
-      isRead: true,
-    },
-  ]);
+  useEffect(() => {
+    if (visible) {
+      fetchNotifications();
+    }
+  }, [visible]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const notificationList: Notification[] = [];
+
+      // Fetch notifications based on user role
+      if (user?.role === 'COORDINATOR' || user?.role === 'ADMIN') {
+        // For coordinators/admins: show pending claims and recent activities
+        const pendingLogsResponse = await apiService.getPendingLogs();
+        
+        if (pendingLogsResponse.success && pendingLogsResponse.data) {
+          pendingLogsResponse.data.forEach((log: any) => {
+            notificationList.push({
+              id: `pending-${log.id}`,
+              type: 'claim_submitted',
+              title: 'New Claim Submitted',
+              message: `${log.user?.firstName || ''} ${log.user?.lastName || ''} submitted ${log.hours} hours for verification`,
+              timestamp: formatTimeAgo(log.createdAt),
+              isRead: false,
+            });
+          });
+        }
+
+        // Also fetch recently approved/rejected claims
+        const logsResponse = await apiService.getVolunteerLogs({ limit: 10, status: 'all' });
+        
+        if (logsResponse.success && logsResponse.data) {
+          logsResponse.data.forEach((log: any) => {
+            if (log.status === 'approved' && log.reviewedAt) {
+              notificationList.push({
+                id: `approved-${log.id}`,
+                type: 'claim_approved',
+                title: 'Claim Approved',
+                message: `Approved ${log.user?.firstName || ''} ${log.user?.lastName || ''}'s claim`,
+                timestamp: formatTimeAgo(log.reviewedAt),
+                isRead: true,
+              });
+            } else if (log.status === 'rejected' && log.reviewedAt) {
+              notificationList.push({
+                id: `rejected-${log.id}`,
+                type: 'claim_rejected',
+                title: 'Claim Rejected',
+                message: `Rejected ${log.user?.firstName || ''} ${log.user?.lastName || ''}'s claim`,
+                timestamp: formatTimeAgo(log.reviewedAt),
+                isRead: true,
+              });
+            }
+          });
+        }
+      } else if (user?.role === 'STUDENT' || user?.role === 'STUDENT_COORDINATOR') {
+        // For students: show their log statuses and upcoming events
+        const [logsResponse, eventsResponse] = await Promise.all([
+          apiService.getVolunteerLogs({ limit: 20 }),
+          apiService.getMyEvents(),
+        ]);
+
+        // Process volunteer logs
+        if (logsResponse.success && logsResponse.data) {
+          logsResponse.data.forEach((log: any) => {
+            if (log.status === 'approved') {
+              notificationList.push({
+                id: `approved-${log.id}`,
+                type: 'claim_approved',
+                title: 'Hours Approved',
+                message: `Your ${log.hours} hours for "${log.description}" have been approved`,
+                timestamp: formatTimeAgo(log.reviewedAt || log.updatedAt),
+                isRead: true,
+              });
+            }
+            
+            if (log.status === 'rejected') {
+              notificationList.push({
+                id: `rejected-${log.id}`,
+                type: 'claim_rejected',
+                title: 'Hours Rejected',
+                message: log.coordinatorComment || 'Your hours submission was rejected',
+                timestamp: formatTimeAgo(log.reviewedAt || log.updatedAt),
+                isRead: false,
+              });
+            }
+          });
+        }
+
+        // Process event registrations
+        if (eventsResponse.success && eventsResponse.data) {
+          eventsResponse.data.forEach((event: any) => {
+            const eventDate = new Date(event.date);
+            const now = new Date();
+            const daysUntil = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntil >= 0 && daysUntil <= 7) {
+              notificationList.push({
+                id: `event-${event.id}`,
+                type: 'event_registered',
+                title: 'Upcoming Event',
+                message: `${event.title} is in ${daysUntil === 0 ? 'today' : `${daysUntil} days`}`,
+                timestamp: formatTimeAgo(event.date),
+                isRead: false,
+              });
+            }
+          });
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      notificationList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      setNotifications(notificationList);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    
+    return date.toLocaleDateString();
+  };
 
   const filteredNotifications = notifications.filter((n) =>
     filter === 'all' ? true : !n.isRead
@@ -89,6 +195,8 @@ export default function NotificationCenterModal({
         return <X color={Colors.red} size={20} />;
       case 'badge_earned':
         return <Award color={Colors.golden} size={20} />;
+      case 'event_registered':
+        return <Calendar color={Colors.blue} size={20} />;
       default:
         return <Bell color={Colors.deepPurple} size={20} />;
     }
@@ -178,23 +286,30 @@ export default function NotificationCenterModal({
             </View>
 
             {/* Notifications List */}
-            <FlatList
-              data={filteredNotifications}
-              renderItem={renderNotification}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              indicatorStyle="white"
-              showsVerticalScrollIndicator={true}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Bell color={Colors.textSecondary} size={48} />
-                  <Text style={styles.emptyTitle}>No notifications</Text>
-                  <Text style={styles.emptyDescription}>
-                    {filter === 'unread' ? 'All caught up!' : "You don't have any notifications yet"}
-                  </Text>
-                </View>
-              }
-            />
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.deepPurple} />
+                <Text style={styles.loadingText}>Loading notifications...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredNotifications}
+                renderItem={renderNotification}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                indicatorStyle="white"
+                showsVerticalScrollIndicator={true}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Bell color={Colors.textSecondary} size={48} />
+                    <Text style={styles.emptyTitle}>No notifications</Text>
+                    <Text style={styles.emptyDescription}>
+                      {filter === 'unread' ? 'All caught up!' : "You don't have any notifications yet"}
+                    </Text>
+                  </View>
+                }
+              />
+            )}
           </View>
         </View>
       </View>
@@ -314,6 +429,17 @@ const styles = StyleSheet.create({
   listContent: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    ...typography.body,
+    color: Colors.textSecondary,
+    marginTop: spacing.sm,
   },
   notificationCard: {
     backgroundColor: Colors.background,

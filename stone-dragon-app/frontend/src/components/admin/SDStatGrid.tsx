@@ -14,6 +14,7 @@ interface Stats {
   pending: number;
   today: number;
   approved: number;
+  rejected?: number; // For calculating total reviewed (admin view)
   totalStudents: number;
   totalHours: number;
   avgResponseTime: string;
@@ -21,6 +22,7 @@ interface Stats {
 
 interface SDStatGridProps {
   stats: Stats;
+  isAdmin?: boolean; // Show different labels for admin view
 }
 
 interface StatCardProps {
@@ -58,19 +60,19 @@ function StatCard({ title, value, icon: Icon, color, trend, subtitle }: StatCard
 }
 
 /**
- * SDStatGrid - Statistics grid for coordinator dashboard
+ * SDStatGrid - Statistics grid for coordinator/admin dashboard
  * Displays key metrics and statistics
  */
-export default function SDStatGrid({ stats }: SDStatGridProps) {
+export default function SDStatGrid({ stats, isAdmin = false }: SDStatGridProps) {
   return (
     <View style={styles.container}>
       <View style={styles.mainGrid}>
         <StatCard
-          title="Pending Review"
-          value={stats.pending}
+          title={isAdmin ? "Reviewed" : "Pending Review"}
+          value={isAdmin ? stats.approved + (stats.rejected || 0) : stats.pending}
           icon={Clock}
           color={Colors.orange}
-          subtitle="requires attention"
+          subtitle={isAdmin ? "total reviewed" : "requires attention"}
         />
 
         <StatCard

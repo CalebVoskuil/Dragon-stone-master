@@ -14,22 +14,38 @@ import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 
 import { Event } from '../../types';
+import { SDButton } from '../ui';
 
 interface EventDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   event: Event | null;
+  currentUserId?: string;
+  onRegister?: (eventId: string) => void;
+  onUnregister?: (eventId: string) => void;
 }
 
 export default function EventDetailsModal({
   visible,
   onClose,
   event,
+  currentUserId,
+  onRegister,
+  onUnregister,
 }: EventDetailsModalProps) {
   if (!event) return null;
 
   // Calculate registered count
   const registeredCount = event.eventRegistrations?.length || event._count?.eventRegistrations || 0;
+  
+  // Check if current user is registered
+  const isUserRegistered = currentUserId 
+    ? event.eventRegistrations?.some(reg => reg.userId === currentUserId) || false 
+    : false;
+  
+  // Check if event is full
+  const isFull = registeredCount >= event.maxVolunteers;
+  const spotsAvailable = event.maxVolunteers - registeredCount;
   
   // Format date
   const eventDate = new Date(event.date).toLocaleDateString('en-US', {
@@ -196,6 +212,48 @@ export default function EventDetailsModal({
                     Students will appear here once they register for this event.
                   </Text>
                 </View>
+              </View>
+            )}
+
+            {/* Action Buttons - Only show if handlers are provided (student view) */}
+            {(onRegister || onUnregister) && (
+              <View style={styles.actionSection}>
+                {isUserRegistered ? (
+                  <View style={styles.registeredSection}>
+                    <View style={styles.registeredBadge}>
+                      <CheckCircle color={Colors.green} size={16} />
+                      <Text style={styles.registeredText}>You're Registered</Text>
+                    </View>
+                    {onUnregister && (
+                      <SDButton
+                        variant="ghost"
+                        size="md"
+                        fullWidth
+                        onPress={() => {
+                          onUnregister(event.id);
+                          onClose();
+                        }}
+                      >
+                        Unregister
+                      </SDButton>
+                    )}
+                  </View>
+                ) : (
+                  onRegister && (
+                    <SDButton
+                      variant="primary-filled"
+                      size="md"
+                      fullWidth
+                      onPress={() => {
+                        onRegister(event.id);
+                        onClose();
+                      }}
+                      disabled={isFull}
+                    >
+                      {isFull ? 'Event Full' : `Register (${spotsAvailable} spots left)`}
+                    </SDButton>
+                  )
+                )}
               </View>
             )}
             </View>
@@ -366,5 +424,31 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  actionSection: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+  registeredSection: {
+    gap: spacing.md,
+  },
+  registeredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: `${Colors.green}15`,
+    borderRadius: Sizes.radiusMd,
+    alignSelf: 'center',
+  },
+  registeredText: {
+    fontSize: Sizes.fontMd,
+    color: Colors.green,
+    fontWeight: '600',
   },
 });
