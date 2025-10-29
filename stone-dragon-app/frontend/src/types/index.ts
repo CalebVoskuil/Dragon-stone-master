@@ -251,6 +251,7 @@ export interface CoordinatorDashboard {
     approvalRate: number;
   };
   recentLogs: VolunteerLog[];
+  userRole?: string;
 }
 
 export interface SchoolStats {

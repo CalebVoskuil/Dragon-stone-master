@@ -190,7 +190,7 @@ export default function SettingsScreen() {
 
             {/* Logout */}
             <TouchableOpacity onPress={handleLogout} style={styles.actionButton}>
-              <SDCard padding="lg" style={[styles.actionCard, styles.logoutCard]}>
+              <SDCard padding="lg" style={StyleSheet.flatten([styles.actionCard, styles.logoutCard])}>
                 <View style={styles.actionContent}>
                   <LogOut color={Colors.error} size={20} />
                   <Text style={[styles.actionText, styles.logoutText]}>Logout</Text>

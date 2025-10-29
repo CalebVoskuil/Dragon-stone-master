@@ -129,10 +129,10 @@ export default function SDButton({
           height: sizeStyle.height,
           paddingHorizontal: sizeStyle.paddingHorizontal,
         },
-        variantStyle.borderWidth && {
+        variantStyle.borderWidth ? {
           borderWidth: variantStyle.borderWidth,
           borderColor: variantStyle.borderColor,
-        },
+        } : undefined,
         fullWidth && styles.fullWidth,
         (disabled || loading) && styles.disabled,
         style,

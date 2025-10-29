@@ -201,7 +201,7 @@ export default function ProfileScreen() {
                       <Briefcase color={Colors.textSecondary} size={16} />
                     </View>
                     <Text style={styles.userDetailText}>
-                      {typeof user?.school === 'string' ? user.school : user?.school?.name || 'No school'}
+                      {typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'No school'}
                     </Text>
                   </View>
                 </View>
