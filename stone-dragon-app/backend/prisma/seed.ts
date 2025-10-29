@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+  console.log(' Starting database seed...');
 
   // Create schools
   const schools = await Promise.all([
@@ -32,7 +32,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Schools created:', schools.length);
+  console.log(' Schools created:', schools.length);
 
   // Hash password for all users
   const hashedPassword = await bcrypt.hash('password123', 12);
@@ -214,7 +214,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Users created:', users.length);
+  console.log(' Users created:', users.length);
 
   // Create badges
   const badges = await Promise.all([
@@ -275,7 +275,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Badges created:', badges.length);
+  console.log(' Badges created:', badges.length);
 
   // Create events
   const events = await Promise.all([
@@ -341,7 +341,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Events created:', events.length);
+  console.log(' Events created:', events.length);
 
   // Assign student coordinators to events
   await Promise.all([
@@ -444,7 +444,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Event registrations created');
+  console.log(' Event registrations created');
 
   // Create some volunteer logs with different claim types
   const volunteerLogs = await Promise.all([
@@ -622,7 +622,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Volunteer logs created:', volunteerLogs.length);
+  console.log(' Volunteer logs created:', volunteerLogs.length);
 
   // Award some badges based on total hours
   const userBadges: any[] = [];
@@ -645,10 +645,10 @@ async function main() {
     userBadges.push(firstStepsBadge);
   }
 
-  console.log('✅ User badges created:', userBadges.length);
+  console.log(' User badges created:', userBadges.length);
 
-  console.log('🎉 Database seeding completed successfully!');
-  console.log('\n📊 Summary:');
+  console.log(' Database seeding completed successfully!');
+  console.log('\n Summary:');
   console.log(`- Schools: ${schools.length}`);
   console.log(`- Users: ${users.length}`);
   console.log(`- Events: ${events.length}`);
@@ -656,8 +656,8 @@ async function main() {
   console.log(`- Volunteer Logs: ${volunteerLogs.length}`);
   console.log(`- User Badges: ${userBadges.length}`);
   
-  console.log('\n🔑 Test Accounts (all passwords: password123):');
-  console.log('\n📚 RALLIM SECONDARY SCHOOL:');
+  console.log('\n Test Accounts (all passwords: password123):');
+  console.log('\n RALLIM SECONDARY SCHOOL:');
   console.log('  Students:');
   console.log('    - alex.smith@student.ucta.ac.za');
   console.log('    - john.doe@rallim.edu.za');
@@ -666,7 +666,7 @@ async function main() {
   console.log('  Coordinator: coordinator.rallim@example.com');
   console.log('  Student Coordinator: studentcoord.rallim@example.com');
   
-  console.log('\n🏫 ELKANAH HOUSE PREPARATORY:');
+  console.log('\n ELKANAH HOUSE PREPARATORY:');
   console.log('  Students:');
   console.log('    - sarah.j@cthi.ac.za');
   console.log('    - oliver.jones@elkanahhouse.edu.za');
@@ -675,15 +675,15 @@ async function main() {
   console.log('  Coordinator: coordinator.elkanah@example.com');
   console.log('  Student Coordinator: studentcoord.elkanah@example.com');
   
-  console.log('\n👑 ADMINS (can view all schools):');
+  console.log('\n ADMINS (can view all schools):');
   console.log('  - admin@stonedragon.org');
   console.log('  - admin2@stonedragon.org');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seeding:', e);
-    process.exit(1);
+    console.error(' Error during seeding:', e);
+    
   })
   .finally(async () => {
     await prisma.$disconnect();
