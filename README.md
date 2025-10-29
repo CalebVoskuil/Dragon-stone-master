@@ -1,25 +1,45 @@
-# 🐉 Stone Dragon Volunteer Hours App
+# Stone Dragon Volunteerism App
+[![React Native](https://img.shields.io/badge/React_Native-61DAFB?logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React Navigation](https://img.shields.io/badge/React_Navigation-6B3FA0?logo=react&logoColor=white)](https://reactnavigation.org/)
+[![React Native Paper](https://img.shields.io/badge/React_Native_Paper-6200EE?logo=material-design&logoColor=white)](https://reactnativepaper.com/)
+[![Axios](https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white)](https://axios-http.com/)
+[![Context API](https://img.shields.io/badge/Context_API-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![NativeWind](https://img.shields.io/badge/NativeWind-38BDF8?logo=tailwindcss&logoColor=white)](https://www.nativewind.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Multer](https://img.shields.io/badge/Multer-FF6600?logo=files&logoColor=white)](https://github.com/expressjs/multer)
+[![Express Validator](https://img.shields.io/badge/Express_Validator-000000?logo=express&logoColor=white)](https://express-validator.github.io/)
+[![Helmet](https://img.shields.io/badge/Helmet-00599C?logo=helmet&logoColor=white)](https://helmetjs.github.io/)
+[![CORS](https://img.shields.io/badge/CORS-E34F26?logo=html5&logoColor=white)](https://github.com/expressjs/cors)
+<div align ="center">
+<img width="320" height="157" alt="images" src="https://github.com/user-attachments/assets/02aa689a-9f9b-40cd-bbe9-76b2be0ba761" />
+</div>
 
-A comprehensive mobile application for tracking and managing volunteer hours with gamification features. Built with React Native (Expo) for the frontend and Node.js/Express for the backend.
+A comprehensive mobile application for tracking and managing volunteer hours. Built with React Native (Expo) for the frontend and Node.js/Express for the backend.
 
-## 📱 Overview
+## Overview
 
-Stone Dragon is a volunteer hours tracking platform designed for students, volunteers, and coordinators. The app features:
+Stone Dragon is a volunteer hours tracking platform designed for schools to get involved in volunteerism. The app features:
 
 - **User Authentication** - Secure login/registration with role-based access control
 - **Volunteer Hour Logging** - Easy submission of volunteer activities with proof uploads
 - **Coordinator Dashboard** - Review and approve/reject volunteer submissions
-- **Gamification System** - Achievement badges based on volunteer hours
+- **Gamification System** - Achievement badges based on volunteer hours, and live leaderboards
 - **School Management** - Multi-school support with statistics tracking
-- **Cross-Platform** - Works on iOS, Android, and Web
+- **Cross-Platform** - Works on iOS and Android
 
-## 🎯 User Roles
+## User Roles
 
-- **Students/Volunteers** - Log volunteer hours, upload proof, earn badges
+- **Students** - Log volunteer hours, upload proof, earn badges
+- **Student Coordinators** - Log volunteer hours, upload proof, earn badges, review submissions, approve/reject logd
 - **Coordinators** - Review submissions, approve/reject logs, view school statistics
 - **Admins** - Full system access and user management
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Frontend
 - **React Native** with Expo
@@ -39,7 +59,7 @@ Stone Dragon is a volunteer hours tracking platform designed for students, volun
 - **Express Validator** for input validation
 - **Security**: Helmet, CORS, Rate Limiting
 
-## 📁 Project Structure
+## roject Structure
 
 ```
 stone-dragon-app/
@@ -65,7 +85,7 @@ stone-dragon-app/
 └── README.md             # This file
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -204,7 +224,7 @@ npm test                  # Run all tests
 npm run test:watch        # Watch mode
 ```
 
-## 📦 Building for Production
+## Building for Production
 
 ### Backend
 ```bash
@@ -227,7 +247,7 @@ cd frontend
 npm run build:ios
 ```
 
-## 🔐 Security Features
+## Security Features
 
 - Password hashing with bcryptjs
 - Session-based authentication with secure cookies
@@ -252,7 +272,7 @@ The app includes a badge system to encourage volunteer participation:
 
 Badges are automatically awarded as users reach hour milestones.
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Backend Issues
 
@@ -287,7 +307,7 @@ npx expo start --clear    # Clear cache and restart
 - Check CORS settings in backend `.env`
 - For physical device testing, update API URL to your computer's local IP
 
-## 📖 Development Scripts
+## Development Scripts
 
 ### Backend
 ```bash
@@ -315,7 +335,7 @@ npm run format           # Format with Prettier
 npm run type-check       # Run TypeScript type checking
 ```
 
-## 👥 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -323,11 +343,11 @@ npm run type-check       # Run TypeScript type checking
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is part of the Stone Dragon Student Work Integrated Learning program.
 
-## 🆘 Support
+## Support
 
 For issues, questions, or contributions:
 - Check existing documentation in `frontend/README.md` and `backend/README.md`
@@ -335,7 +355,7 @@ For issues, questions, or contributions:
 - Check troubleshooting section above
 - Create an issue in the repository
 
-## 🎓 Learning Resources
+## Learning Resources
 
 - [React Native Documentation](https://reactnative.dev/)
 - [Expo Documentation](https://docs.expo.dev/)
@@ -344,5 +364,3 @@ For issues, questions, or contributions:
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
 ---
-
-Built with ❤️ by the Stone Dragon Team
