@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     lineHeight: Sizes.fontMd * 1.4,
     flexWrap: 'wrap',
   },
-  sectionTitle: {
+  modalSectionTitle: {
     fontSize: Sizes.fontMd,
     fontWeight: '600',
     color: Colors.text,
