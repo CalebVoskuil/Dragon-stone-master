@@ -1,14 +1,34 @@
+/**
+ * @fileoverview Purple/White gradient background component.
+ * Uses an image background for consistent branding across screens.
+ * 
+ * @module components/ui/GradientBackground
+ * @requires react
+ * @requires react-native
+ */
+
 import React from 'react';
 import { StyleSheet, ViewStyle, ImageBackground } from 'react-native';
 
+/**
+ * Props for GradientBackground component.
+ * 
+ * @interface GradientBackgroundProps
+ * @property {React.ReactNode} children - Content to render on background
+ * @property {ViewStyle} [style] - Additional styles
+ */
 interface GradientBackgroundProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
 
 /**
- * GradientBackground - Purple/White background using JPG image
- * Used as the main background for screens
+ * Purple/White gradient background component.
+ * Uses an image background for consistent branding across all screens.
+ * 
+ * @component
+ * @param {GradientBackgroundProps} props - Component properties
+ * @returns {JSX.Element} Gradient background component
  */
 export default function GradientBackground({ children, style }: GradientBackgroundProps) {
   return (
@@ -28,3 +48,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/GradientBackground.tsx */

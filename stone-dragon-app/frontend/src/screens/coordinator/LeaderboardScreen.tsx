@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Leaderboard screen.
+ * Displays volunteer hour rankings for students.
+ * 
+ * @module screens/coordinator/LeaderboardScreen
+ */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -287,4 +294,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
 });
+
+/* End of file screens/coordinator/LeaderboardScreen.tsx */
 

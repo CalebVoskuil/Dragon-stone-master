@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Modern glassmorphic header banner component.
+ * Features frosted glass effect with school info, welcome message, and action buttons.
+ * 
+ * @module components/ui/GlassmorphicBanner
+ * @requires react
+ * @requires react-native
+ * @requires expo-blur
+ * @requires lucide-react-native
+ */
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Trophy, Bell } from 'lucide-react-native';
@@ -7,6 +18,19 @@ import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
 import { SchoolIcon } from '../../assets/svgs';
 
+/**
+ * Props for GlassmorphicBanner component.
+ * 
+ * @interface GlassmorphicBannerProps
+ * @property {string} [schoolName] - School name to display
+ * @property {string} [welcomeMessage='Welcome back'] - Welcome message text
+ * @property {string} [subtitle] - Optional subtitle text
+ * @property {number} [notificationCount=0] - Number of unread notifications
+ * @property {function} [onLeaderboardPress] - Leaderboard button handler
+ * @property {function} [onNotificationPress] - Notification button handler
+ * @property {ViewStyle} [style] - Additional styles
+ * @property {string} [userRole] - User role (ADMIN, COORDINATOR, etc.)
+ */
 interface GlassmorphicBannerProps {
   schoolName?: string;
   welcomeMessage?: string;
@@ -19,8 +43,12 @@ interface GlassmorphicBannerProps {
 }
 
 /**
- * GlassmorphicBanner - Modern glassmorphic header banner
- * Features a frosted glass effect with school info, welcome message, and actions
+ * Modern glassmorphic header banner component.
+ * Features frosted glass effect with school info, welcome message, and interactive action buttons.
+ * 
+ * @component
+ * @param {GlassmorphicBannerProps} props - Component properties
+ * @returns {JSX.Element} Glassmorphic banner component
  */
 export default function GlassmorphicBanner({
   schoolName,
@@ -239,3 +267,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/GlassmorphicBanner.tsx */
