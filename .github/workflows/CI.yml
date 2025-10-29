@@ -13,7 +13,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./stone-dragon-app/backend
     
     steps:
     - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: ./stone-dragon-app/frontend
     
     steps:
     - uses: actions/checkout@v4
