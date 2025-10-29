@@ -20,6 +20,7 @@ interface SDClaimCardProps {
   hours: number;
   description: string;
   status?: 'pending' | 'approved' | 'rejected';
+  eventTitle?: string;
   isSelected?: boolean;
   onSelect?: (id: string, selected: boolean) => void;
   onApprove?: (id: string) => void;

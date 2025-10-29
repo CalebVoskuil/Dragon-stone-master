@@ -58,7 +58,7 @@ export default function CoordinatorDashboardScreen() {
     totalHours: 0,
     avgResponseTime: '0',
   });
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<Array<any>>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);

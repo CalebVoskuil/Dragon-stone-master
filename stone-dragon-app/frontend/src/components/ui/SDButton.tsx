@@ -62,7 +62,12 @@ export default function SDButton({
   style,
   textStyle,
 }: SDButtonProps) {
-  const variantStyles = {
+  const variantStyles: Record<string, {
+    backgroundColor: string;
+    textColor: string;
+    borderColor?: string;
+    borderWidth?: number;
+  }> = {
     'primary-filled': {
       backgroundColor: Colors.deepPurple,
       textColor: Colors.light,

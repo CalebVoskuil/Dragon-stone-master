@@ -18,6 +18,7 @@ export const Colors = {
   orange: '#F77F00',            // sd_accent_pending
   red: '#E63946',               // sd_accent_reject
   green: '#3BB273',             // sd_accent_green
+  blue: '#2196F3',              // Blue for info/notifications
   dark: '#2D2D2D',              // sd_text_dark
   light: '#FFFFFF',             // sd_text_light
   background: '#FDFDFD',        // sd_color_bg
@@ -26,6 +27,7 @@ export const Colors = {
   accept: '#FFD60A',
   pending: '#F77F00',
   reject: '#E63946',
+  error: '#E63946',             // Error color (same as reject/red)
   
   // UI Colors
   card: '#FFFFFF',
