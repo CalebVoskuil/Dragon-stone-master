@@ -289,6 +289,23 @@ export default function LogHoursScreen() {
     setPreview('');
   };
 
+  const resetForm = () => {
+    setFormData({
+      type: '',
+      event: '',
+      item: '',
+      amount: '',
+      title: '',
+      organization: '',
+      activityTitle: '',
+      hours: '',
+      description: '',
+    });
+    setSelectedFile(null);
+    setPreview('');
+    setErrors({});
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -325,19 +342,8 @@ export default function LogHoursScreen() {
       }
     }
 
-    // Description validation - optional for donations since we include item/amount
-    if (formData.type !== 'Donation') {
-      if (!formData.description.trim()) {
-        newErrors.description = 'Description is required';
-      } else if (formData.description.trim().length < 10) {
-        newErrors.description = 'Description must be at least 10 characters';
-      }
-    } else {
-      // For donations, if description is provided, it should be at least 10 characters
-      if (formData.description.trim() && formData.description.trim().length < 10) {
-        newErrors.description = 'Description must be at least 10 characters';
-      }
-    }
+    // Description validation - optional for all types
+    // No validation needed since description is optional
 
     if (!user?.schoolId) {
       newErrors.school = 'School ID is missing. Please update your profile.';
@@ -433,10 +439,14 @@ export default function LogHoursScreen() {
       const response = await apiService.createVolunteerLog(logData);
 
       if (response.success) {
+        // Reset form
+        resetForm();
+        // Show success modal
         setShowSuccess(true);
+        // Auto-hide after 3 seconds
         setTimeout(() => {
-          navigation.goBack();
-        }, 2000);
+          setShowSuccess(false);
+        }, 3000);
       } else {
         throw new Error(response.message || 'Failed to submit log');
       }
@@ -737,29 +747,6 @@ export default function LogHoursScreen() {
     }
   };
 
-  if (showSuccess) {
-    return (
-      <GradientBackground>
-        <SafeAreaView style={styles.container}>
-          <View style={styles.successContainer}>
-            <GlassmorphicCard style={styles.successCard}>
-              <View style={styles.successIcon}>
-                <Check color={Colors.green} size={40} />
-              </View>
-              <Text style={styles.successTitle}>Submitted Successfully!</Text>
-              <Text style={styles.successMessage}>
-                Your volunteer hours have been submitted for verification.
-              </Text>
-              <Text style={styles.successHint}>
-                You'll receive a notification once they're reviewed.
-              </Text>
-            </GlassmorphicCard>
-          </View>
-        </SafeAreaView>
-      </GradientBackground>
-    );
-  }
-
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
@@ -867,6 +854,39 @@ export default function LogHoursScreen() {
           onClose={() => setNotificationVisible(false)}
         />
 
+        {/* Success Modal */}
+        <Modal
+          visible={showSuccess}
+          animationType="fade"
+          transparent
+          statusBarTranslucent
+          onRequestClose={() => setShowSuccess(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.successModalContainer}>
+              <GlassmorphicCard intensity={95} style={styles.successModalCard}>
+                <View style={styles.successIconLarge}>
+                  <Check color={Colors.green} size={48} strokeWidth={3} />
+                </View>
+                <Text style={styles.successTitle}>Submitted Successfully!</Text>
+                <Text style={styles.successMessage}>
+                  Your volunteer hours have been submitted for verification.
+                </Text>
+                <Text style={styles.successHint}>
+                  You'll receive a notification once they're reviewed.
+                </Text>
+                <SDButton
+                  variant="primary-filled"
+                  onPress={() => setShowSuccess(false)}
+                  style={styles.successButton}
+                >
+                  Continue
+                </SDButton>
+              </GlassmorphicCard>
+            </View>
+          </View>
+        </Modal>
+
         {/* Log Detail Modal */}
         <Modal
           visible={logDetailVisible}
@@ -919,31 +939,164 @@ export default function LogHoursScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {selectedLog && (
+                  {selectedLog && (() => {
+                    // Parse description to extract structured info
+                    const desc = selectedLog.description || '';
+                    let activityType = 'Other';
+                    let eventName = '';
+                    let donationItem = '';
+                    let donationAmount = '';
+                    let volunteerTitle = '';
+                    let volunteerOrg = '';
+                    let otherTitle = '';
+                    let actualDescription = desc;
+
+                    if (desc.startsWith('Event:')) {
+                      activityType = 'Event';
+                      const parts = desc.split('\n');
+                      if (parts[0]) eventName = parts[0].replace('Event:', '').trim();
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    } else if (desc.startsWith('Donation -')) {
+                      activityType = 'Donation';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const detailsPart = parts[0].replace('Donation -', '').trim();
+                        const itemMatch = detailsPart.match(/Item:\s*([^,]+)/);
+                        const amountMatch = detailsPart.match(/Amount:\s*([^,\n]+)/);
+                        donationItem = itemMatch ? itemMatch[1].trim() : '';
+                        donationAmount = amountMatch ? amountMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                      else actualDescription = '';
+                    } else if (desc.startsWith('Volunteer Work -')) {
+                      activityType = 'Volunteer';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const detailsPart = parts[0].replace('Volunteer Work -', '').trim();
+                        const titleMatch = detailsPart.match(/Title:\s*([^,]+)/);
+                        const orgMatch = detailsPart.match(/Organization:\s*([^,\n]+)/);
+                        volunteerTitle = titleMatch ? titleMatch[1].trim() : '';
+                        volunteerOrg = orgMatch ? orgMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    } else if (desc.startsWith('Other Activity -')) {
+                      activityType = 'Other';
+                      const parts = desc.split('\n');
+                      if (parts[0]) {
+                        const titleMatch = parts[0].match(/Other Activity - Title:\s*([^\n]+)/);
+                        otherTitle = titleMatch ? titleMatch[1].trim() : '';
+                      }
+                      if (parts[1]) actualDescription = parts[1].replace('Description:', '').trim();
+                    }
+
+                    return (
                     <>
                       {/* Activity Type */}
-                      {(() => {
-                        const desc = selectedLog.description || '';
-                        let activityType = 'Other';
-                        if (desc.startsWith('Event:')) activityType = 'Event';
-                        else if (desc.startsWith('Donation -')) activityType = 'Donation';
-                        else if (desc.startsWith('Volunteer Work -')) activityType = 'Volunteer';
-                        else if (desc.startsWith('Other Activity -')) activityType = 'Other';
-                        
-                        return (
-                          <View style={styles.section}>
-                            <View style={styles.infoRow}>
-                              <View style={styles.infoIcon}>
-                                <Tag color={Colors.deepPurple} size={20} />
-                              </View>
-                              <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Type:</Text>
-                                <Text style={styles.infoValue}>{activityType}</Text>
-                              </View>
+                      <View style={styles.section}>
+                        <View style={styles.infoRow}>
+                          <View style={styles.infoIcon}>
+                            <Tag color={Colors.deepPurple} size={20} />
+                          </View>
+                          <View style={styles.infoContent}>
+                            <Text style={styles.infoLabel}>Type:</Text>
+                            <Text style={styles.infoValue}>{activityType}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Event Title */}
+                      {activityType === 'Event' && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <Calendar color={Colors.deepPurple} size={20} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Event Title:</Text>
+                              <Text style={styles.infoValue}>{eventName || 'Event Title Not Available'}</Text>
                             </View>
                           </View>
-                        );
-                      })()}
+                        </View>
+                      )}
+
+                      {/* Donation Details */}
+                      {activityType === 'Donation' && (
+                        <>
+                          {donationItem && (
+                            <View style={styles.section}>
+                              <View style={styles.infoRow}>
+                                <View style={styles.infoIcon}>
+                                  <Tag color={Colors.deepPurple} size={20} />
+                                </View>
+                                <View style={styles.infoContent}>
+                                  <Text style={styles.infoLabel}>Donated Item:</Text>
+                                  <Text style={styles.infoValue}>{donationItem}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          )}
+                          {donationAmount && (
+                            <View style={styles.section}>
+                              <View style={styles.infoRow}>
+                                <View style={styles.infoIcon}>
+                                  <Tag color={Colors.deepPurple} size={20} />
+                                </View>
+                                <View style={styles.infoContent}>
+                                  <Text style={styles.infoLabel}>Amount/Quantity:</Text>
+                                  <Text style={styles.infoValue}>{donationAmount}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          )}
+                        </>
+                      )}
+
+                      {/* Volunteer Work Details */}
+                      {activityType === 'Volunteer' && (
+                        <>
+                          {volunteerTitle && (
+                            <View style={styles.section}>
+                              <View style={styles.infoRow}>
+                                <View style={styles.infoIcon}>
+                                  <FileText color={Colors.deepPurple} size={20} />
+                                </View>
+                                <View style={styles.infoContent}>
+                                  <Text style={styles.infoLabel}>Activity Title:</Text>
+                                  <Text style={styles.infoValue}>{volunteerTitle}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          )}
+                          {volunteerOrg && (
+                            <View style={styles.section}>
+                              <View style={styles.infoRow}>
+                                <View style={styles.infoIcon}>
+                                  <Tag color={Colors.deepPurple} size={20} />
+                                </View>
+                                <View style={styles.infoContent}>
+                                  <Text style={styles.infoLabel}>Organization:</Text>
+                                  <Text style={styles.infoValue}>{volunteerOrg}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          )}
+                        </>
+                      )}
+
+                      {/* Other Activity Title */}
+                      {activityType === 'Other' && otherTitle && (
+                        <View style={styles.section}>
+                          <View style={styles.infoRow}>
+                            <View style={styles.infoIcon}>
+                              <FileText color={Colors.deepPurple} size={20} />
+                            </View>
+                            <View style={styles.infoContent}>
+                              <Text style={styles.infoLabel}>Activity Title:</Text>
+                              <Text style={styles.infoValue}>{otherTitle}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
 
                       {/* Hours */}
                       <View style={styles.section}>
@@ -1043,15 +1196,17 @@ export default function LogHoursScreen() {
                         </View>
                       )}
 
-                      {/* Description */}
-                      <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Description</Text>
-                        <View style={styles.descriptionBox}>
-                          <Text style={styles.descriptionText}>
-                            {selectedLog.description || 'No description provided'}
-                          </Text>
+                      {/* Description - only show if there's actual description */}
+                      {actualDescription && (
+                        <View style={styles.section}>
+                          <Text style={styles.sectionTitle}>Description</Text>
+                          <View style={styles.descriptionBox}>
+                            <Text style={styles.descriptionText}>
+                              {actualDescription}
+                            </Text>
+                          </View>
                         </View>
-                      </View>
+                      )}
 
                       {/* Coordinator Comment */}
                       {selectedLog.coordinatorComment && (
@@ -1211,10 +1366,6 @@ export default function LogHoursScreen() {
                                   Alert.alert('Error', 'Please enter valid hours');
                                   return;
                                 }
-                                if (!editFormData.description || editFormData.description.trim().length < 10) {
-                                  Alert.alert('Error', 'Description must be at least 10 characters');
-                                  return;
-                                }
                                 if (editFormData.type === 'Volunteer' && !editFile) {
                                   Alert.alert('Error', 'Photo proof is required for volunteer activities');
                                   return;
@@ -1290,7 +1441,8 @@ export default function LogHoursScreen() {
                         </View>
                       )}
                     </>
-                  )}
+                    );
+                  })()}
                 </GlassmorphicCard>
               </View>
             </ScrollView>
@@ -1429,19 +1581,23 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.lg,
   },
-  successContainer: {
+  successModalContainer: {
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
   },
-  successCard: {
+  successModalCard: {
     padding: spacing.xl,
     alignItems: 'center',
+    maxWidth: 400,
+    marginHorizontal: spacing.lg,
   },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  successIconLarge: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: `${Colors.green}1A`,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1451,6 +1607,7 @@ const styles = StyleSheet.create({
     ...typography.h1,
     color: Colors.text,
     marginBottom: spacing.md,
+    textAlign: 'center',
   },
   successMessage: {
     fontSize: Sizes.fontMd,
@@ -1462,6 +1619,10 @@ const styles = StyleSheet.create({
     fontSize: Sizes.fontSm,
     color: Colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  successButton: {
+    minWidth: 150,
   },
   errorText: {
     fontSize: Sizes.fontSm,
@@ -1685,11 +1846,11 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   section: {
-    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
   },
   infoIcon: {
@@ -1703,18 +1864,24 @@ const styles = StyleSheet.create({
   infoContent: {
     flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
   infoLabel: {
     fontSize: Sizes.fontSm,
     fontWeight: '600',
     color: Colors.textSecondary,
+    minWidth: 90,
+    paddingTop: 10, // Align with icon center
   },
   infoValue: {
+    flex: 1,
     fontSize: Sizes.fontMd,
-    fontWeight: '600',
+    fontWeight: '500',
     color: Colors.text,
+    lineHeight: Sizes.fontMd * 1.4,
+    flexWrap: 'wrap',
+    paddingTop: 10, // Align with icon center
   },
   descriptionBox: {
     backgroundColor: Colors.background,

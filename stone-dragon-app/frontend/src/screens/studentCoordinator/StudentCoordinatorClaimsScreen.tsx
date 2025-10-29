@@ -15,9 +15,12 @@ import {
   GradientBackground,
   SDButton,
   GlassmorphicCard,
+  GlassmorphicBanner,
 } from '../../components/ui';
 import SDClaimCard from '../../components/admin/SDClaimCard';
 import ClaimDetailModal from '../../components/admin/ClaimDetailModal';
+import { LeaderboardModal, NotificationCenterModal } from '../../components/admin';
+import { useAuth } from '../../store/AuthContext';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
 import { typography } from '../../theme/theme';
@@ -28,6 +31,7 @@ import { apiService } from '../../services/api';
  * Shows only event claims for events where the user is a student coordinator
  */
 export default function StudentCoordinatorClaimsScreen() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [selectedClaims, setSelectedClaims] = useState<string[]>([]);
@@ -38,6 +42,8 @@ export default function StudentCoordinatorClaimsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
+  const [notificationVisible, setNotificationVisible] = useState(false);
 
   useEffect(() => {
     fetchClaims();
@@ -298,6 +304,30 @@ export default function StudentCoordinatorClaimsScreen() {
           onApprove={handleApprove}
           onReject={handleReject}
         />
+
+        {/* Glassmorphic Banner - Fixed at top */}
+        <View style={styles.bannerWrapper}>
+          <GlassmorphicBanner
+            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            welcomeMessage="Event Claims"
+            notificationCount={filteredClaims.filter(c => c.status === 'pending').length}
+            onLeaderboardPress={() => setLeaderboardVisible(true)}
+            onNotificationPress={() => setNotificationVisible(true)}
+            userRole={user?.role}
+          />
+        </View>
+
+        {/* Leaderboard Modal */}
+        <LeaderboardModal
+          visible={leaderboardVisible}
+          onClose={() => setLeaderboardVisible(false)}
+        />
+
+        {/* Notification Center Modal */}
+        <NotificationCenterModal
+          visible={notificationVisible}
+          onClose={() => setNotificationVisible(false)}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
@@ -307,9 +337,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  bannerWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
   mainCard: {
     flex: 1,
     margin: spacing.lg,
+    marginTop: 130, // Space for the banner
     padding: spacing.lg,
   },
   title: {

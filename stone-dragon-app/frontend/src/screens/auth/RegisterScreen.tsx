@@ -44,6 +44,13 @@ export default function RegisterScreen() {
   const [showSchoolPicker, setShowSchoolPicker] = useState(false);
   const [schools, setSchools] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingSchools, setLoadingSchools] = useState(false);
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+  });
 
   // Fetch schools on mount
   useEffect(() => {
@@ -70,6 +77,27 @@ export default function RegisterScreen() {
     }
   };
 
+  const validatePasswordRequirements = (password: string) => {
+    return {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+    };
+  };
+
+  const getPasswordErrorMessage = () => {
+    const checks = passwordRequirements;
+    const missing = [];
+    if (!checks.length) missing.push('8 characters minimum');
+    if (!checks.uppercase) missing.push('one uppercase letter');
+    if (!checks.lowercase) missing.push('one lowercase letter');
+    if (!checks.number) missing.push('one number');
+    if (!checks.special) missing.push('one special character');
+    return missing.length > 0 ? `Password must contain: ${missing.join(', ')}` : '';
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -85,8 +113,12 @@ export default function RegisterScreen() {
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else {
+      const requirements = validatePasswordRequirements(formData.password);
+      const allMet = Object.values(requirements).every(Boolean);
+      if (!allMet) {
+        newErrors.password = getPasswordErrorMessage();
+      }
     }
 
     if (!formData.confirmPassword) {
@@ -143,6 +175,11 @@ export default function RegisterScreen() {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+    
+    // Update password requirements in real-time
+    if (field === 'password') {
+      setPasswordRequirements(validatePasswordRequirements(value));
     }
   };
 
@@ -220,11 +257,10 @@ export default function RegisterScreen() {
               <View>
                 <SDInput
                   label="Password"
-                  placeholder="Minimum 8 characters"
+                  placeholder="Create a strong password"
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
                   error={errors.password}
-                  hint="Minimum 8 characters"
                   required
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -239,6 +275,73 @@ export default function RegisterScreen() {
                     <Eye color={Colors.textSecondary} size={20} />
                   )}
                 </TouchableOpacity>
+                
+                {/* Password Requirements */}
+                {formData.password.length > 0 && (
+                  <View style={styles.requirementsContainer}>
+                    <Text style={styles.requirementsTitle}>Password must contain:</Text>
+                    <View style={styles.requirementItem}>
+                      <Check 
+                        color={passwordRequirements.length ? Colors.green : Colors.textSecondary} 
+                        size={16} 
+                      />
+                      <Text style={[
+                        styles.requirementText,
+                        passwordRequirements.length && styles.requirementMet
+                      ]}>
+                        At least 8 characters
+                      </Text>
+                    </View>
+                    <View style={styles.requirementItem}>
+                      <Check 
+                        color={passwordRequirements.uppercase ? Colors.green : Colors.textSecondary} 
+                        size={16} 
+                      />
+                      <Text style={[
+                        styles.requirementText,
+                        passwordRequirements.uppercase && styles.requirementMet
+                      ]}>
+                        One uppercase letter
+                      </Text>
+                    </View>
+                    <View style={styles.requirementItem}>
+                      <Check 
+                        color={passwordRequirements.lowercase ? Colors.green : Colors.textSecondary} 
+                        size={16} 
+                      />
+                      <Text style={[
+                        styles.requirementText,
+                        passwordRequirements.lowercase && styles.requirementMet
+                      ]}>
+                        One lowercase letter
+                      </Text>
+                    </View>
+                    <View style={styles.requirementItem}>
+                      <Check 
+                        color={passwordRequirements.number ? Colors.green : Colors.textSecondary} 
+                        size={16} 
+                      />
+                      <Text style={[
+                        styles.requirementText,
+                        passwordRequirements.number && styles.requirementMet
+                      ]}>
+                        One number
+                      </Text>
+                    </View>
+                    <View style={styles.requirementItem}>
+                      <Check 
+                        color={passwordRequirements.special ? Colors.green : Colors.textSecondary} 
+                        size={16} 
+                      />
+                      <Text style={[
+                        styles.requirementText,
+                        passwordRequirements.special && styles.requirementMet
+                      ]}>
+                        One special character
+                      </Text>
+                    </View>
+                  </View>
+                )}
               </View>
 
               <View>
@@ -560,5 +663,30 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.body,
     color: Colors.textSecondary,
+  },
+  requirementsContainer: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: `${Colors.card}CC`,
+    borderRadius: Sizes.radiusMd,
+  },
+  requirementsTitle: {
+    fontSize: Sizes.fontSm,
+    color: Colors.text,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  requirementText: {
+    fontSize: Sizes.fontSm,
+    color: Colors.textSecondary,
+    marginLeft: spacing.xs,
+  },
+  requirementMet: {
+    color: Colors.green,
   },
 });

@@ -68,11 +68,13 @@ export default function GlassmorphicBanner({
                 </BlurView>
               </View>
             ) : schoolName ? (
-              <View style={styles.schoolContainer}>
-                <SchoolIcon size={16} color={Colors.deepPurple} />
-                <Text style={styles.schoolName} numberOfLines={1}>
-                  {schoolName}
-                </Text>
+              <View style={styles.schoolBadgeContainer}>
+                <BlurView intensity={30} tint="light" style={styles.schoolBadgeBlur}>
+                  <SchoolIcon size={16} color={Colors.deepPurple} />
+                  <Text style={styles.schoolName} numberOfLines={1}>
+                    {schoolName}
+                  </Text>
+                </BlurView>
               </View>
             ) : null}
 
@@ -161,19 +163,28 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  schoolContainer: {
+  schoolBadgeContainer: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: spacing.md,
+  },
+  schoolBadgeBlur: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    marginHorizontal: spacing.md,
+    borderRadius: 20, // Circular/pill shape
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(128, 128, 128, 0.15)', // Grey tint for blur
+    overflow: 'hidden',
   },
   schoolName: {
     fontSize: Sizes.fontSm,
     fontWeight: '600',
     color: Colors.deepPurple,
-    opacity: 0.9,
+    opacity: 0.85,
   },
   adminBadgeContainer: {
     flex: 1,

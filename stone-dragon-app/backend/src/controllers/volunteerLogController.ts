@@ -120,7 +120,7 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
       where.userId = userId;
     }
 
-    // Coordinators see logs from their school, excluding event claims with student coordinators
+    // Coordinators see logs from their school, with specific event claim rules
     if (userRole === 'COORDINATOR') {
       // Filter by coordinator's school
       if (!userSchoolId) {
@@ -132,28 +132,63 @@ export const getVolunteerLogs = async (req: Request, res: Response): Promise<voi
       }
       where.schoolId = userSchoolId;
 
-      // Get all event IDs that have student coordinators
+      // Get all event IDs that have student coordinators, with the student coordinator user IDs
       const eventsWithCoordinators = await prisma.eventCoordinator.findMany({
-        select: { eventId: true },
+        select: { 
+          eventId: true,
+          userId: true,
+        },
       });
-      const eventIdsWithCoordinators = eventsWithCoordinators.map((ec) => ec.eventId);
+      
+      // Create a map of eventId -> array of student coordinator user IDs
+      const eventCoordinatorMap = new Map<string, string[]>();
+      eventsWithCoordinators.forEach((ec) => {
+        if (!eventCoordinatorMap.has(ec.eventId)) {
+          eventCoordinatorMap.set(ec.eventId, []);
+        }
+        eventCoordinatorMap.get(ec.eventId)!.push(ec.userId);
+      });
 
-      // Exclude event claims for events with student coordinators
+      const eventIdsWithCoordinators = Array.from(eventCoordinatorMap.keys());
+
+      // Build complex OR condition
       where.OR = [
-        { claimType: { not: 'event' } }, // Non-event claims
-        { claimType: 'event', eventId: { notIn: eventIdsWithCoordinators } }, // Event claims without student coordinators
+        { claimType: { not: 'event' } }, // Non-event claims - coordinators always see
+        { claimType: 'event', eventId: { notIn: eventIdsWithCoordinators } }, // Events without student coordinators
         { claimType: 'event', eventId: null }, // Event claims without eventId
       ];
+
+      // For each event with student coordinators, add condition to include logs 
+      // submitted BY the student coordinator for that event
+      eventIdsWithCoordinators.forEach((eventId) => {
+        const coordinatorIds = eventCoordinatorMap.get(eventId) || [];
+        where.OR.push({
+          claimType: 'event',
+          eventId: eventId,
+          userId: { in: coordinatorIds }, // Include if submitted by student coordinator for this event
+        });
+      });
     }
 
     // Admins can only see approved/rejected claims, and can filter by school
     if (userRole === 'ADMIN') {
-      // Admins can only see approved or rejected claims (not pending)
-      where.status = { in: ['approved', 'rejected'] };
-
       // Admins can optionally filter by school
       if (schoolId) {
         where.schoolId = schoolId as string;
+      }
+
+      // Admins can filter by status, but can only see approved/rejected (not pending)
+      if (status) {
+        // Only allow approved or rejected status
+        if (status === 'approved' || status === 'rejected') {
+          where.status = status;
+        } else {
+          // If 'all' or invalid status, show both approved and rejected
+          where.status = { in: ['approved', 'rejected'] };
+        }
+      } else {
+        // Default: show both approved and rejected
+        where.status = { in: ['approved', 'rejected'] };
       }
     }
 
