@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import express from 'express';
 import { authenticateSession } from '../middleware/auth';
 import {
@@ -29,4 +36,4 @@ router.post('/:id/register', registerForEvent); // Register for event
 router.delete('/:id/register', unregisterFromEvent); // Unregister from event
 
 export default router;
-
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

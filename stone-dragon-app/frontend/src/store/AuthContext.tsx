@@ -1,6 +1,14 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
+import { RegisterData as ApiRegisterData, UserRole } from '../types';
 
 // User Types
 export interface User {
@@ -124,12 +132,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const lastName = nameParts.slice(1).join(' ') || firstName;
 
       // Map frontend data to backend format
-      const registerPayload = {
+      const registerPayload: ApiRegisterData = {
         email: data.email,
         password: data.password,
         firstName,
         lastName,
-        role: 'STUDENT',
+        role: 'STUDENT' as UserRole,
         schoolId: data.school, // Assuming school is already schoolId from picker
       };
 

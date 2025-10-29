@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
@@ -54,6 +61,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
+
     // Store user in session
     (req.session as any).userId = user.id;
     (req.session as any).userRole = user.role;
@@ -80,6 +88,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+//-------------------------------------------------------------------------------------------------------------------------------------------------------//
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password }: LoginRequest = req.body;
@@ -142,6 +151,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+//-------------------------------------------------------------------------------------------------------------------------------------------------------//
 export const logout = async (req: Request, res: Response): Promise<void> => {
   // Destroy the session
   req.session.destroy((err: any) => {
@@ -159,6 +169,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
+//-------------------------------------------------------------------------------------------------------------------------------------------------------//
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req.session as any).userId;
@@ -220,3 +231,4 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     });
   }
 };
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//
