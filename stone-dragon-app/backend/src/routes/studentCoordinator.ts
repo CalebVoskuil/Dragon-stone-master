@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import express from 'express';
 import { authenticateSession } from '../middleware/auth';
 import {
@@ -17,4 +24,4 @@ router.get('/event-claims', getPendingEventClaims); // Get pending event claims 
 router.put('/review-claim/:id', reviewEventClaim); // Review event claim (approve/reject)
 
 export default router;
-
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

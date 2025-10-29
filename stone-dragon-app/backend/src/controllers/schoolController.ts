@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 
@@ -201,3 +208,4 @@ export const deleteSchool = async (req: Request, res: Response): Promise<void> =
     });
   }
 };
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//
