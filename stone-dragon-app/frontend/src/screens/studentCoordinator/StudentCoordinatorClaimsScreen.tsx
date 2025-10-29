@@ -315,7 +315,7 @@ export default function StudentCoordinatorClaimsScreen() {
         {/* Glassmorphic Banner - Fixed at top */}
         <View style={styles.bannerWrapper}>
           <GlassmorphicBanner
-            schoolName={typeof user?.school === 'string' ? user.school : user?.school?.name || 'School'}
+            schoolName={typeof user?.school === 'string' ? user.school : (user?.school as any)?.name || 'School'}
             welcomeMessage="Event Claims"
             notificationCount={filteredClaims.filter(c => c.status === 'pending').length}
             onLeaderboardPress={() => setLeaderboardVisible(true)}
