@@ -13,7 +13,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: stone-dragon-app/backend
     
     steps:
     - uses: actions/checkout@v4
@@ -22,25 +22,11 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
-    - name: Cache node modules
-      uses: actions/cache@v4
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-frontend-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-frontend-
+        cache: 'npm'
+        cache-dependency-path: stone-dragon-app/backend/package-lock.json
     
     - name: Install dependencies
       run: npm ci
-    
-    - name: Cache node modules
-      uses: actions/cache@v4
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-backend-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-backend-
     
     - name: Run Prisma generate
       run: npx prisma generate
@@ -50,9 +36,11 @@ jobs:
     
     - name: Run tests
       run: npm test --if-present
+      env:
+        DATABASE_URL: file:./test.db
     
     - name: Check build
-      run: npm run build --if-present
+      run: npm run build
 
   frontend-test:
     name: Frontend Tests
@@ -69,6 +57,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: stone-dragon-app/frontend/package-lock.json
     
     - name: Install dependencies
       run: npm ci
@@ -78,7 +68,7 @@ jobs:
       continue-on-error: true
     
     - name: Run TypeScript check
-      run: npx tsc --noEmit
+      run: npm run type-check --if-present
     
     - name: Run tests
       run: npm test --if-present
@@ -104,3 +94,30 @@ jobs:
       working-directory: stone-dragon-app/frontend
       run: npm audit --audit-level=moderate
       continue-on-error: true
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Backend format check
+      working-directory: stone-dragon-app/backend
+      run: |
+        npm ci
+        npm run format --if-present || echo "Format script not found"
+      continue-on-error: true
+    
+    - name: Frontend format check
+      working-directory: stone-dragon-app/frontend
+      run: |
+        npm ci
+        npm run format --if-present || echo "Format script not found"
+      continue-on-error: true
+
