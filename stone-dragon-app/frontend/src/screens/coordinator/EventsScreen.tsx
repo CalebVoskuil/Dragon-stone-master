@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator events management screen.
+ * Allows coordinators to create, view, and manage volunteer events.
+ * 
+ * @module screens/coordinator/EventsScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -49,7 +56,7 @@ export default function EventsScreen() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Array<any>>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -841,4 +848,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
+
+/* End of file screens/coordinator/EventsScreen.tsx */
 

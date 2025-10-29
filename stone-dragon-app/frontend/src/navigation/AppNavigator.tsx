@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Root application navigator for Stone Dragon app.
+ * Handles authentication flow and role-based navigation routing.
+ * 
+ * @module navigation/AppNavigator
+ * @requires react
+ * @requires @react-navigation/stack
+ */
+
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -23,7 +32,13 @@ import StudentCoordinatorClaimsScreen from '../screens/studentCoordinator/Studen
 
 const Stack = createStackNavigator<RootStackParamList>();
 
-// Auth Stack Navigator
+/**
+ * Authentication stack navigator.
+ * Contains screens for unauthenticated users: Welcome, Login, Register.
+ * 
+ * @component
+ * @returns {JSX.Element} Authentication stack with Welcome, Login, and Register screens
+ */
 const AuthStackNavigator: React.FC = () => {
   return (
     <Stack.Navigator
@@ -38,7 +53,21 @@ const AuthStackNavigator: React.FC = () => {
   );
 };
 
-// Main Stack Navigator - routes to appropriate tab navigator based on user role
+/**
+ * Main stack navigator for authenticated users.
+ * Routes to appropriate tab navigator based on user role and includes shared screens.
+ * 
+ * @component
+ * @returns {JSX.Element} Main stack with role-based navigation and shared screens
+ * 
+ * @description
+ * Determines which navigator to use based on user role:
+ * - COORDINATOR and ADMIN → CoordinatorNavigator
+ * - STUDENT and STUDENT_COORDINATOR → StudentNavigator
+ * 
+ * Also includes shared screens accessible from both roles:
+ * - Schools, MyLogs, Leaderboard, Notifications, StudentCoordinatorClaims
+ */
 const MainStackNavigator: React.FC = () => {
   const { user } = useAuth();
   
@@ -107,7 +136,19 @@ const MainStackNavigator: React.FC = () => {
   );
 };
 
-// Root App Navigator
+/**
+ * Root application navigator.
+ * Handles top-level routing between authentication and main app flows.
+ * 
+ * @component
+ * @returns {JSX.Element | null} Root navigator or null during loading
+ * 
+ * @description
+ * Checks authentication status and routes accordingly:
+ * - If authenticated → MainStackNavigator
+ * - If not authenticated → AuthStackNavigator
+ * - During auth check → Returns null (loading state)
+ */
 const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -134,3 +175,5 @@ const AppNavigator: React.FC = () => {
 };
 
 export default AppNavigator;
+
+/* End of file navigation/AppNavigator.tsx */

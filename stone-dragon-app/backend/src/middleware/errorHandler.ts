@@ -1,7 +1,40 @@
+/**
+ * @fileoverview Global error handling middleware for the Stone Dragon API.
+ * Handles Prisma errors, custom application errors, and general exceptions.
+ * 
+ * @module middleware/errorHandler
+ * @requires express
+ * @requires @prisma/client/runtime/library
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClientKnownRequestError, PrismaClientValidationError, PrismaClientInitializationError } from '@prisma/client/runtime/library';
 import { AppError } from '../types';
 
+/**
+ * Global error handling middleware.
+ * Catches and formats all errors thrown in the application.
+ * Handles Prisma-specific errors, custom AppErrors, and general exceptions.
+ * 
+ * @param {Error} error - The error object thrown
+ * @param {Request} _req - Express request object (unused)
+ * @param {Response} res - Express response object
+ * @param {NextFunction} _next - Express next middleware function (unused)
+ * @returns {void}
+ * 
+ * @example
+ * // In server.ts
+ * app.use(errorHandler);
+ * 
+ * @description
+ * Handles the following error types:
+ * - PrismaClientKnownRequestError: Database constraint violations, record not found, etc.
+ * - PrismaClientValidationError: Invalid data types or schema violations
+ * - PrismaClientInitializationError: Database connection issues
+ * - AppError: Custom application errors with statusCode
+ * - ValidationError: Input validation errors
+ * - SessionError: Session-related errors
+ */
 export const errorHandler = (
   error: Error,
   _req: Request,
@@ -85,3 +118,5 @@ export const errorHandler = (
     }),
   });
 };
+
+/* End of file middleware/errorHandler.ts */

@@ -1,13 +1,23 @@
+/**
+ * @fileoverview Stone Dragon app theme configuration.
+ * Based on brand colors: Deep Purple (#58398B) and Golden (#FFD60A).
+ * Includes light/dark themes, typography, shadows, and border radius presets.
+ * 
+ * @module theme/theme
+ * @requires react-native-paper
+ */
+
 import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { Colors } from '../constants/Colors';
 import { Sizes } from '../constants/Sizes';
 
 /**
- * Stone Dragon Theme
- * Based on brand colors: Deep Purple (#58398B) and Golden (#FFD60A)
+ * Stone Dragon color palette for React Native Paper.
+ * Maps brand colors to Material Design 3 theme structure.
+ * 
+ * @constant
+ * @type {Object}
  */
-
-// Stone Dragon color palette for React Native Paper
 const stoneColors = {
   primary: Colors.deepPurple,
   primaryVariant: Colors.mediumPurple,
@@ -26,6 +36,13 @@ const stoneColors = {
   onSurfaceVariant: Colors.textSecondary,
 };
 
+/**
+ * Light theme configuration.
+ * Extends Material Design 3 light theme with Stone Dragon brand colors.
+ * 
+ * @constant
+ * @type {Object}
+ */
 export const theme = {
   ...MD3LightTheme,
   colors: {
@@ -35,6 +52,13 @@ export const theme = {
   roundness: Sizes.radiusMd,
 };
 
+/**
+ * Dark theme configuration.
+ * Extends Material Design 3 dark theme with Stone Dragon brand colors.
+ * 
+ * @constant
+ * @type {Object}
+ */
 export const darkTheme = {
   ...MD3DarkTheme,
   colors: {
@@ -58,7 +82,13 @@ export const darkTheme = {
   roundness: Sizes.radiusMd,
 };
 
-// Typography (mapped from Stone Dragon tokens)
+/**
+ * Typography presets mapped from Stone Dragon design tokens.
+ * Provides consistent text styles across the application.
+ * 
+ * @constant
+ * @type {Object}
+ */
 export const typography = {
   h1: {
     fontSize: Sizes.fontXl,      // 24
@@ -87,10 +117,14 @@ export const typography = {
   },
 };
 
-// Note: Spacing is exported from '../constants/Sizes' to avoid duplication
-// Import spacing directly from Sizes: import { spacing } from '../constants/Sizes'
-
-// Border radius
+/**
+ * Border radius presets for consistent rounded corners.
+ * @note Spacing is exported from '../constants/Sizes' to avoid duplication.
+ * Import spacing directly: import { spacing } from '../constants/Sizes'
+ * 
+ * @constant
+ * @type {Object}
+ */
 export const borderRadius = {
   sm: Sizes.radiusSm,
   md: Sizes.radiusMd,
@@ -99,7 +133,13 @@ export const borderRadius = {
   round: Sizes.radiusFull,
 };
 
-// Shadow presets
+/**
+ * Shadow presets for elevation and depth effects.
+ * Includes both iOS (shadow*) and Android (elevation) properties.
+ * 
+ * @constant
+ * @type {Object}
+ */
 export const shadows = {
   small: {
     shadowColor: '#000',
@@ -123,3 +163,5 @@ export const shadows = {
     elevation: 8,
   },
 };
+
+/* End of file theme/theme.ts */

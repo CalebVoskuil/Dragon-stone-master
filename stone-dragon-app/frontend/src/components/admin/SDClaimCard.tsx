@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { Check, X } from 'lucide-react-native';
@@ -13,6 +20,7 @@ interface SDClaimCardProps {
   hours: number;
   description: string;
   status?: 'pending' | 'approved' | 'rejected';
+  eventTitle?: string;
   isSelected?: boolean;
   onSelect?: (id: string, selected: boolean) => void;
   onApprove?: (id: string) => void;

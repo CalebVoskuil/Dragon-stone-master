@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import { Router } from 'express';
 import { getBadges, getUserBadges, getBadgeProgress } from '../controllers/badgeController';
 import { authenticateSession } from '../middleware/auth';
@@ -13,3 +20,4 @@ router.get('/user/:userId', getUserBadges);
 router.get('/progress/:userId', getBadgeProgress);
 
 export default router;
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

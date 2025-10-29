@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Coordinator profile screen.
+ * Displays and manages coordinator profile settings.
+ * 
+ * @module screens/coordinator/ProfileScreen
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -605,4 +612,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 });
+
+/* End of file screens/coordinator/ProfileScreen.tsx */
 

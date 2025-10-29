@@ -1,4 +1,16 @@
-// User types
+/**
+ * @fileoverview TypeScript type definitions for Stone Dragon app.
+ * Contains interfaces for users, schools, events, logs, badges, and more.
+ * 
+ * @module types
+ */
+
+/**
+ * User interface.
+ * Represents a user in the system (student, coordinator, or admin).
+ * 
+ * @interface User
+ */
 export interface User {
   id: string;
   email: string;
@@ -11,9 +23,18 @@ export interface User {
   updatedAt: string;
 }
 
+/**
+ * User role type definition.
+ * @typedef {string} UserRole
+ */
 export type UserRole = 'STUDENT' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMIN';
 
-// School types
+/**
+ * School interface.
+ * Represents an educational institution in the system.
+ * 
+ * @interface School
+ */
 export interface School {
   id: string;
   name: string;
@@ -165,6 +186,7 @@ export interface AuthState {
 // Navigation types
 export type RootStackParamList = {
   Auth: undefined;
+  Welcome: undefined;
   Main: undefined;
   Login: undefined;
   Register: undefined;
@@ -247,3 +269,5 @@ export interface FileUploadResult {
   fileSize: number;
   mimeType: string;
 }
+
+/* End of file types/index.ts */

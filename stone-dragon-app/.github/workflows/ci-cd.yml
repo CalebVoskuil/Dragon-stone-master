@@ -1,0 +1,140 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: stone-dragon-app/backend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: stone-dragon-app/backend/node_modules
+        key: ${{ runner.os }}-backend-node-${{ hashFiles('stone-dragon-app/backend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-backend-node-
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run Prisma generate
+      run: npx prisma generate
+    
+    - name: Run linter
+      run: npm run lint --if-present
+      continue-on-error: true
+    
+    - name: Run tests
+      run: npm test --if-present
+      continue-on-error: true
+      env:
+        DATABASE_URL: file:./test.db
+    
+    - name: Check build
+      run: npm run build
+      continue-on-error: true
+
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: stone-dragon-app/frontend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Cache node modules
+      uses: actions/cache@v4
+      with:
+        path: stone-dragon-app/frontend/node_modules
+        key: ${{ runner.os }}-frontend-node-${{ hashFiles('stone-dragon-app/frontend/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-frontend-node-
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linter
+      run: npm run lint --if-present
+      continue-on-error: true
+    
+    - name: Run TypeScript check
+      run: npm run type-check --if-present
+      continue-on-error: true
+    
+    - name: Run tests
+      run: npm test --if-present
+      continue-on-error: true
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Backend security audit
+      working-directory: stone-dragon-app/backend
+      run: npm audit --audit-level=moderate
+      continue-on-error: true
+    
+    - name: Frontend security audit
+      working-directory: stone-dragon-app/frontend
+      run: npm audit --audit-level=moderate
+      continue-on-error: true
+
+  code-quality:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Backend format check
+      working-directory: stone-dragon-app/backend
+      run: |
+        npm ci
+        npm run format --if-present || echo "Format script not found"
+      continue-on-error: true
+    
+    - name: Frontend format check
+      working-directory: stone-dragon-app/frontend
+      run: |
+        npm ci
+        npm run format --if-present || echo "Format script not found"
+      continue-on-error: true
+

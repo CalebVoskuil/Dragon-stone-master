@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { 
@@ -40,3 +47,4 @@ router.put('/:id', requireAdmin, updateSchoolValidation, validateRequest, update
 router.delete('/:id', requireAdmin, deleteSchool);
 
 export default router;
+//----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

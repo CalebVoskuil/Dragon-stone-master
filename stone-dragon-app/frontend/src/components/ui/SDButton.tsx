@@ -1,8 +1,31 @@
+/**
+ * @fileoverview Stone Dragon button component with multiple variants.
+ * Supports different sizes, loading states, and styling options.
+ * 
+ * @module components/ui/SDButton
+ * @requires react
+ * @requires react-native
+ */
+
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes } from '../../constants/Sizes';
 
+/**
+ * Props for SDButton component.
+ * 
+ * @interface SDButtonProps
+ * @property {'primary-filled' | 'primary-on-light' | 'accept' | 'reject' | 'ghost' | 'secondary'} [variant='primary-filled'] - Button visual variant
+ * @property {'sm' | 'md' | 'lg'} [size='md'] - Button size
+ * @property {boolean} [fullWidth=false] - Whether button should take full width
+ * @property {boolean} [loading=false] - Show loading indicator
+ * @property {boolean} [disabled=false] - Disable button interaction
+ * @property {React.ReactNode} children - Button content/text
+ * @property {function} [onPress] - Function to handle button press
+ * @property {ViewStyle} [style] - Additional view styles
+ * @property {TextStyle} [textStyle] - Additional text styles
+ */
 interface SDButtonProps {
   variant?: 'primary-filled' | 'primary-on-light' | 'accept' | 'reject' | 'ghost' | 'secondary';
   size?: 'sm' | 'md' | 'lg';
@@ -16,8 +39,17 @@ interface SDButtonProps {
 }
 
 /**
- * SDButton - Stone Dragon styled button component
- * Supports multiple variants matching Figma design with accessibility
+ * Stone Dragon styled button component.
+ * Supports multiple variants matching Figma design with accessibility.
+ * 
+ * @component
+ * @param {SDButtonProps} props - Component properties
+ * @returns {JSX.Element} Styled button component
+ * 
+ * @example
+ * <SDButton variant="primary-filled" size="md" onPress={handlePress}>
+ *   Click Me
+ * </SDButton>
  */
 export default function SDButton({
   variant = 'primary-filled',
@@ -30,7 +62,12 @@ export default function SDButton({
   style,
   textStyle,
 }: SDButtonProps) {
-  const variantStyles = {
+  const variantStyles: Record<string, {
+    backgroundColor: string;
+    textColor: string;
+    borderColor?: string;
+    borderWidth?: number;
+  }> = {
     'primary-filled': {
       backgroundColor: Colors.deepPurple,
       textColor: Colors.light,
@@ -139,3 +176,4 @@ const styles = StyleSheet.create({
   },
 });
 
+/* End of file components/ui/SDButton.tsx */

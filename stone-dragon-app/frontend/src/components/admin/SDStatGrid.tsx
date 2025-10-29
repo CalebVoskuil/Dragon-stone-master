@@ -1,3 +1,10 @@
+/**
+ *
+ */
+
+/**
+ *
+ */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import {
@@ -6,6 +13,7 @@ import {
   Check,
   Users,
   Calendar,
+  LucideIcon,
 } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -28,7 +36,7 @@ interface SDStatGridProps {
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: React.ComponentType<{ color?: string; size?: number }>;
+  icon: LucideIcon;
   color: string;
   trend?: string;
   subtitle?: string;
