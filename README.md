@@ -142,9 +142,11 @@ stone-dragon-app/
 
    #### Paste here
    frontend -> src -> components -> admin -> ClaimDetailsModal.tsx
+   
    const proofUrl = `http://{Paste here}:3001/uploads/${claim.proofFileName}`;
 
    frontend -> src -> services -> api.ts: baseURl
+   
    baseURL: 'http://{Paste here}:3001/api'
 
 3. **Set up the Backend**
