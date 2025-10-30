@@ -203,7 +203,7 @@ export default function NotificationCenterModal({
       case 'badge_earned':
         return <Award color={Colors.golden} size={20} />;
       case 'event_registered':
-        return <Calendar color={Colors.blue} size={20} />;
+        return <Calendar color={Colors.green} size={20} />;
       default:
         return <Bell color={Colors.deepPurple} size={20} />;
     }
