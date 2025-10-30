@@ -17,7 +17,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
+import { Linking, Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye, Tag, Building2, DollarSign, Package } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 import { Sizes, spacing } from '../../constants/Sizes';
@@ -57,6 +60,10 @@ export default function ClaimDetailModal({
 }: ClaimDetailModalProps) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   // Parse the description to extract structured information
   // Must be called before any conditional returns (Rules of Hooks)
@@ -168,20 +175,49 @@ export default function ClaimDetailModal({
   };
 
   const handleViewProof = () => {
-    if (claim?.proofFileName) {
-      // Construct the full URL to the proof file
-      // The backend serves files at /uploads/ route
-      const proofUrl = `http://192.168.0.115:3001/uploads/${claim.proofFileName}`;
-      
-      console.log('Opening proof file:', proofUrl);
-      
-      // In a real implementation, you might want to use:
-      // - Linking.openURL(proofUrl) for external apps
-      // - A custom image viewer modal for images
-      // - A PDF viewer component for PDFs
-      
-      // For now, we'll just show the URL
-      alert(`Proof file: ${proofUrl}`);
+    if (!claim?.proofFileName) return;
+    // Construct the full URL to the proof file (served from backend /uploads)
+    const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
+    const isImage = /\.(png|jpe?g|gif)$/i.test(claim.proofFileName);
+    console.log('View Proof pressed with URL:', proofUrl);
+    Alert.alert('Opening Proof', proofUrl, [
+      { text: 'Open in Browser', onPress: () => Linking.openURL(proofUrl).catch(() => {}) },
+      { text: 'Close', style: 'cancel' },
+    ]);
+
+    if (isImage) {
+      setPreviewUrl(proofUrl);
+      setPreviewError('');
+      setPreviewVisible(true);
+      return;
+    }
+
+    // Fallback for non-image proofs (e.g., PDFs)
+    // Simple alert to show URL; could be replaced with Linking.openURL
+    alert(`Open in browser: ${proofUrl}`);
+  };
+
+  const handleDownloadProof = async () => {
+    try {
+      if (!claim?.proofFileName) return;
+      const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
+      setDownloading(true);
+      const baseDir = (FileSystem.cacheDirectory || FileSystem.documentDirectory || '') as string;
+      const fileUri = baseDir + claim.proofFileName;
+      const result = await FileSystem.downloadAsync(proofUrl, fileUri);
+      if (result.status !== 200) {
+        throw new Error(`Download failed with status ${result.status}`);
+      }
+      // Try to open the downloaded file URL; user can use the OS sheet to save/share
+      const opened = await Linking.openURL(result.uri).catch(() => false);
+      if (!opened) {
+        Alert.alert('Downloaded', `Saved to: ${result.uri}`);
+      }
+    } catch (e: any) {
+      console.error('Download error', e);
+      Alert.alert('Download failed', e?.message || 'Unable to download file');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -208,6 +244,7 @@ export default function ClaimDetailModal({
   };
 
   return (
+    <>
     <Modal
       visible={visible}
       animationType="fade"
@@ -437,10 +474,26 @@ export default function ClaimDetailModal({
                 {claim.proofFileName && (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Proof Document</Text>
-                    <TouchableOpacity style={styles.proofButton} onPress={handleViewProof}>
-                      <Eye color={Colors.deepPurple} size={18} />
-                      <Text style={styles.proofButtonText}>View Proof Document</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: spacing.md }}>
+                      <TouchableOpacity
+                        style={styles.proofButton}
+                        onPress={handleViewProof}
+                        accessibilityRole="button"
+                        accessibilityLabel="View proof document"
+                      >
+                        <Eye color={Colors.deepPurple} size={18} />
+                        <Text style={styles.proofButtonText}>View Proof</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.proofButton, { borderColor: '#2f855a', backgroundColor: '#2f855a22' }]}
+                        onPress={handleDownloadProof}
+                        accessibilityRole="button"
+                        accessibilityLabel="Download proof document"
+                        disabled={downloading}
+                      >
+                        <Text style={[styles.proofButtonText, { color: '#2f855a' }]}>{downloading ? 'Downloading...' : 'Download'}</Text>
+                      </TouchableOpacity>
+                    </View>
                     <Text style={styles.proofHint}>
                       Tap to view the uploaded proof document
                     </Text>
@@ -524,6 +577,51 @@ export default function ClaimDetailModal({
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
+    {/* Image Preview Modal */}
+    {previewVisible && (
+      <Modal
+        visible={previewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity style={{ position: 'absolute', top: 50, right: 20, padding: 10 }} onPress={() => setPreviewVisible(false)}>
+            <Text style={{ color: '#fff', fontSize: 18 }}>Close</Text>
+          </TouchableOpacity>
+          {!!previewUrl && (
+            <Image
+              source={{ uri: previewUrl }}
+              style={{ width: '95%', height: '75%', resizeMode: 'contain' }}
+              onError={(e) => {
+                console.error('Image load error', e.nativeEvent?.error);
+                setPreviewError('Failed to load image. You can try opening it in the browser.');
+              }}
+            />
+          )}
+          <View style={{ marginTop: 16, alignItems: 'center', paddingHorizontal: 16 }}>
+            {previewError ? (
+              <Text style={{ color: '#fff', marginBottom: 12, textAlign: 'center' }}>{previewError}</Text>
+            ) : null}
+            <TouchableOpacity
+              onPress={() => { if (previewUrl) Linking.openURL(previewUrl).catch(() => {}); }}
+              style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#6c63ff', borderRadius: 8 }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Open in Browser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDownloadProof}
+              style={{ marginTop: 10, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#2f855a', borderRadius: 8 }}
+              disabled={downloading}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600' }}>{downloading ? 'Downloading...' : 'Download'}</Text>
+            </TouchableOpacity>
+            <Text style={{ color: '#aaa', marginTop: 8, fontSize: 12, textAlign: 'center' }}>{previewUrl}</Text>
+          </View>
+        </View>
+      </Modal>
+    )}
+    </>
   );
 }
 
