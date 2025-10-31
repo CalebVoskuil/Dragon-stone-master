@@ -6,7 +6,7 @@
  *
  */
 import { Router } from 'express';
-import { getUsers, getUserById, updateUser, deleteUser, getUserStats } from '../controllers/userController';
+import { getUsers, getUserById, updateUser, deleteUser, getUserStats, updatePushToken } from '../controllers/userController';
 import { authenticateSession, requireAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -20,6 +20,7 @@ router.get('/stats', getUserStats);
 router.get('/:id', getUserById);
 router.put('/:id', updateUser);
 router.delete('/:id', requireAdmin, deleteUser);
+router.patch('/push-token', updatePushToken);
 
 export default router;
 //----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

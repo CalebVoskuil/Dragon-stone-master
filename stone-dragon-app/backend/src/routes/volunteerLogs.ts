@@ -12,7 +12,8 @@ import {
   getVolunteerLogs, 
   getVolunteerLogById, 
   updateVolunteerLog,
-  deleteVolunteerLog 
+  deleteVolunteerLog,
+  getVolunteerLogProofUrl,
 } from '../controllers/volunteerLogController';
 import { authenticateSession } from '../middleware/auth';
 import { validateRequest } from '../middleware/validateRequest';
@@ -41,6 +42,7 @@ const updateLogValidation = [
 router.post('/', upload.single('proofFile'), createLogValidation, validateRequest, createVolunteerLog);
 router.get('/', getVolunteerLogs);
 router.get('/:id', getVolunteerLogById);
+router.get('/:id/proof-url', getVolunteerLogProofUrl);
 router.put('/:id', updateLogValidation, validateRequest, updateVolunteerLog);
 router.delete('/:id', deleteVolunteerLog);
 

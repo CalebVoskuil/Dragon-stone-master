@@ -200,6 +200,7 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   Notifications: undefined;
   StudentCoordinatorClaims: undefined;
+  ProofPreview: { url: string };
 };
 
 export type MainTabParamList = {

@@ -6,6 +6,9 @@
  *
  */
 import { Request, Response } from 'express';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { buildMessage, sendPushNotifications } from '../services/push';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -14,7 +17,7 @@ export const createVolunteerLog = async (req: Request, res: Response): Promise<v
   try {
     const { hours, description, date, schoolId, claimType, eventId, donationItems } = req.body;
     const userId = (req as any).user.id;
-    const proofFile = req.file;
+  const proofFile = req.file as (Express.Multer.File | undefined);
 
     // Validate claim type
     const validClaimTypes = ['event', 'donation', 'volunteer', 'other'];
@@ -26,14 +29,36 @@ export const createVolunteerLog = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Build data object based on claim type
+  // If there is a proof file, upload to S3
+  let s3Key: string | null = null;
+  if (proofFile && proofFile.buffer) {
+    const bucket = process.env['S3_BUCKET_PROOFS'];
+    const region = process.env['AWS_REGION'] || 'us-east-1';
+    if (!bucket) {
+      res.status(500).json({ success: false, message: 'S3 bucket not configured' });
+      return;
+    }
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = (proofFile.originalname.match(/\.[^.]+$/)?.[0]) || '';
+    s3Key = `proof-${uniqueSuffix}${ext}`;
+
+    const s3 = new S3Client({ region });
+    await s3.send(new PutObjectCommand({
+      Bucket: bucket,
+      Key: s3Key,
+      Body: proofFile.buffer,
+      ContentType: proofFile.mimetype,
+    }));
+  }
+
+  // Build data object based on claim type
     const data: any = {
       description: description as string,
       date: new Date(date),
       schoolId: schoolId as string,
       userId: userId as string,
-      proofFileName: proofFile?.filename ?? null,
-      proofFilePath: proofFile?.path ?? null,
+    proofFileName: s3Key ?? null,
+    proofFilePath: s3Key ? `s3://${process.env['S3_BUCKET_PROOFS']}/${s3Key}` : null,
       status: 'pending' as const,
       claimType: claimType || 'volunteer',
     };
@@ -98,6 +123,21 @@ export const createVolunteerLog = async (req: Request, res: Response): Promise<v
         },
       },
     });
+
+    // Notify coordinators of the school
+    const coordinators: any[] = await (prisma as any).user.findMany({
+      where: { role: 'COORDINATOR', schoolId: data.schoolId, pushToken: { not: null } },
+      select: { pushToken: true, firstName: true },
+    });
+    const messages = (coordinators || [])
+      .filter((c: any) => !!c.pushToken)
+      .map(c => buildMessage(
+        c.pushToken as string,
+        'New claim submitted',
+        `${volunteerLog.user.firstName} submitted a claim`,
+        { logId: volunteerLog.id }
+      ));
+    if (messages.length) await sendPushNotifications(messages);
 
     res.status(201).json({
       success: true,
@@ -278,7 +318,12 @@ export const getVolunteerLogById = async (req: Request, res: Response): Promise<
     const userId = (req as any).user.id;
     const userRole = (req as any).user.role;
 
-    const where: any = { id };
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Volunteer log ID is required' });
+      return;
+    }
+
+    const where: any = { id: id as string };
 
     // Students and student coordinators can only see their own logs
     if (userRole === 'STUDENT' || userRole === 'STUDENT_COORDINATOR') {
@@ -344,6 +389,62 @@ export const getVolunteerLogById = async (req: Request, res: Response): Promise<
       success: false,
       message: 'Failed to retrieve volunteer log',
     });
+  }
+};
+
+export const getVolunteerLogProofUrl = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user.id;
+    const userRole = (req as any).user.role;
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Volunteer log ID is required' });
+      return;
+    }
+
+    const log = await prisma.volunteerLog.findUnique({
+      where: { id: id as string },
+      select: { id: true, userId: true, schoolId: true, proofFileName: true },
+    });
+
+    if (!log || !log.proofFileName) {
+      res.status(404).json({ success: false, message: 'Proof not found' });
+      return;
+    }
+
+    // Authorization: owner, coordinator of same school, or admin
+    if (userRole === 'STUDENT' || userRole === 'STUDENT_COORDINATOR') {
+      if (log.userId !== userId) {
+        res.status(403).json({ success: false, message: 'Forbidden' });
+        return;
+      }
+    }
+
+    if (userRole === 'COORDINATOR') {
+      const requesterSchoolId = (req as any).user.schoolId;
+      if (!requesterSchoolId || requesterSchoolId !== log.schoolId) {
+        res.status(403).json({ success: false, message: 'Forbidden' });
+        return;
+      }
+    }
+
+    const bucket = process.env['S3_BUCKET_PROOFS'];
+    const region = process.env['AWS_REGION'] || 'us-east-1';
+    if (!bucket) {
+      res.status(500).json({ success: false, message: 'S3 bucket not configured' });
+      return;
+    }
+
+    const s3 = new S3Client({ region });
+    const ttl = parseInt(process.env['S3_SIGNED_URL_TTL'] || '900');
+    const getCommand = new GetObjectCommand({ Bucket: bucket, Key: log.proofFileName });
+    const url = await getSignedUrl(s3, getCommand, { expiresIn: ttl });
+
+    res.json({ success: true, url });
+  } catch (error) {
+    console.error('Get proof URL error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate proof URL' });
   }
 };
 

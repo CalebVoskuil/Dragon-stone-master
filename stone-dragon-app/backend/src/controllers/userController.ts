@@ -216,4 +216,20 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     });
   }
 };
+
+export const updatePushToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user.id as string | undefined;
+    const { token } = req.body as { token?: string };
+    if (!userId || !token) {
+      res.status(400).json({ success: false, message: 'Missing user or token' });
+      return;
+    }
+    await prisma.user.update({ where: { id: userId }, data: { pushToken: token } });
+    res.json({ success: true, message: 'Push token updated' });
+  } catch (error) {
+    console.error('Update push token error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update push token' });
+  }
+};
 //----------------------------------------------------0_______________END OF FILE_______________0----------------------------------------------------//

@@ -16,7 +16,12 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stonedragon.volunteerhours"
+      "bundleIdentifier": "com.stonedragon.volunteerhours",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow camera to capture proof photos.",
+        "NSPhotoLibraryUsageDescription": "Allow photo library access to select proof images.",
+        "NSPhotoLibraryAddUsageDescription": "Allow saving downloaded proof images."
+      }
     },
     "android": {
       // "adaptiveIcon": {
@@ -29,7 +34,8 @@
       // "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-notifications"
     ],
     "scheme": "stone-dragon-volunteer-hours",
     "extra": {

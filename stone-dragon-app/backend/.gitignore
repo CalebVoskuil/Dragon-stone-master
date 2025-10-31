@@ -1,0 +1,30 @@
+# Environment variables
+.env
+.env.local
+
+# SSH Keys (IMPORTANT: Never commit private keys!)
+*.pem
+*.ppk
+*.key
+MyKeyPair.pem
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Database
+*.db
+*.db-journal
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+

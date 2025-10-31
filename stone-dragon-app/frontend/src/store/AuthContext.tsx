@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '../services/api';
+import { registerForPushNotificationsAsync } from '../services/notifications';
 import { RegisterData as ApiRegisterData, UserRole } from '../types';
 
 // User Types
@@ -78,6 +79,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userData = response.data as User;
         setUser(userData);
         await AsyncStorage.setItem('@user', JSON.stringify(userData));
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          try { await apiService.updatePushToken(token); } catch {}
+        }
       } else {
         // Profile check failed, clear local data
         setUser(null);
@@ -108,6 +113,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(userData);
         await AsyncStorage.setItem('@user', JSON.stringify(userData));
         console.log('User saved to storage');
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          try { await apiService.updatePushToken(token); } catch {}
+        }
       } else {
         throw new Error(response.message || 'Login failed');
       }

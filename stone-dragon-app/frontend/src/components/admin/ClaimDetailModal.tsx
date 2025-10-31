@@ -20,6 +20,9 @@ import {
   Image,
 } from 'react-native';
 import { Linking, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { RootStackParamList } from '../../types';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import * as FileSystem from 'expo-file-system/legacy';
 import { X, Check, Clock, Calendar, User, FileText, MessageSquare, Eye, Tag, Building2, DollarSign, Package } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
@@ -58,6 +61,7 @@ export default function ClaimDetailModal({
   onApprove,
   onReject,
 }: ClaimDetailModalProps) {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -174,45 +178,49 @@ export default function ClaimDetailModal({
     }
   };
 
-  const handleViewProof = () => {
-    if (!claim?.proofFileName) return;
-    // Construct the full URL to the proof file (served from backend /uploads)
-    const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
-    const isImage = /\.(png|jpe?g|gif)$/i.test(claim.proofFileName);
-    console.log('View Proof pressed with URL:', proofUrl);
-    Alert.alert('Opening Proof', proofUrl, [
-      { text: 'Open in Browser', onPress: () => Linking.openURL(proofUrl).catch(() => {}) },
-      { text: 'Close', style: 'cancel' },
-    ]);
-
-    if (isImage) {
-      setPreviewUrl(proofUrl);
-      setPreviewError('');
-      setPreviewVisible(true);
+  const handleViewProof = async () => {
+    if (!claim?.id) {
+      Alert.alert('Error', 'Missing claim id');
       return;
     }
-
-    // Fallback for non-image proofs (e.g., PDFs)
-    // Simple alert to show URL; could be replaced with Linking.openURL
-    alert(`Open in browser: ${proofUrl}`);
+    if (!claim.proofFileName) {
+      Alert.alert('No proof available', 'This claim has no proof file');
+      return;
+    }
+    try {
+      setPreviewError('');
+      const resp = await apiService.getVolunteerLogProofUrl(claim.id);
+      if (!resp.success || !resp.url) {
+        Alert.alert('Error', resp.message || 'Unable to fetch proof URL');
+        return;
+      }
+      const url = resp.url;
+      console.log('Opening proof preview URL:', url);
+      navigation.navigate('ProofPreview', { url });
+    } catch (e: any) {
+      console.error('View proof error', e);
+      Alert.alert('Error', e?.message || 'Failed to open proof');
+    }
   };
 
   const handleDownloadProof = async () => {
     try {
-      if (!claim?.proofFileName) return;
-      const proofUrl = `http://192.168.0.208:3001/uploads/${claim.proofFileName}`;
+      if (!claim?.id) return;
       setDownloading(true);
+      // get signed URL from backend
+      const resp = await apiService.getVolunteerLogProofUrl(claim.id);
+      if (!resp.success || !resp.url) {
+        Alert.alert('Download failed', resp.message || 'Unable to get proof URL');
+        return;
+      }
+      const url = resp.url;
       const baseDir = (FileSystem.cacheDirectory || FileSystem.documentDirectory || '') as string;
-      const fileUri = baseDir + claim.proofFileName;
-      const result = await FileSystem.downloadAsync(proofUrl, fileUri);
-      if (result.status !== 200) {
-        throw new Error(`Download failed with status ${result.status}`);
-      }
-      // Try to open the downloaded file URL; user can use the OS sheet to save/share
+      const fileName = claim.proofFileName || `proof-${Date.now()}`;
+      const fileUri = baseDir + fileName;
+      const result = await FileSystem.downloadAsync(url, fileUri);
+      if (result.status !== 200) throw new Error(`Download failed with status ${result.status}`);
       const opened = await Linking.openURL(result.uri).catch(() => false);
-      if (!opened) {
-        Alert.alert('Downloaded', `Saved to: ${result.uri}`);
-      }
+      if (!opened) Alert.alert('Downloaded', `Saved to: ${result.uri}`);
     } catch (e: any) {
       console.error('Download error', e);
       Alert.alert('Download failed', e?.message || 'Unable to download file');
@@ -581,42 +589,42 @@ export default function ClaimDetailModal({
     {previewVisible && (
       <Modal
         visible={previewVisible}
-        transparent
-        animationType="fade"
+        transparent={false}
+        animationType="slide"
+        presentationStyle="fullScreen"
         onRequestClose={() => setPreviewVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>
-          <TouchableOpacity style={{ position: 'absolute', top: 50, right: 20, padding: 10 }} onPress={() => setPreviewVisible(false)}>
-            <Text style={{ color: '#fff', fontSize: 18 }}>Close</Text>
-          </TouchableOpacity>
-          {!!previewUrl && (
-            <Image
-              source={{ uri: previewUrl }}
-              style={{ width: '95%', height: '75%', resizeMode: 'contain' }}
-              onError={(e) => {
-                console.error('Image load error', e.nativeEvent?.error);
-                setPreviewError('Failed to load image. You can try opening it in the browser.');
-              }}
-            />
-          )}
-          <View style={{ marginTop: 16, alignItems: 'center', paddingHorizontal: 16 }}>
+        <View style={{ flex: 1, backgroundColor: '#000', paddingTop: 48 }}>
+          <View style={{ position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', zIndex: 2 }}>
+            <TouchableOpacity onPress={() => setPreviewVisible(false)} style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8 }}>
+              <Text style={{ color: '#fff', fontSize: 16 }}>Close</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={() => { if (previewUrl) Linking.openURL(previewUrl).catch(() => {}); }} style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontSize: 16 }}>Open</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDownloadProof} disabled={downloading} style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontSize: 16 }}>{downloading ? '...' : 'Download'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            {!!previewUrl && (
+              <Image
+                source={{ uri: previewUrl }}
+                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                onError={(e) => {
+                  console.error('Image load error', e.nativeEvent?.error);
+                  setPreviewError('Failed to load image. You can try opening it in the browser.');
+                }}
+              />
+            )}
             {previewError ? (
-              <Text style={{ color: '#fff', marginBottom: 12, textAlign: 'center' }}>{previewError}</Text>
+              <View style={{ position: 'absolute', bottom: 24, left: 12, right: 12 }}>
+                <Text style={{ color: '#fff', textAlign: 'center' }}>{previewError}</Text>
+                <Text style={{ color: '#aaa', marginTop: 8, fontSize: 12, textAlign: 'center' }}>{previewUrl}</Text>
+              </View>
             ) : null}
-            <TouchableOpacity
-              onPress={() => { if (previewUrl) Linking.openURL(previewUrl).catch(() => {}); }}
-              style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#6c63ff', borderRadius: 8 }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '600' }}>Open in Browser</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDownloadProof}
-              style={{ marginTop: 10, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#2f855a', borderRadius: 8 }}
-              disabled={downloading}
-            >
-              <Text style={{ color: '#fff', fontWeight: '600' }}>{downloading ? 'Downloading...' : 'Download'}</Text>
-            </TouchableOpacity>
-            <Text style={{ color: '#aaa', marginTop: 8, fontSize: 12, textAlign: 'center' }}>{previewUrl}</Text>
           </View>
         </View>
       </Modal>

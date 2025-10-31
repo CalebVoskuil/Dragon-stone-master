@@ -22,7 +22,6 @@ import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import { MemoryStore } from 'express-session';
 import dotenv from 'dotenv';
-import path from 'path';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
@@ -132,7 +131,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
  * Static file serving for uploaded proof documents
  * Makes files in the uploads directory publicly accessible
  */
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// S3 will serve proofs via signed URLs; local static uploads no longer used
 
 /**
  * Health check endpoint

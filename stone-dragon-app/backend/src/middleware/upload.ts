@@ -8,7 +8,6 @@
  */
 
 import multer from 'multer';
-import path from 'path';
 import { FileUploadConfig } from '../types';
 
 /**
@@ -25,23 +24,9 @@ const uploadConfig: FileUploadConfig = {
 };
 
 /**
- * Multer disk storage configuration.
- * Defines where and how uploaded files should be stored.
- * 
- * @constant
- * @type {multer.StorageEngine}
+ * Use memory storage so the controller can upload the buffer to S3.
  */
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadConfig.uploadPath);
-  },
-  filename: (_req, file, cb) => {
-    // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `proof-${uniqueSuffix}${ext}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 /**
  * File filter function to validate uploaded file types.

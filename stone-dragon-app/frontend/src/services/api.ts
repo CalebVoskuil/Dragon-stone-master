@@ -25,13 +25,23 @@ class ApiService {
   private api: AxiosInstance;
 
   constructor() {
+    // API Base URL Configuration
+    // Priority: Environment variable > Default production URL
+    // 
+    // To use local backend during development:
+    // 1. Create .env file in frontend/ directory
+    // 2. Add: EXPO_PUBLIC_API_URL=http://192.168.0.208:3001/api (your local IP)
+    // 3. Restart Expo: npx expo start --clear
+    //
+    // Default (production): 'http://13.245.207.194:3001/api' (EC2 instance)
+    // Local dev options:
+    //   - iOS Simulator: 'http://localhost:3001/api'
+    //   - Android Emulator: 'http://10.0.2.2:3001/api'
+    //   - Physical Device: 'http://YOUR_LOCAL_IP:3001/api'
+    const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://13.245.207.194:3001/api';
+    
     this.api = axios.create({
-      // API Base URL Configuration
-      // - For iOS Simulator: use 'http://localhost:3001/api'
-      // - For Android Emulator: use 'http://10.0.2.2:3001/api'
-      // - For Physical Device: use your computer's IP (e.g., 'http://192.168.1.100:3001/api')
-      // - For Production: update to your production API URL
-      baseURL: 'http://192.168.0.208:3001/api', 
+      baseURL: apiBaseUrl,
       timeout: 10000,
       withCredentials: true, // Important for session-based auth (cookies)
       headers: {
@@ -133,6 +143,16 @@ class ApiService {
 
   async getVolunteerLogById(id: string): Promise<ApiResponse<VolunteerLog>> {
     const response: AxiosResponse<ApiResponse<VolunteerLog>> = await this.api.get(`/volunteer-logs/${id}`);
+    return response.data;
+  }
+
+  async getVolunteerLogProofUrl(id: string): Promise<{ success: boolean; url?: string; message?: string }> {
+    const response: AxiosResponse<{ success: boolean; url?: string; message?: string }> = await this.api.get(`/volunteer-logs/${id}/proof-url`);
+    return response.data;
+  }
+
+  async updatePushToken(token: string): Promise<{ success: boolean; message?: string }> {
+    const response: AxiosResponse<{ success: boolean; message?: string }> = await this.api.patch('/users/push-token', { token });
     return response.data;
   }
 

@@ -7,6 +7,7 @@
  */
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { buildMessage, sendPushNotifications } from '../services/push';
 
 const prisma = new PrismaClient();
 
@@ -146,6 +147,18 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
         },
       },
     });
+
+    // Notify student about decision
+    try {
+      const student: any = await (prisma as any).user.findUnique({ where: { id: volunteerLog.user.id }, select: { pushToken: true, firstName: true } });
+      if (student && student.pushToken) {
+        const title = status === 'approved' ? 'Claim approved' : 'Claim rejected';
+        const body = status === 'approved' ? 'Your volunteer claim was approved.' : 'Your volunteer claim was rejected.';
+        await sendPushNotifications([buildMessage(student.pushToken as string, title, body, { logId: volunteerLog.id, status })]);
+      }
+    } catch (e) {
+      console.error('Push notify student error:', e);
+    }
 
     res.json({
       success: true,

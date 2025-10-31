@@ -29,6 +29,7 @@ import LeaderboardScreen from '../screens/coordinator/LeaderboardScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 import CoordinatorNotificationsScreen from '../screens/coordinator/NotificationsScreen';
 import StudentCoordinatorClaimsScreen from '../screens/studentCoordinator/StudentCoordinatorClaimsScreen';
+import ProofPreviewScreen from '../screens/common/ProofPreviewScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -130,6 +131,13 @@ const MainStackNavigator: React.FC = () => {
           headerShown: true, 
           title: 'Event Claims',
           headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen 
+        name="ProofPreview" 
+        component={ProofPreviewScreen}
+        options={{ 
+          headerShown: false
         }}
       />
     </Stack.Navigator>
