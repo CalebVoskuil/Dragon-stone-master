@@ -38,7 +38,7 @@ Since you're already using AWS RDS and S3, EC2 is a natural fit.
    chmod 400 MyKeyPair.pem
    
    # Connect to EC2 (use PUBLIC IP)
-   ssh -i MyKeyPair.pem ec2-user@YOUR_PUBLIC_IP
+   ssh -i MyKeyPair.pem ec2-user@13.245.207.194
    ```
    
    **Windows PowerShell Example:**

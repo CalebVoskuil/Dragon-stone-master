@@ -5,13 +5,14 @@
 /**
  *
  */
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Response } from 'express';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { AuthenticatedRequest } from '../types';
 
 const prisma = new PrismaClient();
 
 // Create a new event with optional student coordinator assignments
-export const createEvent = async (req: Request, res: Response): Promise<void> => {
+export const createEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
       title,
@@ -23,7 +24,7 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
       maxVolunteers,
       studentCoordinatorIds = [],
     } = req.body;
-    const coordinatorId = (req as any).user.id;
+    const coordinatorId = req.user?.id;
 
     console.log('Create event request:', {
       title,
@@ -53,6 +54,14 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Create the event
+    if (!coordinatorId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+      return;
+    }
+
     const event = await prisma.event.create({
       data: {
         title,
@@ -153,11 +162,11 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Get all events (filtered by role/user)
-export const getEvents = async (req: Request, res: Response): Promise<void> => {
+export const getEvents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { upcoming } = req.query;
 
-    const whereClause: any = {};
+    const whereClause: Prisma.EventWhereInput = {};
 
     // Filter for upcoming events if requested
     if (upcoming === 'true') {
@@ -232,7 +241,7 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Get single event by ID with registrations and coordinators
-export const getEventById = async (req: Request, res: Response): Promise<void> => {
+export const getEventById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -311,7 +320,7 @@ export const getEventById = async (req: Request, res: Response): Promise<void> =
 };
 
 // Update event details and student coordinator assignments
-export const updateEvent = async (req: Request, res: Response): Promise<void> => {
+export const updateEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -332,7 +341,7 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
       maxVolunteers,
       studentCoordinatorIds,
     } = req.body;
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
 
     // Check if user owns the event
     const existingEvent = await prisma.event.findUnique({
@@ -453,10 +462,10 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Delete event
-export const deleteEvent = async (req: Request, res: Response): Promise<void> => {
+export const deleteEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
 
     if (!id) {
       res.status(400).json({
@@ -505,10 +514,10 @@ export const deleteEvent = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Student registers for an event
-export const registerForEvent = async (req: Request, res: Response): Promise<void> => {
+export const registerForEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
 
     console.log('Register for event - Event ID:', id, 'User ID:', userId);
 
@@ -516,6 +525,14 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
       res.status(400).json({
         success: false,
         message: 'Event ID is required',
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
       });
       return;
     }
@@ -597,15 +614,23 @@ export const registerForEvent = async (req: Request, res: Response): Promise<voi
 };
 
 // Student unregisters from an event
-export const unregisterFromEvent = async (req: Request, res: Response): Promise<void> => {
+export const unregisterFromEvent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
 
     if (!id) {
       res.status(400).json({
         success: false,
         message: 'Event ID is required',
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
       });
       return;
     }
@@ -652,55 +677,59 @@ export const unregisterFromEvent = async (req: Request, res: Response): Promise<
 };
 
 // Get events user is registered for or coordinating
-export const getMyEvents = async (req: Request, res: Response): Promise<void> => {
+export const getMyEvents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
-    const user = (req as any).user;
+    const userId = req.user?.id;
+    const user = req.user;
 
-    let events: any[] = [];
+    if (!user || !userId) {
+      res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+      return;
+    }
 
-    // Get registered events for students/student coordinators
-    if (user.role === 'STUDENT' || user.role === 'STUDENT_COORDINATOR') {
-      const registrations = await prisma.eventRegistration.findMany({
-        where: { userId },
-        include: {
-          event: {
-            include: {
-              coordinator: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
+    const registrations = await prisma.eventRegistration.findMany({
+      where: { userId },
+      include: {
+        event: {
+          include: {
+            coordinator: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
               },
-              eventCoordinators: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      firstName: true,
-                      lastName: true,
-                      email: true,
-                      role: true,
-                    },
+            },
+            eventCoordinators: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    role: true,
                   },
                 },
               },
-              _count: {
-                select: {
-                  eventRegistrations: true,
-                },
+            },
+            _count: {
+              select: {
+                eventRegistrations: true,
               },
             },
           },
         },
-      });
+      },
+    });
 
-      events = registrations.map((reg) => reg.event);
-    }
+    // eslint-disable-next-line prefer-const
+    let events = registrations.map((reg) => reg.event);
 
-    // Get coordinating events for student coordinators
+    // Get coordinating events for student coordinators - merge and deduplicate
     if (user.role === 'STUDENT_COORDINATOR') {
       const coordinations = await prisma.eventCoordinator.findMany({
         where: { userId },

@@ -9,12 +9,38 @@
 import { Request } from 'express';
 
 /**
+ * Session data interface.
+ * Defines the structure of session data stored for authenticated users.
+ * 
+ * @interface SessionData
+ * @property {string} [userId] - ID of the authenticated user
+ * @property {UserRole} [userRole] - Role of the authenticated user
+ * @property {string | null} [userSchoolId] - School ID of the authenticated user (null if no school)
+ */
+export interface SessionData {
+  userId?: string;
+  userRole?: UserRole;
+  userSchoolId?: string | null;
+  cookie: {
+    originalMaxAge: number;
+    expires: Date | boolean;
+    secure: boolean;
+    httpOnly: boolean;
+    domain?: string;
+    path: string;
+    sameSite?: boolean | 'lax' | 'strict' | 'none';
+  };
+  destroy(callback: (err?: Error) => void): void;
+  save(callback: (err?: Error) => void): void;
+}
+
+/**
  * Extend Express Request to include session data.
  * This module augmentation adds session property to Express Request type.
  */
 declare module 'express-serve-static-core' {
   interface Request {
-    session: any;
+    session: SessionData;
   }
 }
 
@@ -35,15 +61,66 @@ export type UserRole = 'STUDENT' | 'COORDINATOR' | 'STUDENT_COORDINATOR' | 'ADMI
 export type LogStatus = 'pending' | 'approved' | 'rejected';
 
 /**
+ * User data interface.
+ * Represents a user in the system without sensitive data like password.
+ * 
+ * @interface UserData
+ */
+export interface UserData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  schoolId: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  school?: string | null;
+}
+
+/**
+ * School data interface (minimal).
+ * Represents basic school information.
+ */
+export interface SchoolInfo {
+  id: string;
+  name: string;
+}
+
+/**
+ * User from database with school relation.
+ */
+export interface UserWithSchool {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  schoolId: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  school: SchoolInfo | null;
+}
+
+/**
+ * User from database with password (for authentication).
+ */
+export interface UserWithPassword extends UserWithSchool {
+  password: string;
+}
+
+/**
  * Authenticated Express Request interface.
  * Extends the base Express Request to include authenticated user data.
  * 
  * @interface AuthenticatedRequest
  * @extends {Request}
- * @property {any} [user] - The authenticated user object
+ * @property {UserData} [user] - The authenticated user object
  */
 export interface AuthenticatedRequest extends Request {
-  user?: any;
+  user?: UserData;
 }
 
 /**
@@ -57,7 +134,7 @@ export interface AuthenticatedRequest extends Request {
  * @property {T} [data] - Optional response data payload
  * @property {string} [error] - Optional error message
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
@@ -83,23 +160,33 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 }
 
 /**
- * Login request interface.
+ * Login request body interface.
  * Contains credentials for user authentication.
  * 
- * @interface LoginRequest
+ * @interface LoginRequestBody
  * @property {string} email - User's email address
  * @property {string} password - User's password
  */
-export interface LoginRequest {
+export interface LoginRequestBody {
   email: string;
   password: string;
 }
 
 /**
- * Registration request interface.
+ * Login request interface with typed body.
+ * 
+ * @interface LoginRequest
+ * @extends {Request}
+ */
+export interface LoginRequest extends Request {
+  body: LoginRequestBody;
+}
+
+/**
+ * Registration request body interface.
  * Contains data needed to create a new user account.
  * 
- * @interface RegisterRequest
+ * @interface RegisterRequestBody
  * @property {string} email - User's email address
  * @property {string} password - User's password (will be hashed)
  * @property {string} firstName - User's first name
@@ -107,7 +194,7 @@ export interface LoginRequest {
  * @property {UserRole} role - User's role in the system
  * @property {string} [schoolId] - Optional school ID for student/coordinator affiliation
  */
-export interface RegisterRequest {
+export interface RegisterRequestBody {
   email: string;
   password: string;
   firstName: string;
@@ -117,14 +204,24 @@ export interface RegisterRequest {
 }
 
 /**
+ * Registration request interface with typed body.
+ * 
+ * @interface RegisterRequest
+ * @extends {Request}
+ */
+export interface RegisterRequest extends Request {
+  body: RegisterRequestBody;
+}
+
+/**
  * Authentication response interface.
  * Contains authenticated user data returned after successful login/registration.
  * 
  * @interface AuthResponse
- * @property {any} user - The authenticated user object
+ * @property {UserData} user - The authenticated user object
  */
 export interface AuthResponse {
-  user: any;
+  user: UserData;
 }
 
 /**

@@ -1,23 +1,24 @@
 /**
- *
+ * Coordinator Controller
+ * Handles coordinator-specific operations including managing volunteer logs, students, and school statistics.
  */
 
-/**
- *
- */
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+
+
+import { Response } from 'express';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { buildMessage, sendPushNotifications } from '../services/push';
+import { AuthenticatedRequest } from '../types';
 
 const prisma = new PrismaClient();
 
-export const getPendingLogs = async (req: Request, res: Response): Promise<void> => {
+export const getPendingLogs = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const userRole = (req as any).user.role;
-    const userSchoolId = (req as any).user.schoolId;
+    const userRole = req.user?.role;
+    const userSchoolId = req.user?.schoolId;
 
-    const where: any = {
+    const where: Prisma.VolunteerLogWhereInput = {
       status: 'pending',
     };
 
@@ -81,13 +82,13 @@ export const getPendingLogs = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const reviewVolunteerLog = async (req: Request, res: Response): Promise<void> => {
+export const reviewVolunteerLog = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { logId } = req.params;
     const { status, coordinatorComment } = req.body;
-    const coordinatorId = (req as any).user.id;
-    const userRole = (req as any).user.role;
-    const userSchoolId = (req as any).user.schoolId;
+    const coordinatorId = req.user?.id;
+    const userRole = req.user?.role;
+    const userSchoolId = req.user?.schoolId;
 
     if (!logId) {
       res.status(400).json({
@@ -128,7 +129,7 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
         status,
         coordinatorComment,
         reviewedAt: new Date(),
-        reviewedBy: coordinatorId,
+        reviewedBy: coordinatorId ?? null,
       },
       include: {
         user: {
@@ -150,7 +151,7 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
 
     // Notify student about decision
     try {
-      const student: any = await (prisma as any).user.findUnique({ where: { id: volunteerLog.user.id }, select: { pushToken: true, firstName: true } });
+      const student = await prisma.user.findUnique({ where: { id: volunteerLog.userId }, select: { pushToken: true, firstName: true } });
       if (student && student.pushToken) {
         const title = status === 'approved' ? 'Claim approved' : 'Claim rejected';
         const body = status === 'approved' ? 'Your volunteer claim was approved.' : 'Your volunteer claim was rejected.';
@@ -174,10 +175,10 @@ export const reviewVolunteerLog = async (req: Request, res: Response): Promise<v
   }
 };
 
-export const getCoordinatorDashboard = async (req: Request, res: Response): Promise<void> => {
+export const getCoordinatorDashboard = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userRole = (req as any).user.role;
-    const userSchoolId = (req as any).user.schoolId;
+    const userRole = req.user?.role;
+    const userSchoolId = req.user?.schoolId;
 
     // Calculate date ranges for statistics
     const now = new Date();
@@ -185,7 +186,7 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
     const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Build where clause - coordinators only see their school
-    const whereClause: any = {};
+    const whereClause: Prisma.VolunteerLogWhereInput = {};
     if (userRole === 'COORDINATOR') {
       if (!userSchoolId) {
         res.status(403).json({
@@ -310,7 +311,7 @@ export const getCoordinatorDashboard = async (req: Request, res: Response): Prom
   }
 };
 
-export const getSchoolStats = async (req: Request, res: Response): Promise<void> => {
+export const getSchoolStats = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { schoolId } = req.query;
 
@@ -357,7 +358,7 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
     ]);
 
     // Get user details for top volunteers
-    const topVolunteerIds = topVolunteers.map((v: any) => v.userId);
+    const topVolunteerIds = topVolunteers.map((v) => v.userId);
     const topVolunteerDetails = await prisma.user.findMany({
       where: { id: { in: topVolunteerIds } },
       select: {
@@ -368,8 +369,8 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
       },
     });
 
-    const topVolunteersWithDetails = topVolunteers.map((volunteer: any) => {
-      const userDetails = topVolunteerDetails.find((u: any) => u.id === volunteer.userId);
+    const topVolunteersWithDetails = topVolunteers.map((volunteer) => {
+      const userDetails = topVolunteerDetails.find((u) => u.id === volunteer.userId);
       return {
         ...userDetails,
         totalHours: volunteer._sum.hours || 0,
@@ -399,16 +400,16 @@ export const getSchoolStats = async (req: Request, res: Response): Promise<void>
   }
 };
 
-export const getStudentsList = async (req: Request, res: Response): Promise<void> => {
+export const getStudentsList = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { page = 1, limit = 20, search, schoolId } = req.query;
-    const userRole = (req as any).user.role;
-    const userSchoolId = (req as any).user.schoolId;
+    const userRole = req.user?.role;
+    const userSchoolId = req.user?.schoolId;
 
     const skip = (Number(page) - 1) * Number(limit);
     
     // Build where clause - filter by coordinator's school and role
-    const where: any = {
+    const where: Prisma.UserWhereInput = {
       role: 'STUDENT',
     };
 
@@ -432,7 +433,7 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
     if (search) {
       if (userRole === 'COORDINATOR') {
         where.AND = [
-          { schoolId: userSchoolId },
+          { schoolId: userSchoolId ?? null },
           {
             OR: [
               { firstName: { contains: search as string, mode: 'insensitive' } },
@@ -525,11 +526,11 @@ export const getStudentsList = async (req: Request, res: Response): Promise<void
   }
 };
 
-export const getLeaderboard = async (req: Request, res: Response): Promise<void> => {
+export const getLeaderboard = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { period = 'month' } = req.query;
-    const userRole = (req as any).user.role;
-    const userSchoolId = (req as any).user.schoolId;
+    const userRole = req.user?.role;
+    const userSchoolId = req.user?.schoolId;
 
     // Calculate date range based on period
     const now = new Date();
@@ -549,7 +550,7 @@ export const getLeaderboard = async (req: Request, res: Response): Promise<void>
     }
 
     // Build where clause - coordinators only see their school
-    const whereClause: any = {
+    const whereClause: Prisma.VolunteerLogWhereInput = {
       status: 'approved',
       date: {
         gte: startDate,

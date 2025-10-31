@@ -1,12 +1,12 @@
 /**
- *
+ * Badge Controller
+ * Handles badge-related operations including retrieving badges, user badges, and badge progress.
  */
 
-/**
- *
- */
+
+
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Badge } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -59,7 +59,7 @@ export const getUserBadges = async (req: Request, res: Response): Promise<void> 
     });
 
     // Calculate which badges the user has earned
-    const userBadges = badges.map((badge: any) => ({
+    const userBadges = badges.map((badge: Badge) => ({
       ...badge,
       isEarned: userTotalHours >= badge.requiredHours,
       earnedAt: userTotalHours >= badge.requiredHours ? new Date() : null,
@@ -111,7 +111,7 @@ export const getBadgeProgress = async (req: Request, res: Response): Promise<voi
     });
 
     // Calculate progress for each badge
-    const badgeProgress = badges.map((badge: any) => {
+    const badgeProgress = badges.map((badge: Badge) => {
       const isEarned = userTotalHours >= badge.requiredHours;
       const progress = Math.min((userTotalHours / badge.requiredHours) * 100, 100);
       

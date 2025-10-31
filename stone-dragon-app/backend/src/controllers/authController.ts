@@ -1,20 +1,20 @@
 /**
- *
+ * Auth Controller
+ * Handles user authentication operations including registration, login, logout, and profile retrieval.
  */
 
-/**
- *
- */
+
+
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
-import { RegisterRequest, LoginRequest } from '../types';
+import { RegisterRequest, LoginRequest, UserRole } from '../types';
 
 const prisma = new PrismaClient();
 
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: RegisterRequest, res: Response): Promise<void> => {
   try {
-    const { email, password, firstName, lastName, role, schoolId }: RegisterRequest = req.body;
+    const { email, password, firstName, lastName, role, schoolId } = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -35,12 +35,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email: email as string,
+        email,
         password: hashedPassword,
-        firstName: firstName as string,
-        lastName: lastName as string,
-        role: role as string,
-        ...(schoolId && { schoolId: schoolId as string }),
+        firstName,
+        lastName,
+        role,
+        ...(schoolId && { schoolId }),
       },
       select: {
         id: true,
@@ -61,17 +61,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-
     // Store user in session
-    (req.session as any).userId = user.id;
-    (req.session as any).userRole = user.role;
-    (req.session as any).userSchoolId = user.schoolId;
+    req.session.userId = user.id;
+    req.session.userRole = role;
+    req.session.userSchoolId = user.schoolId;
 
     // Format user data with school name
     const { school, ...userData } = user;
     const formattedUser = {
       ...userData,
-      school: school?.name,
+      school: school?.name ?? null,
     };
 
     res.status(201).json({
@@ -89,9 +88,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------//
-export const login = async (req: Request, res: Response): Promise<void> => {
+export const login = async (req: LoginRequest, res: Response): Promise<void> => {
   try {
-    const { email, password }: LoginRequest = req.body;
+    const { email, password } = req.body;
 
     // Find user with school
     const user = await prisma.user.findUnique({
@@ -126,15 +125,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Store user in session
-    (req.session as any).userId = user.id;
-    (req.session as any).userRole = user.role;
-    (req.session as any).userSchoolId = user.schoolId;
+    req.session.userId = user.id;
+    req.session.userRole = user.role as UserRole;
+    req.session.userSchoolId = user.schoolId;
 
     // Remove password from response and format user data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, school, ...userWithoutPassword } = user;
     const userData = {
       ...userWithoutPassword,
-      school: school?.name,
+      school: school?.name ?? null,
     };
 
     res.json({
@@ -154,7 +154,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 //-------------------------------------------------------------------------------------------------------------------------------------------------------//
 export const logout = async (req: Request, res: Response): Promise<void> => {
   // Destroy the session
-  req.session.destroy((err: any) => {
+  req.session.destroy((err?: Error) => {
     if (err) {
       res.status(500).json({
         success: false,
@@ -172,7 +172,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 //-------------------------------------------------------------------------------------------------------------------------------------------------------//
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req.session as any).userId;
+    const userId = req.session.userId;
 
     if (!userId) {
       res.status(401).json({
@@ -215,7 +215,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     const { school, ...userData } = user;
     const formattedUser = {
       ...userData,
-      school: school?.name,
+      school: school?.name ?? null,
     };
 
     res.json({
